@@ -5,12 +5,21 @@ Created on Fri May 13 17:06:14 2016
 @author: bruno
 """
 
-from imageSimulation import big_code
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import stats
+
+from imsim import simtools
+import propercoadd as pc
+
 
 N = 512  # side
 
-m = big_code.delta_point(N)
+x = [np.random.randint(low=10, high=N-10) for j in range(100)]
+y = [np.random.randint(low=10, high=N-10) for j in range(100)]
+xy = [(x[i], y[i]) for i in range(10)]
+m = simtools.delta_point(N, center=False, xy=xy)
 
-im = big_code.image(m, N, t_exp=1, FWHM=10, SN=100)
+im = simtools.image(m*100., N, t_exp=10, FWHM=3, SN=10)
 
 

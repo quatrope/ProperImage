@@ -8,7 +8,6 @@ PhD of Astromoy - UNC"""
 
 import numpy as np
 import scipy.fftpack as fft
-from imageSimulation import big_code
 
 # at this point we assume ten images.
 # An image is a background substracted image,
@@ -18,4 +17,18 @@ from imageSimulation import big_code
 
 # and we have an idea of Var(e_j) = sigma_j (assuming...)
 
+def match_filter(image, objfilter):
+    """
+    Function to apply matched filtering to an image
+    """
+    return None
+
+
+def psf_extract(image, xy):
+    """Function to extract the psf of an image.
+
+    xy should be a list of tuples with
+    """
+
+    return None
 

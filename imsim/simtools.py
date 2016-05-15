@@ -84,6 +84,8 @@ def pixelize(L, M):
     elif np.mod(s[1], L) != 0:
         print("Bad new pixel size")
         return
+    elif L == 1:
+        return(M)
     else:
         m = s[1]/L
         M2 = np.zeros((m, m))  # initialize new matrix
@@ -177,8 +179,8 @@ def image(MF, N2, t_exp, FWHM, SN):
     PSF = Psf(32, FWHM)
     IM = convol_gal_psf_fft(MF, PSF)
     image = pixelize(N/N2, IM)
-    b = image[round((N2/2.)-1), round(N2/2)]
-    lam = b/SN
+    b = image[int((N2/2.)-1), int(N2/2.)]
+    lam = max([b/SN, 1])
     C = cielo(N2, lam)
     F = C + image
     return(F)
@@ -233,8 +235,8 @@ def delta_point(N, center=True, xy=None):
 
     m = delta_point(N, center=False, xy=xy)
     """
+    m = np.zeros(shape=(N, N))
     if center is False:
-        m = np.zeros(shape=(N, N))
         for x, y in xy.__iter__():
             m[x, y] = 1.
     else:
