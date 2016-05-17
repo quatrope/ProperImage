@@ -183,7 +183,7 @@ def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
     std : en caso que bkg_pdf sea gaussian, valor de std
     """
     N = np.shape(MF)[0]
-    PSF = Psf(32, FWHM)
+    PSF = Psf(64, FWHM)
     IM = convol_gal_psf_fft(MF, PSF)
     if N != N2:
         image = pixelize(N/N2, IM)
