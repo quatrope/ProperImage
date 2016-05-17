@@ -13,13 +13,16 @@ from imsim import simtools
 import propercoadd as pc
 
 
-N = 512  # side
+N = 128  # side
 
-x = [np.random.randint(low=10, high=N-10) for j in range(100)]
-y = [np.random.randint(low=10, high=N-10) for j in range(100)]
-xy = [(x[i], y[i]) for i in range(10)]
-m = simtools.delta_point(N, center=False, xy=xy)
+#x = [np.random.randint(low=10, high=N-10) for j in range(100)]
+#y = [np.random.randint(low=10, high=N-10) for j in range(100)]
+#xy = [(x[i], y[i]) for i in range(100)]
 
-im = simtools.image(m*100., N, t_exp=10, FWHM=3, SN=10)
+m = simtools.delta_point(N, center=True)
 
+im = simtools.image(m*10000, N, t_exp=1, FWHM=5, SN=10, bkg_pdf='poisson')
+
+plt.imshow(im)
+plt.show()
 

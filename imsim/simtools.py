@@ -99,14 +99,17 @@ def pixelize(L, M):
     return(M2)
 
 
-def cielo(N, lam):
+def cielo(N, pdf='poisson', mean=1, std=None):
     """
     esta funcion arroja una matriz de lado N con los pixeles
-    con valores random extraidos de una distribucion poisson con
-    media lam
+    con valores random extraidos de una distribucion poisson o gaussiana con
+    media mean, y varianza std**2
     """
-    # promedio cuentas del cielo=lam
-    x = np.random.poisson(lam, (N, N)).astype(np.float32)
+    if pdf == 'poisson':
+        # promedio cuentas del cielo=lam
+        x = np.random.poisson(mean, (N, N)).astype(np.float32)
+    elif pdf == 'gaussian':
+        x = np.random.normal(mean, std, (N,N)).astype(np.float32)
     return(x)
 
 
@@ -164,7 +167,7 @@ def incline2(gal, theta):
     return(gal2)
 
 
-def image(MF, N2, t_exp, FWHM, SN):
+def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
     """
     funcion que genera una imagen con ruido y seeing a partir
     de un master frame, y la pixeliza hasta tamaño N2
@@ -174,14 +177,23 @@ def image(MF, N2, t_exp, FWHM, SN):
         N2= tamaño de la imagen final, pixelizada
         SN es la relacion señal ruido con el fondo del cielo
     """
-    s = np.shape(MF)
-    N = s[0]
+    N = np.shape(MF)[0]
     PSF = Psf(32, FWHM)
     IM = convol_gal_psf_fft(MF, PSF)
-    image = pixelize(N/N2, IM)
-    b = image[int((N2/2.)-1), int(N2/2.)]
-    lam = max([b/SN, 1])
-    C = cielo(N2, lam)
+    if N != N2:
+        image = pixelize(N/N2, IM)
+    else:
+        image = IM
+    b = image[int(N2/2), int(N2/2)]
+
+    mean = (SN**2.)/2. - b + (SN*np.sqrt(abs(SN**2. - 4*b)))/2.
+
+    # if b/SN >9E-4 and b/SN < 10E6:
+    #    lam = b/SN
+    #    print 'OK!'
+    #else: lam = max([b/3, 2])
+    print 'mean = {}, b = {}, SN = {}'.format(mean, b, SN)
+    C = cielo(N=N2, pdf=bkg_pdf, mean=mean)
     F = C + image
     return(F)
 
