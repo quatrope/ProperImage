@@ -23,6 +23,21 @@ m = simtools.delta_point(N, center=True)
 
 im = simtools.image(m, N, t_exp=1, FWHM=10, SN=3, bkg_pdf='gaussian')
 
-plt.imshow(im, interpolation=None, cmap=cm.gray)
+
+from astropy.convolution import convolve, convolve_fft
+
+psf = simtools.Psf(31, 5)
+
+im_con = convolve(im, psf)
+
+im_con_fft = convolve_fft(im, psf)
+
+plt.figure()
+plt.subplot(121)
+plt.imshow(im_con, interpolation='none')
+plt.subplot(122)
+plt.imshow(im_con_fft, interpolation='None')
+plt.title('conv - fft')
 plt.show()
+
 
