@@ -171,11 +171,16 @@ def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
     """
     funcion que genera una imagen con ruido y seeing a partir
     de un master frame, y la pixeliza hasta tamaño N2
-        IMC = imagen Master
-        FWHM = tamaño en pixeles del FWHM del seeing
-        t_exp = tiempo exposicion de la imagen
-        N2= tamaño de la imagen final, pixelizada
-        SN es la relacion señal ruido con el fondo del cielo
+
+    Parametros
+    ----------
+    IMC : imagen Master
+    FWHM : tamaño en pixeles del FWHM del seeing
+    t_exp : tiempo exposicion de la imagen
+    N2 : tamaño de la imagen final, pixelizada
+    SN : es la relacion señal ruido con el fondo del cielo
+    bkg_pdf : distribucion de probabilidad del ruido background
+    std : en caso que bkg_pdf sea gaussian, valor de std
     """
     N = np.shape(MF)[0]
     PSF = Psf(32, FWHM)
@@ -184,16 +189,17 @@ def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
         image = pixelize(N/N2, IM)
     else:
         image = IM
-    b = image[int(N2/2), int(N2/2)]
 
-    mean = (SN**2.)/2. - b + (SN*np.sqrt(abs(SN**2. - 4*b)))/2.
-
-    # if b/SN >9E-4 and b/SN < 10E6:
-    #    lam = b/SN
-    #    print 'OK!'
-    #else: lam = max([b/3, 2])
-    print 'mean = {}, b = {}, SN = {}'.format(mean, b, SN)
-    C = cielo(N=N2, pdf=bkg_pdf, mean=mean)
+    b = np.max(image) #image[int(N2/2), int(N2/2)]
+    if bkg_pdf == 'poisson':
+        mean = (b/SN)**2.
+        print 'mean = {}, b = {}, SN = {}'.format(mean, b, SN)
+        C = cielo(N=N2, pdf=bkg_pdf, mean=mean)
+    elif bkg_pdf == 'gaussian':
+        mean = 0
+        std = b/SN
+        print 'mean = {}, std = {}, b = {}, SN = {}'.format(mean, std, b, SN)
+        C = cielo(N=N2, pdf=bkg_pdf, mean=mean, std=std)
     F = C + image
     return(F)
 

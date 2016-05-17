@@ -21,7 +21,7 @@ N = 128  # side
 
 m = simtools.delta_point(N, center=True)
 
-im = simtools.image(m*10000, N, t_exp=1, FWHM=5, SN=10, bkg_pdf='poisson')
+im = simtools.image(m*10000, N, t_exp=1, FWHM=5, SN=10, bkg_pdf='gaussian')
 
 plt.imshow(im)
 plt.show()
