@@ -30,12 +30,10 @@ class SingleImage(object):
         if sim:
             self.meta = meta
         else:
-            self.meta = {}
             imgstats = ImageStats(self.imagedata, 'numpy_array')
             imgstats.calc_stats()
             imgstats.summary()
-
-
+            self.meta = imgstats.full_description
 
 
 class ImageStats(object):
@@ -86,16 +84,23 @@ class ImageStats(object):
         print 'ImageStats instance for {}'.format(self._attached_to)
 
     def pix_sd(self):
+        self.full_description['std'] = self.pixmatrix.std()
         return self.pixmatrix.std()
 
     def pix_median(self):
-        return np.median(self.pixmatrix)
+        m = np.median(self.pixmatrix)
+        self.full_description['median'] = m
+        return m
 
     def count_hist(self):
-        return astrostats.histogram(self.pixmatrix.flatten(), bins = 30)
+        h = astrostats.histogram(self.pixmatrix.flatten(), bins = 30)
+        self.full_description['histogram'] = h
+        return h
 
     def pix_mean(self):
-        return np.mean(self.pixmatrix)
+        m = np.mean(self.pixmatrix)
+        self.full_description['mean'] = m
+        return m
 
     def to1d(self):
         #self._oneDdata = np.reshape(self.pixmatrix, self.pixmatrix.shape[0]*self.pixmatrix.shape[1])
@@ -115,10 +120,6 @@ class ImageStats(object):
         self.summ = stats.describe(self._oneDdata)
         #print self.summ
         return
-
-    def stats_to_dict(self):
-        return self.full_description
-
 
 
 def match_filter(image, objfilter):
