@@ -185,21 +185,25 @@ def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
     N = np.shape(MF)[0]
     PSF = Psf(64, FWHM)
     IM = convol_gal_psf_fft(MF, PSF)
+
     if N != N2:
         image = pixelize(N/N2, IM)
     else:
         image = IM
 
     b = np.max(image) #image[int(N2/2), int(N2/2)]
+
     if bkg_pdf == 'poisson':
         mean = (b/SN)**2.
         print 'mean = {}, b = {}, SN = {}'.format(mean, b, SN)
         C = cielo(N=N2, pdf=bkg_pdf, mean=mean)
+
     elif bkg_pdf == 'gaussian':
         mean = 0
         std = b/SN
         print 'mean = {}, std = {}, b = {}, SN = {}'.format(mean, std, b, SN)
         C = cielo(N=N2, pdf=bkg_pdf, mean=mean, std=std)
+
     F = C + image
     return(F)
 
@@ -333,7 +337,7 @@ def set_generator(n, air, FWHM, theta, N, Ntot):
 from astropy.io import fits
 from astropy.time import Time
 import os
-def capsule_corp(gal, t, t_exp, i,zero):
+def capsule_corp(gal, t, t_exp, i, zero, path, round_int=False):
     """
     funcion que encapsula las imagenes generadas en fits
     gal        :   Imagen (matriz) a encapsular
@@ -342,25 +346,30 @@ def capsule_corp(gal, t, t_exp, i,zero):
     i          :   Numero de imagen
     zero       :   Punto cero de la fotometria
     """
-    p = "/media/F038D6A538D669DC/Users/Bruno/Documents/tesis/curvas_sinteticas/Fits_simulados"
-    path = os.path.abspath(p)
-    s = np.shape(gal)
-    for l in range(0, s[0]):
-        for j in range(0, s[1]):
-            gal[l, j]=round(gal[l, j])
+    if round_int:
+        s = np.shape(gal)
+        for l in range(0, s[0]):
+            for j in range(0, s[1]):
+                gal[l, j]=round(gal[l, j])
 
     file1 = fits.PrimaryHDU(gal)
     hdulist = fits.HDUList([file1])
     hdr = hdulist[0].header
-    time = Time(t, format='jd', scale='utc')
-    dia = time.iso[0:10]
-    hora = time.iso[11:24]
-    jd = time.jd
+    if t.__class__.__name__ == 'Time':
+        dia = t.iso[0:10]
+        hora = t.iso[11:24]
+        jd = t.jd
+    else:
+        time = Time(t, format='jd', scale='utc')
+        dia = time.iso[0:10]
+        hora = time.iso[11:24]
+        jd = time.jd
     hdr.set('TIME-OBS', hora)
     hdr.set('DATE-OBS', dia)
     hdr.set('EXPTIME', t_exp)
     hdr.set('JD', jd)
     hdr.set('ZERO_P', zero)
     path_fits = os.path.join(path, ('image00'+str(i)+'.fits'))
-    hdulist.writeto(path_fits)
+    hdulist.writeto(path_fits, clobber=True)
+    return path_fits
 

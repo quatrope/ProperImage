@@ -8,7 +8,8 @@ PhD of Astromoy - UNC"""
 
 import numpy as np
 import scipy.fftpack as fft
-
+from scipy.stats import stats
+from astropy.io import fits
 # at this point we assume several images.
 # An image is an object with the pixel data and some methods for computing,
 #  background and, source detection.
@@ -93,7 +94,7 @@ class ImageStats(object):
         return m
 
     def count_hist(self):
-        h = astrostats.histogram(self.pixmatrix.flatten(), bins = 30)
+        h = stats.histogram(self.pixmatrix.flatten(), numbins = 30)
         self.full_description['histogram'] = h
         return h
 
