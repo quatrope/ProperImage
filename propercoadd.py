@@ -36,6 +36,10 @@ class SingleImage(object):
             imgstats.summary()
             self.meta = imgstats.full_description
 
+    def __repr__(self):
+        print 'SingleImage instance for {}'.format(self._attached_to)
+
+
 
 class ImageStats(object):
     """

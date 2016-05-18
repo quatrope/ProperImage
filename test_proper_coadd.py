@@ -4,12 +4,13 @@ Created on Fri May 13 17:06:14 2016
 
 @author: bruno
 """
-
-import matplotlib.pyplot as plt
-import numpy as np
 import os
-from scipy.stats import stats
+import shlex
+import subprocess
 
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import stats
 from astropy.convolution import convolve, convolve_fft
 from astropy.time import Time
 from astropy.io import fits
@@ -35,10 +36,27 @@ for i in range(30):
     filenames.append(
         simtools.capsule_corp(im, t, t_exp=1, i=i, zero=3.1415, path=test_dir))
 
+S = np.zeros(shape=(128,128))
+psf = simtools.Psf(128, 10)
 for afile in filenames:
     px = pc.SingleImage(afile, imagefile=True)
+    # Now I must combine this images, normalizing by the var(noise)
+    var = px.meta['std']
+    conv = convolve_fft(px.imagedata, psf)
+    S = S + conv/var**2.
 
+swarp = shlex.split('swarp @test_images/one_star/imagelist.txt -c default.swarp')
+subprocess.call(swarp)
 
+plt.figure()
+plt.subplot(121)
+plt.imshow(S, interpolation='none')
+plt.title('Ofek')
+plt.subplot(122)
+sw = fits.getdata('./coadd.fits')
+plt.imshow(sw, interpolation='none')
+plt.title('SWarp')
+plt.show()
 #im_con = convolve(im, psf)
 
 #im_con_fft = convolve_fft(im, psf)
