@@ -4,25 +4,53 @@ import numpy as np
 import scipy as sp
 from scipy import signal as sg
 from scipy import stats
-
+from astropy.convolution import convolve_fft
+from astropy.modeling import models
 
 def Psf(N, FWHM):
     """Psf es una funcion que proporciona una matriz 2D con una gaussiana
     simétrica en ambos ejes. con N se especifica el tamaño en pixeles que
-    necesitamos y con FWHM el ancho sigma de la gaussiana en pixeles"""
+    necesitamos y con FWHM el ancho sigma de la gaussiana en pixeles
+
+    FASTER
+    %timeit simtools.Psf(128, 10)
+    1 loops, best of 3: 234 ms per loop
+
+    """
     a = np.zeros((N, N))
     mu = (N-1)/2.
-    sigma = FWHM/2.
-    for i in range(N-1):
-        for j in range(N-1):
+    sigma = FWHM/2.335
+    tail_len = int(7*sigma)
+    mu_int = int(mu)
+    for i in range(mu_int - tail_len, mu_int + tail_len, 1):
+        for j in range(mu_int - tail_len, mu_int + tail_len, 1):
             a[i, j] = stats.norm.pdf(i, loc=mu, scale=sigma) * \
                        stats.norm.pdf(j, loc=mu, scale=sigma)
-    return(a)
+    return(a/np.sum(a))
 
+def astropy_Psf(N, FWHM):
+    """Psf es una funcion que proporciona una matriz 2D con una gaussiana
+    simétrica en ambos ejes. con N se especifica el tamaño en pixeles que
+    necesitamos y con FWHM el ancho sigma de la gaussiana en pixeles
+
+    %timeit simtools.astropy_Psf(128, 10)
+    1 loops, best of 3: 338 ms per loop
+    """
+    psf = np.zeros((N, N))
+    mu = (N-1)/2.
+    sigma = FWHM/2.335
+    model = models.Gaussian2D(amplitude=1., x_mean=mu, y_mean=mu,
+                x_stddev=sigma, y_stddev=sigma)
+    tail_len = int(7*sigma)
+    mu_int = int(mu)
+    i = range(mu_int - tail_len, mu_int + tail_len, 1)
+    for ii,jj in cartesian_product([i,i]):
+            psf[ii, jj] = model(ii,jj)
+    return psf/np.sum(psf)
 
 def _airy_func(rr, width, amplitude=1.0):
     """
-   For a simple radially symmetric airy function, returns the value at a given
+    For a simple radially symmetric airy function, returns the value at a given
     (normalized) radius
     """
     return amplitude * (2.0 * sp.special.j1(rr/width) / (rr/width))**2
@@ -59,6 +87,8 @@ def convol_gal_psf_fft(gal, a):
     convol_gal_psf_fft(gal, a)
 
     retorna la convolucion de gal x a, usando la misma forma matricial que gal.
+
+    FASTER
     """
     b = sg.fftconvolve(gal, a, mode="same")
     return(b)
@@ -239,13 +269,33 @@ def inyeccion(MF, JD, largo, d, phi_0, t_decay,
     IM = convol_gal_psf_fft(transit, Air)
     return(MF + IM)
 
+def cartesian_product(arrays):
+    """
+    Creates a cartesian product array from a list of arrays.
 
-def delta_point(N, center=True, xy=None):
+    It is used to create x-y coordinates array from x and y arrays.
+
+    Stolen from stackoverflow
+    http://stackoverflow.com/a/11146645
+    """
+    broadcastable = np.ix_(*arrays)
+    broadcasted = np.broadcast_arrays(*broadcastable)
+    rows, cols = reduce(np.multiply, broadcasted[0].shape), len(broadcasted)
+    out = np.empty(rows * cols, dtype=broadcasted[0].dtype)
+    start, end = 0, rows
+    for a in broadcasted:
+        out[start:end] = a.reshape(-1)
+        start, end = end, end + rows
+    return out.reshape(cols, rows).T
+
+
+def delta_point(N, center=True, xy=None, weights=None):
     """
     Function to create delta sources in a square NxN matrix.
     If center is True (default) it will locate a unique delta
     in the center of the image.
     Else it will need a xy list of positions where to put the deltas.
+    It can handle weights for different source flux.
 
     Returns a NxN numpy array.
 
@@ -259,8 +309,11 @@ def delta_point(N, center=True, xy=None):
     """
     m = np.zeros(shape=(N, N))
     if center is False:
+        if weights is None:
+            weights = list(np.repeat(1., len(xy)))
         for x, y in xy.__iter__():
-            m[x, y] = 1.
+            w = weights.pop(0)
+            m[x, y] = 1.*w
     else:
         m[int(N/2), int(N/2)] = 1
     return(m)

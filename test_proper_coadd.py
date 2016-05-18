@@ -19,31 +19,37 @@ from imsim import simtools
 import propercoadd as pc
 
 
-N = 128  # side
+N = 1024  # side
+FWHM = 10
 test_dir = os.path.abspath('./test_images/one_star')
-#x = [np.random.randint(low=10, high=N-10) for j in range(100)]
-#y = [np.random.randint(low=10, high=N-10) for j in range(100)]
-#xy = [(x[i], y[i]) for i in range(100)]
+
+x = np.linspace(5*FWHM, N-5*FWHM, 10)
+y = np.linspace(5*FWHM, N-5*FWHM, 10)
+xy = simtools.cartesian_product([x, y])
+
 now = '2016-05-17T00:00:00.1234567'
 t = Time(now)
 
 filenames = []
 for i in range(30):
-    SN = i + 2.
-    m = simtools.delta_point(N, center=True)
-    im = simtools.image(m, N, t_exp=1, FWHM=10, SN=SN, bkg_pdf='gaussian')
+    SN =  2. # + i
+    weights = list(np.linspace(0.00001, 1, len(xy)))
+    m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
+    im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='gaussian')
 
     filenames.append(
         simtools.capsule_corp(im, t, t_exp=1, i=i, zero=3.1415, path=test_dir))
 
-S = np.zeros(shape=(128,128))
-psf = simtools.Psf(128, 10)
+S = np.zeros(shape=(N,N))
+psf = simtools.Psf(N, FWHM)
 for afile in filenames:
     px = pc.SingleImage(afile, imagefile=True)
     # Now I must combine this images, normalizing by the var(noise)
     var = px.meta['std']
     conv = convolve_fft(px.imagedata, psf)
     S = S + conv/var**2.
+
+fits.writeto(data=S, filename='./test_images/S.fits', clobber=True)
 
 swarp = shlex.split('swarp @test_images/one_star/imagelist.txt -c default.swarp')
 subprocess.call(swarp)
@@ -56,7 +62,9 @@ plt.subplot(122)
 sw = fits.getdata('./coadd.fits')
 plt.imshow(sw, interpolation='none')
 plt.title('SWarp')
-plt.show()
+plt.savefig('./test_images/one_star/coadds.png')
+
+
 #im_con = convolve(im, psf)
 
 #im_con_fft = convolve_fft(im, psf)
