@@ -1,5 +1,5 @@
 *.pyc
-~*
+*~
 properimage_proyect
 swarp.xml
 default.swarp
