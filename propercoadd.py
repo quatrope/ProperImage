@@ -140,4 +140,3 @@ def psf_extract(image, xy):
     xy should be a list of tuples with positions of the stars
     """
     return None
-

@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+Program that works simulating images with different SN and performs
+the calculation of S statistic image from Ofek&Zackay2015a
+
+This program doesn't calculate F_j, nor estimates psf or
+background from images.
 Created on Fri May 13 17:06:14 2016
 
 @author: bruno
@@ -64,17 +69,13 @@ plt.imshow(sw, interpolation='none')
 plt.title('SWarp')
 plt.savefig('./test_images/one_star/coadds.png')
 
-
-#im_con = convolve(im, psf)
-
-#im_con_fft = convolve_fft(im, psf)
-
-#plt.figure()
-#plt.subplot(121)
-#plt.imshow(im_con, interpolation='none')
-#plt.subplot(122)
-#plt.imshow(im_con_fft, interpolation='None')
-#plt.title('conv - fft')
-#plt.show()
-
+plt.figure(figsize=(14,6))
+plt.subplot(121)
+plt.hist(S.flatten(), log=True)
+plt.title('Ofek')
+plt.subplot(122)
+sw = fits.getdata('./coadd.fits')
+plt.hist(sw.flatten(), log=True)
+plt.title('SWarp')
+plt.savefig('./test_images/one_star/coadds_hist.png')
 
