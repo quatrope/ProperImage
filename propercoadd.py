@@ -23,7 +23,7 @@ import sep
 
 class SingleImage(object):
     def __init__(self, img, imagefile=False, sim=False, meta={}):
-        self._attached_to = repr(img)
+        self._attached_to = img.__class__.__name__
 
         if imagefile:
             self.imagedata = fits.getdata(img)
@@ -40,6 +40,21 @@ class SingleImage(object):
 
     def __repr__(self):
         print 'SingleImage instance for {}'.format(self._attached_to)
+
+    def sigma_clip_bkg(self):
+        self.bkg = sigma_clip(self.imagedata, iters=10)
+        self.bkg_mean = self.bkg.mean()
+        self.bkg_sd = self.bkg.std()
+
+    def sep_back(self):
+        self.bkg = sep.Background(self.imagedata)
+        self.bkg_mean = self.bkg.globalback
+        self.bkg_sd = self.bkg.globalrms
+
+    def subtract_back(self):
+        self.sep_back()
+        self.bkg_sub_img = self.imagedata - self.bkg
+        return self.bkg_sub_img
 
 
 
@@ -122,16 +137,6 @@ class ImageStats(object):
         self.mean = self.pix_mean()
         #self.to1d()
         return
-
-    def sigma_clip_bkg(self):
-        self.bkg = sigma_clip(self.pixmatrix, iters=8)
-        self.bkg_mean = self.bkg.mean()
-        self.bkg_sd = self.bkg.std()
-
-    def sep_back(self):
-        self.bkg = sep.Background(self.pixmatrix)
-        self.bkg_mean = self.bkg.globalback
-        self.bkg_sd = self.bkg.globalrms
 
     def summary(self):
         self.to1d()
