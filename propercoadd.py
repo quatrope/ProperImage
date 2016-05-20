@@ -133,7 +133,6 @@ class ImageStats(object):
         self.bkg_mean = self.bkg.globalback
         self.bkg_sd = self.bkg.globalrms
 
-
     def summary(self):
         self.to1d()
         self.summ = stats.describe(self._oneDdata)
