@@ -10,6 +10,8 @@ import numpy as np
 import scipy.fftpack as fft
 from scipy.stats import stats
 from astropy.io import fits
+from astropy.stats import sigma_clip
+import sep
 # at this point we assume several images.
 # An image is an object with the pixel data and some methods for computing,
 #  background and, source detection.
@@ -89,8 +91,9 @@ class ImageStats(object):
         print 'ImageStats instance for {}'.format(self._attached_to)
 
     def pix_sd(self):
-        self.full_description['std'] = self.pixmatrix.std()
-        return self.pixmatrix.std()
+        sd = self.pixmatrix.std()
+        self.full_description['std'] = sd
+        return sd
 
     def pix_median(self):
         m = np.median(self.pixmatrix)
@@ -117,8 +120,19 @@ class ImageStats(object):
         self.median = self.pix_median()
         self.hist = self.count_hist()
         self.mean = self.pix_mean()
-        self.to1d()
+        #self.to1d()
         return
+
+    def sigma_clip_bkg(self):
+        self.bkg = sigma_clip(self.pixmatrix, iters=8)
+        self.bkg_mean = self.bkg.mean()
+        self.bkg_sd = self.bkg.std()
+
+    def sep_back(self):
+        self.bkg = sep.Background(self.pixmatrix)
+        self.bkg_mean = self.bkg.globalback
+        self.bkg_sd = self.bkg.globalrms
+
 
     def summary(self):
         self.to1d()
