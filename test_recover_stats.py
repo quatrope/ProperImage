@@ -60,8 +60,5 @@ for i in range(30):
     m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
     im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='poisson')
 
-    filenames.append(
-        simtools.capsule_corp(im, t, t_exp=1, i=int(i).zfill(2), zero=3.1415,
-            path=test_dir))
-
+    sim = pc.SingleImage(im)
 

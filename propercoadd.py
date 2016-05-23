@@ -11,6 +11,7 @@ import scipy.fftpack as fft
 from scipy.stats import stats
 from astropy.io import fits
 from astropy.stats import sigma_clip
+from photutils import psf
 import sep
 # at this point we assume several images.
 # An image is an object with the pixel data and some methods for computing,
@@ -55,6 +56,33 @@ class SingleImage(object):
         self.sep_back()
         self.bkg_sub_img = self.imagedata - self.bkg
         return self.bkg_sub_img
+
+    def subtract_psf(self):
+        # calculate x, y, flux of stars
+        self.subtract_back()
+        try:
+            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg_sd)
+        except Exception:
+            sep.set_extract_pixstack(500000)
+            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg_sd)
+
+        if len(srcs)<10:
+            try:
+                srcs = sep.extract(self.bkg_sub_img, thresh=2.5*self.bkg_sd)
+            except Exception:
+                sep.set_extract_pixstack(500000)
+                srcs = sep.extract(self.bkg_sub_img, thresh=2.5*self.bkg_sd)
+        if len(srcs)<10:
+            print 'No sources detected'
+
+        # begin with a fittable model for PSF
+        psf_model = psf.IntegratedGaussianPRF(width=np.mean(npix)/3.)
+        psf_model.flux.fixed = False
+        psf_model.x_0.fixed = False
+        psf_model.y_0.fixed = False
+
+        #stack pixels of sources
+
 
 
 
