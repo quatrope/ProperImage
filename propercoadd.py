@@ -40,7 +40,7 @@ class SingleImage(object):
             self.meta = imgstats.full_description
 
     def __repr__(self):
-        print 'SingleImage instance for {}'.format(self._attached_to)
+        return 'SingleImage instance for {}'.format(self._attached_to)
 
     def sigma_clip_bkg(self):
         self.bkg = sigma_clip(self.imagedata, iters=10)
@@ -131,7 +131,7 @@ class ImageStats(object):
             self.pixmatrix = image_obj[0].data
 
     def __repr__(self):
-        print 'ImageStats instance for {}'.format(self._attached_to)
+        return 'ImageStats instance for {}'.format(self._attached_to)
 
     def pix_sd(self):
         sd = self.pixmatrix.std()
