@@ -75,13 +75,16 @@ class SingleImage(object):
         if len(srcs)<10:
             print 'No sources detected'
 
+        #TODO Work on variable psf
+
         # begin with a fittable model for PSF
-        psf_model = psf.IntegratedGaussianPRF(width=np.mean(npix)/3.)
+        width = int(np.sqrt(np.percentile(src['npix'], q=0.75)*2.) + 3)
+        psf_model = psf.GaussianPSF()
         psf_model.flux.fixed = False
         psf_model.x_0.fixed = False
         psf_model.y_0.fixed = False
 
-        #stack pixels of sources
+        psf.psf_photometry
 
 
 

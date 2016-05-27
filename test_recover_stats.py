@@ -52,13 +52,12 @@ xy = simtools.cartesian_product([x, y])
 now = '2016-05-17T00:00:00.1234567'
 t = Time(now)
 
-filenames = []
 
-for i in range(30):
-    SN =  2. #+ i
-    weights = list(np.linspace(1, 10000, len(xy)))
-    m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
-    im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='poisson')
+SN =  10. # SN para poder medir psf
+weights = list(np.linspace(1, 10000, len(xy)))
+m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
+im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='poisson')
 
-    sim = pc.SingleImage(im)
+sim = pc.SingleImage(im)
+
 
