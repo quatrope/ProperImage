@@ -47,36 +47,36 @@ class SingleImage(object):
         self.bkg_mean = self.bkg.mean()
         self.bkg_sd = self.bkg.std()
 
-    def sep_back(self):
-        self.bkg = sep.Background(self.imagedata)
-        self.bkg_mean = self.bkg.globalback
-        self.bkg_sd = self.bkg.globalrms
-
     def subtract_back(self):
-        self.sep_back()
+        self.bkg = sep.Background(self.imagedata)
         self.bkg_sub_img = self.imagedata - self.bkg
+
         return self.bkg_sub_img
 
-    def subtract_psf(self):
+    def fit_psf(self):
         # calculate x, y, flux of stars
         self.subtract_back()
         try:
-            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg_sd)
+            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
         except Exception:
             sep.set_extract_pixstack(500000)
-            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg_sd)
+            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
 
         if len(srcs)<10:
             try:
-                srcs = sep.extract(self.bkg_sub_img, thresh=2.5*self.bkg_sd)
+                srcs = sep.extract(self.bkg_sub_img, \
+                    thresh=2.5*self.bkg.globalrms)
             except Exception:
                 sep.set_extract_pixstack(500000)
-                srcs = sep.extract(self.bkg_sub_img, thresh=2.5*self.bkg_sd)
+                srcs = sep.extract(self.bkg_sub_img, \
+                    thresh=2.5*self.bkg.globalrms)
         if len(srcs)<10:
             print 'No sources detected'
 
-        size = int(np.sqrt(np.percentile(src['npix'], q=0.75)*2.) + 3)
-
+        size = int(np.sqrt(np.percentile(src['npix'], q=0.75)*2.))
+        if size % 2 != 0:
+            size = size + 1
+        #prf_model = psf.create_prf(self.bkg_sub_img, )
 
 
 

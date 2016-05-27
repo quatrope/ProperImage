@@ -29,6 +29,7 @@ import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import stats
+import sep
 
 from astropy.convolution import convolve
 from astropy.convolution import convolve_fft
@@ -36,6 +37,8 @@ from astropy.time import Time
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
 from astropy.stats import signal_to_noise_oir_ccd
+
+from photutils import psf
 
 from imsim import simtools
 import propercoadd as pc
@@ -53,11 +56,16 @@ now = '2016-05-17T00:00:00.1234567'
 t = Time(now)
 
 
-SN =  10. # SN para poder medir psf
+SN =  100. # SN para poder medir psf
 weights = list(np.linspace(1, 10000, len(xy)))
 m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
 im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='poisson')
 
 sim = pc.SingleImage(im)
+sim.subtract_back()
 
+srcs = sep.extract(sim.bkg_sub_img, thresh=12*sim.bkg.globalrms)
+positions = srcs[['x','y']]
+
+prf = psf.create_prf(sim.bkg_sub_img, positions, size=9, mode='median')
 
