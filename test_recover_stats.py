@@ -52,8 +52,7 @@ x = np.linspace(5*FWHM, N-5*FWHM, 10)
 y = np.linspace(5*FWHM, N-5*FWHM, 10)
 xy = simtools.cartesian_product([x, y])
 
-now = '2016-05-17T00:00:00.1234567'
-t = Time(now)
+t = Time.now()
 
 
 SN =  100. # SN para poder medir psf
@@ -67,5 +66,5 @@ sim.subtract_back()
 srcs = sep.extract(sim.bkg_sub_img, thresh=12*sim.bkg.globalrms)
 positions = srcs[['x','y']]
 
-prf = psf.create_prf(sim.bkg_sub_img, positions, size=9, mode='median')
+#prf = psf.create_prf(sim.bkg_sub_img, positions, size=9, mode='median')
 
