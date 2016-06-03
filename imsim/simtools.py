@@ -20,7 +20,7 @@ def Psf(N, FWHM):
     a = np.zeros((N, N))
     mu = (N-1)/2.
     sigma = FWHM/2.335
-    tail_len = int(7*sigma)
+    tail_len = min(int(5*sigma), N/2.)
     mu_int = int(mu)
     for i in range(mu_int - tail_len, mu_int + tail_len, 1):
         for j in range(mu_int - tail_len, mu_int + tail_len, 1):
@@ -213,7 +213,7 @@ def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
     std : en caso que bkg_pdf sea gaussian, valor de std
     """
     N = np.shape(MF)[0]
-    PSF = Psf(64, FWHM)
+    PSF = Psf(5*FWHM, FWHM)
     IM = convol_gal_psf_fft(MF, PSF)
 
     if N != N2:

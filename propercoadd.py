@@ -12,6 +12,8 @@ from scipy.stats import stats
 from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.modeling import fitting
+from astropy.modeling import models
+from astropy.nddata.utils import extract_array
 from photutils import psf
 import sep
 # at this point we assume several images.
@@ -54,7 +56,10 @@ class SingleImage(object):
 
         return self.bkg_sub_img
 
-    def fit_psf_sep(self):
+    def fit_psf_sep(self, model='astropy-Gaussian2D'):
+        """
+        Fit and calculate the Psf of an image using sep source detection
+        """
         # calculate x, y, flux of stars
         self.subtract_back()
         try:
@@ -74,28 +79,54 @@ class SingleImage(object):
         if len(srcs)<10:
             print 'No sources detected'
 
-        size = int(np.sqrt(np.percentile(src['npix'], q=0.75)*2.))
+        size = int(np.sqrt(np.percentile(srcs['npix'], q=0.75)*2.))
         if size % 2 != 0:
             size = size + 3
-        fitshape = (size, size)
-        prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2., sigma=size/3.)
-        prf_model.fixed['flux'] = False
-        prf_model.fixed['sigma'] = False
-        prf_model.fixed['x_0'] = False
-        prf_model.fixed['y_0'] = False
+        fitshape = (9*size, 9*size)
+        print fitshape
 
-        fitter = fitting.LevMarLSQFitter()
+        if model=='photutils-IntegratedGaussianPRF':
+            prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2., sigma=size/3.)
+            prf_model.fixed['flux'] = False
+            prf_model.fixed['sigma'] = False
+            prf_model.fixed['x_0'] = False
+            prf_model.fixed['y_0'] = False
+            fitter = fitting.LevMarLSQFitter()
+            indices = np.indices(self.bkg_sub_img.shape)
+            model_fits = []
+            best_srcs = srcs[srcs['flag']==0]
+            for row in best_srcs:
+                position = (row['y'], row['x'])
+                y = extract_array(indices[0], fitshape, position)
+                x = extract_array(indices[1], fitshape, position)
+                sub_array_data = extract_array(self.bkg_sub_img,
+                                                fitshape, position,
+                                                fill_value=self.bkg.globalback)
+                prf_model.x_0 = position[1]
+                prf_model.y_0 = position[0]
+                model_fits.append(fitter(prf_model, x, y, sub_array_data))
 
-        indices = np.indices(sim.bkg_sub_img.shape)
+        elif model=='astropy-Gaussian2D':
+            prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
 
-        model_fits = []
-        for row in srcs:
-            position = (row['y'], row['x'])
-            y = extract_array(indices[0], fitshape, position)
-            x = extract_array(indices[1], fitshape, position)
-            sub_array_data = extract_array(sim.bkg_sub_img,
-                                            fitshape, position, fill_value=0.)
-            model_fits.append(fitter(prf_model, x, y, sub_array_data))
+            fitter = fitting.LevMarLSQFitter()
+            indices = np.indices(self.bkg_sub_img.shape)
+            model_fits = []
+            best_srcs = srcs[srcs['flag']==0]
+            for row in best_srcs:
+                position = (row['y'], row['x'])
+                y = extract_array(indices[0], fitshape, position)
+                x = extract_array(indices[1], fitshape, position)
+                sub_array_data = extract_array(self.bkg_sub_img,
+                                                fitshape, position,
+                                                fill_value=self.bkg.globalback)
+                prf_model.x_mean = position[1]
+                prf_model.y_mean = position[0]
+                fit = fitter(prf_model, x, y, sub_array_data)
+                print fit
+                model_fits.append(fit)
+
+        return model_fits
 
 
 
