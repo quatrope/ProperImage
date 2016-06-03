@@ -11,6 +11,7 @@ import scipy.fftpack as fft
 from scipy.stats import stats
 from astropy.io import fits
 from astropy.stats import sigma_clip
+from astropy.modeling import fitting
 from photutils import psf
 import sep
 # at this point we assume several images.
@@ -53,7 +54,7 @@ class SingleImage(object):
 
         return self.bkg_sub_img
 
-    def fit_psf(self):
+    def fit_psf_sep(self):
         # calculate x, y, flux of stars
         self.subtract_back()
         try:
@@ -75,8 +76,28 @@ class SingleImage(object):
 
         size = int(np.sqrt(np.percentile(src['npix'], q=0.75)*2.))
         if size % 2 != 0:
-            size = size + 1
-        #prf_model = psf.create_prf(self.bkg_sub_img, )
+            size = size + 3
+        fitshape = (size, size)
+        prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2., sigma=size/3.)
+        prf_model.fixed['flux'] = False
+        prf_model.fixed['sigma'] = False
+        prf_model.fixed['x_0'] = False
+        prf_model.fixed['y_0'] = False
+
+        fitter = fitting.LevMarLSQFitter()
+
+        indices = np.indices(sim.bkg_sub_img.shape)
+
+        model_fits = []
+        for row in srcs:
+            position = (row['y'], row['x'])
+            y = extract_array(indices[0], fitshape, position)
+            x = extract_array(indices[1], fitshape, position)
+            sub_array_data = extract_array(sim.bkg_sub_img,
+                                            fitshape, position, fill_value=0.)
+            model_fits.append(fitter(prf_model, x, y, sub_array_data))
+
+
 
 
 
