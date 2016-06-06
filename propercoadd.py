@@ -89,13 +89,17 @@ class SingleImage(object):
             prf_model.fixed['sigma'] = False
             prf_model.fixed['x_0'] = False
             prf_model.fixed['y_0'] = False
+
             fitter = fitting.LevMarLSQFitter()
             indices = np.indices(self.bkg_sub_img.shape)
             model_fits = []
+
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
             best_flag = srcs['flag']<31
-            best_srcs = srcs[ best_big & best_flag & best_small]
+            best_flux = srcs['flux']> 0.
+            best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
+
             for row in best_srcs:
                 position = (row['y'], row['x'])
                 y = extract_array(indices[0], fitshape, position)
@@ -112,14 +116,16 @@ class SingleImage(object):
 
         elif model=='astropy-Gaussian2D':
             prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
-
             fitter = fitting.LevMarLSQFitter()
             indices = np.indices(self.bkg_sub_img.shape)
             model_fits = []
+
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
             best_flag = srcs['flag']<31
-            best_srcs = srcs[ best_big & best_flag & best_small]
+            best_flux = srcs['flux']> 0.
+            best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
+
             for row in best_srcs:
                 position = (row['y'], row['x'])
                 y = extract_array(indices[0], fitshape, position)
