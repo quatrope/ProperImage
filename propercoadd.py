@@ -94,7 +94,7 @@ class SingleImage(object):
             fitter = fitting.LevMarLSQFitter()
             indices = np.indices(self.bkg_sub_img.shape)
             model_fits = []
-            best_srcs = srcs[srcs['flag']==0]
+            best_srcs = srcs[srcs['flag']<31]
             for row in best_srcs:
                 position = (row['y'], row['x'])
                 y = extract_array(indices[0], fitshape, position)
@@ -112,7 +112,7 @@ class SingleImage(object):
             fitter = fitting.LevMarLSQFitter()
             indices = np.indices(self.bkg_sub_img.shape)
             model_fits = []
-            best_srcs = srcs[srcs['flag']==0]
+            best_srcs = srcs[srcs['flag']<31]
             for row in best_srcs:
                 position = (row['y'], row['x'])
                 y = extract_array(indices[0], fitshape, position)
