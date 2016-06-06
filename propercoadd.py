@@ -79,10 +79,8 @@ class SingleImage(object):
         if len(srcs)<10:
             print 'No sources detected'
 
-        size = int(np.sqrt(np.percentile(srcs['npix'], q=0.75)*2.))
-        if size % 2 != 0:
-            size = size + 3
-        fitshape = (9*size, 9*size)
+        size = 6*int(np.sqrt(np.percentile(srcs['npix'], q=0.75)*2.)) + 3
+        fitshape = (size, size)
         print fitshape
 
         if model=='photutils-IntegratedGaussianPRF':
@@ -119,12 +117,14 @@ class SingleImage(object):
                 x = extract_array(indices[1], fitshape, position)
                 sub_array_data = extract_array(self.bkg_sub_img,
                                                 fitshape, position,
-                                                fill_value=self.bkg.globalback)
+                                                fill_value=self.bkg.globalrms)
                 prf_model.x_mean = position[1]
                 prf_model.y_mean = position[0]
                 fit = fitter(prf_model, x, y, sub_array_data)
-                print fit
-                model_fits.append(fit)
+                resid = sub_array_data - fit(x,y)
+                if np.sum(resid*resid) < self.bkg.globalrms*fitshape[0]**2:
+                    print fit
+                    model_fits.append(fit)
 
         return model_fits
 

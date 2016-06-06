@@ -33,12 +33,12 @@ from imsim import simtools
 import propercoadd as pc
 
 
-N = 512  # side
+N = 1024  # side
 FWHM = 6
 test_dir = os.path.abspath('./test_images/measure_psf')
 
-x = np.linspace(6*FWHM, N-6*FWHM, 5)
-y = np.linspace(6*FWHM, N-6*FWHM, 5)
+x = np.linspace(6*FWHM, N-6*FWHM, 10)
+y = np.linspace(6*FWHM, N-6*FWHM, 10)
 xy = simtools.cartesian_product([x, y])
 
 
@@ -74,59 +74,25 @@ for row in best_srcs:
     x = extract_array(indices[1], fitshape, position)
     sub_array_data = extract_array(sim.bkg_sub_img,
                                     fitshape, position,
-                                    fill_value=sim.bkg.globalback)
+                                    fill_value=sim.bkg.globalrms)
     prf_model.x_mean = position[1]
     prf_model.y_mean = position[0]
     fit = fitter(prf_model, x, y, sub_array_data)
     print fit
     res = sub_array_data - fit(x,y)
+
     if np.sum(res*res) < sim.bkg.globalrms*fitshape[0]**2:
         model_fits.append(fit)
         plt.subplot(131)
-        plt.imshow(fit(x, y))
+        plt.imshow(fit(x, y), interpolation='none')
         plt.title('fit')
         plt.subplot(132)
         plt.title('sub_array')
-        plt.imshow(sub_array_data)
+        plt.imshow(sub_array_data, interpolation='none')
         plt.subplot(133)
         plt.title('residual')
-        plt.imshow(sub_array_data - fit(x,y))
+        plt.imshow(sub_array_data - fit(x,y), interpolation='none')
         plt.show()
-
-## Things are running somewhat like expected
-
-# Again and simpler
-N = 128  # side
-FWHM = 6
-SN =  100. # SN para poder medir psf
-m = simtools.delta_point(N, center=False, xy=[[50, 64]])
-im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='gaussian')
-
-fitshape = (64,64)#(6*FWHM, 6*FWHM)
-prf_model = models.Gaussian2D(x_stddev=3, y_stddev=3,
-                                x_mean=fitshape[0], y_mean=fitshape[1])
-fitter = fitting.LevMarLSQFitter()
-
-indices = np.indices(im)
-position = (50, 64)
-prf_model.y_mean, prf_model.x_mean = position
-y = extract_array(indices[0], fitshape, position)
-x = extract_array(indices[1], fitshape, position)
-sub_array_data = extract_array(im, fitshape, position)
-
-fit = fitter(prf_model, x, y, sub_array_data)
-
-print fit
-
-plt.subplot(221)
-plt.imshow(im)
-plt.subplot(222)
-plt.imshow(fit(x, y))
-plt.title('fit')
-plt.subplot(223)
-plt.imshow(sub_array_data)
-plt.subplot(224)
-plt.imshow(sub_array_data - fit(x,y))
-plt.show()
-
-print 'hola'
+        continue_loop = input('continue loop?')
+        if not continue_loop:
+            break
