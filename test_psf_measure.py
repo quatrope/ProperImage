@@ -34,7 +34,7 @@ import propercoadd as pc
 
 
 N = 1024  # side
-FWHM = 6
+FWHM = 8
 test_dir = os.path.abspath('./test_images/measure_psf')
 
 x = np.linspace(6*FWHM, N-6*FWHM, 10)
@@ -49,50 +49,63 @@ im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='poisson')
 
 sim = pc.SingleImage(im)
 sim.subtract_back()
-
-srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
-posflux = srcs[['x','y', 'flux']]
-
+#srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
+#posflux = srcs[['x','y', 'flux']]
 
 fitted_models = sim.fit_psf_sep()
 
 
-#Manual test
+p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
+fitshape = (int(p_sizes[1]), int(p_sizes[1]))
+print fitshape
+runtest = input('Run Manual test?')
+if runtest:
+    prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
+    fitter = fitting.LevMarLSQFitter()
+    indices = np.indices(sim.bkg_sub_img.shape)
+    model_fits = []
+    best_big = srcs['tnpix']>=p_sizes[0]**2.
+    best_small = srcs['tnpix']<=p_sizes[2]**2.
+    best_flag = srcs['flag']<31
+    best_srcs = srcs[ best_big & best_flag & best_small]
+    fitshape = (4*FWHM, 4*FWHM)
+    prf_model.x_mean = fitshape[0]/2.
+    prf_model.y_mean = fitshape[1]/2.
 
-prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
-fitter = fitting.LevMarLSQFitter()
-indices = np.indices(sim.bkg_sub_img.shape)
-model_fits = []
-best_srcs = srcs[srcs['flag'] < 31]
-fitshape = (3*FWHM, 3*FWHM)
-prf_model.x_mean = fitshape[0]/2.
-prf_model.y_mean = fitshape[1]/2.
+    for row in best_srcs:
+        position = (row['y'], row['x'])
+        y = extract_array(indices[0], fitshape, position)
+        x = extract_array(indices[1], fitshape, position)
+        sub_array_data = extract_array(sim.bkg_sub_img,
+                                        fitshape, position,
+                                        fill_value=sim.bkg.globalrms)
+        prf_model.x_mean = position[1]
+        prf_model.y_mean = position[0]
+        fit = fitter(prf_model, x, y, sub_array_data)
+        print row['x'],row['y'],row['flux'],row['tnpix'],row['a'],row['b']
+        print fit
+        res = sub_array_data - fit(x,y)
 
-for row in best_srcs:
-    position = (row['y'], row['x'])
-    y = extract_array(indices[0], fitshape, position)
-    x = extract_array(indices[1], fitshape, position)
-    sub_array_data = extract_array(sim.bkg_sub_img,
-                                    fitshape, position,
-                                    fill_value=sim.bkg.globalrms)
-    prf_model.x_mean = position[1]
-    prf_model.y_mean = position[0]
-    fit = fitter(prf_model, x, y, sub_array_data)
-    print fit
-    res = sub_array_data - fit(x,y)
+        if np.sum(res*res) < sim.bkg.globalrms*fitshape[0]**2:
+            model_fits.append(fit)
+            plt.subplot(131)
+            plt.imshow(fit(x, y), interpolation='none')
+            plt.title('fit')
+            plt.subplot(132)
+            plt.title('sub_array')
+            plt.imshow(sub_array_data, interpolation='none')
+            plt.subplot(133)
+            plt.title('residual')
+            plt.imshow(sub_array_data - fit(x,y), interpolation='none')
+            plt.show()
+            continue_loop = input('continue loop?')
+            if not continue_loop: break
 
-    if np.sum(res*res) < sim.bkg.globalrms*fitshape[0]**2:
-        model_fits.append(fit)
-        plt.subplot(131)
-        plt.imshow(fit(x, y), interpolation='none')
-        plt.title('fit')
-        plt.subplot(132)
-        plt.title('sub_array')
-        plt.imshow(sub_array_data, interpolation='none')
-        plt.subplot(133)
-        plt.title('residual')
-        plt.imshow(sub_array_data - fit(x,y), interpolation='none')
-        plt.show()
-        continue_loop = input('continue loop?')
-        if not continue_loop:
-            break
+x_sds = [g.x_stddev for g in fitted_models]
+y_sds = [g.y_stddev for g in fitted_models]
+
+amplitudes = [g.amplitude for g in fitted_models]
+
+fwhm_x = 2.335*np.mean(x_sds)
+fwhm_y = 2.335*np.mean(y_sds)
+

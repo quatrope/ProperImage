@@ -79,8 +79,8 @@ class SingleImage(object):
         if len(srcs)<10:
             print 'No sources detected'
 
-        size = 6*int(np.sqrt(np.percentile(srcs['npix'], q=0.75)*2.)) + 3
-        fitshape = (size, size)
+        p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
+        fitshape = (int(p_sizes[1]), int(p_sizes[1]))
         print fitshape
 
         if model=='photutils-IntegratedGaussianPRF':
@@ -92,7 +92,10 @@ class SingleImage(object):
             fitter = fitting.LevMarLSQFitter()
             indices = np.indices(self.bkg_sub_img.shape)
             model_fits = []
-            best_srcs = srcs[srcs['flag']<31]
+            best_big = srcs['tnpix']>=p_sizes[0]**2.
+            best_small = srcs['tnpix']<=p_sizes[2]**2.
+            best_flag = srcs['flag']<31
+            best_srcs = srcs[ best_big & best_flag & best_small]
             for row in best_srcs:
                 position = (row['y'], row['x'])
                 y = extract_array(indices[0], fitshape, position)
@@ -102,7 +105,10 @@ class SingleImage(object):
                                                 fill_value=self.bkg.globalback)
                 prf_model.x_0 = position[1]
                 prf_model.y_0 = position[0]
-                model_fits.append(fitter(prf_model, x, y, sub_array_data))
+                resid = sub_array_data - fit(x,y)
+                if np.sum(resid*resid) < self.bkg.globalrms*fitshape[0]**2:
+                    print fit
+                    model_fits.append(fit)
 
         elif model=='astropy-Gaussian2D':
             prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
@@ -110,7 +116,10 @@ class SingleImage(object):
             fitter = fitting.LevMarLSQFitter()
             indices = np.indices(self.bkg_sub_img.shape)
             model_fits = []
-            best_srcs = srcs[srcs['flag']<31]
+            best_big = srcs['tnpix']>=p_sizes[0]**2.
+            best_small = srcs['tnpix']<=p_sizes[2]**2.
+            best_flag = srcs['flag']<31
+            best_srcs = srcs[ best_big & best_flag & best_small]
             for row in best_srcs:
                 position = (row['y'], row['x'])
                 y = extract_array(indices[0], fitshape, position)
@@ -125,7 +134,7 @@ class SingleImage(object):
                 if np.sum(resid*resid) < self.bkg.globalrms*fitshape[0]**2:
                     print fit
                     model_fits.append(fit)
-
+        print fitshape
         return model_fits
 
 
