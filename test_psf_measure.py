@@ -49,8 +49,9 @@ im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='poisson')
 
 sim = pc.SingleImage(im)
 sim.subtract_back()
-#srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
-#posflux = srcs[['x','y', 'flux']]
+sep.set_extract_pixstack(500000)
+srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
+posflux = srcs[['x','y', 'flux']]
 
 fitted_models = sim.fit_psf_sep()
 
@@ -58,6 +59,16 @@ fitted_models = sim.fit_psf_sep()
 p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
 print fitshape
+
+x_sds = [g.x_stddev for g in fitted_models]
+y_sds = [g.y_stddev for g in fitted_models]
+
+amplitudes = [g.amplitude for g in fitted_models]
+
+fwhm_x = 2.335*np.mean(x_sds)
+fwhm_y = 2.335*np.mean(y_sds)
+
+
 runtest = input('Run Manual test?')
 if runtest:
     prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
@@ -100,12 +111,3 @@ if runtest:
             plt.show()
             continue_loop = input('continue loop?')
             if not continue_loop: break
-
-x_sds = [g.x_stddev for g in fitted_models]
-y_sds = [g.y_stddev for g in fitted_models]
-
-amplitudes = [g.amplitude for g in fitted_models]
-
-fwhm_x = 2.335*np.mean(x_sds)
-fwhm_y = 2.335*np.mean(y_sds)
-
