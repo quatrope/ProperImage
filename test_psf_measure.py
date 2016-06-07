@@ -32,7 +32,9 @@ from photutils import daofind
 from imsim import simtools
 import propercoadd as pc
 
-
+# =============================================================================
+#     PSF measure test by propercoadd
+# =============================================================================
 N = 1024  # side
 FWHM = 8
 test_dir = os.path.abspath('./test_images/measure_psf')
@@ -68,8 +70,42 @@ amplitudes = [g.amplitude for g in fitted_models]
 fwhm_x = 2.335*np.mean(x_sds)
 fwhm_y = 2.335*np.mean(y_sds)
 
+print fwhm_x, fwhm_y
 
-runtest = input('Run Manual test?')
+# =============================================================================
+#    PSF spatially variant
+# =============================================================================
+covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
+
+i = 0
+j = 1
+
+psfi = fitted_models[i].copy()
+psfj = fitted_models[j].copy()
+
+#x = range(8*int(max_std.value + 1))
+#y = range(8*int(max_std.value + 1))
+#xv, yv = np.meshgrid(x, y)
+
+psf1.bounding_box = ((psf1.x_mean, ),(,))
+psf2.bounding_box = bbox
+
+psf1_render = psf1.render()
+psf2_render = psf2.render()
+
+plt.subplot(121)
+plt.imshow(psf1_render, interpolation='none')
+plt.colorbar()
+plt.subplot(122)
+plt.imshow(psf2_render, interpolation='none')
+plt.colorbar()
+plt.show()
+
+# =============================================================================
+#       Manual test
+# =============================================================================
+
+runtest = False#input('Run Manual test?')
 if runtest:
     prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
     fitter = fitting.LevMarLSQFitter()

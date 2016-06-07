@@ -143,6 +143,13 @@ class SingleImage(object):
         print fitshape
         return model_fits
 
+    def variant_psf(self):
+        psf_models = self.fit_psf_sep()
+
+        covMat = np.zeros(shape=(len(psf_models), len(psf_models)))
+
+
+
 
 
 
