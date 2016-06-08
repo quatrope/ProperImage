@@ -87,19 +87,14 @@ for i in range(len(fitted_models)):
             psfi_render = psfi.render()
             psfj_render = psfj.render()
 
-            psfi_render = psfi_render.reshape(psfi_render.shape[0]*psfi_render.shape[0])/np.sum(psfi_render)
-            psfj_render = psfj_render.reshape(psfj_render.shape[0]*psfj_render.shape[0])/np.sum(psfj_render)
+            inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
+                            psfj_render.flatten()/np.sum(psfj_render))
 
-            covMat[i, j] = np.dot(psfi_render, psfj_render)
+            covMat[i, j] = inner
+            covMat[j, i] = inner
 
+val, vec = np.linalg.eig(covMat)
 
-plt.subplot(121)
-plt.imshow(psfi_render, interpolation='none')
-plt.colorbar()
-plt.subplot(122)
-plt.imshow(psfj_render, interpolation='none')
-plt.colorbar()
-plt.show()
 
 # =============================================================================
 #       Manual test

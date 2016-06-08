@@ -143,10 +143,25 @@ class SingleImage(object):
         print fitshape
         return model_fits
 
-    def variant_psf(self):
+    def covMat_psf(self):
         psf_models = self.fit_psf_sep()
+        covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
 
-        covMat = np.zeros(shape=(len(psf_models), len(psf_models)))
+        for i in range(len(fitted_models)):
+            for j in range(len(fitted_models)):
+                if i<=j:
+                    psfi = fitted_models[i].copy()
+                    psfj = fitted_models[j].copy()
+
+                    psfi_render = psfi.render()
+                    psfj_render = psfj.render()
+
+                    inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
+                                    psfj_render.flatten()/np.sum(psfj_render))
+
+                    covMat[i, j] = inner
+                    covMat[j, i] = inner
+        return covMat
 
 
 
