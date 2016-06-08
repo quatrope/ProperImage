@@ -69,6 +69,7 @@ amplitudes = [g.amplitude for g in fitted_models]
 
 fwhm_x = 2.335*np.mean(x_sds)
 fwhm_y = 2.335*np.mean(y_sds)
+fwhm = max(fwhm_x, fwhm_y)
 
 print fwhm_x, fwhm_y
 
@@ -77,27 +78,26 @@ print fwhm_x, fwhm_y
 # =============================================================================
 covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
 
-i = 0
-j = 1
+for i in range(len(fitted_models)):
+    for j in range(len(fitted_models)):
+        if i<=j:
+            psfi = fitted_models[i].copy()
+            psfj = fitted_models[j].copy()
 
-psfi = fitted_models[i].copy()
-psfj = fitted_models[j].copy()
+            psfi_render = psfi.render()
+            psfj_render = psfj.render()
 
-#x = range(8*int(max_std.value + 1))
-#y = range(8*int(max_std.value + 1))
-#xv, yv = np.meshgrid(x, y)
+            psfi_render = psfi_render.reshape(psfi_render.shape[0]*psfi_render.shape[0])/np.sum(psfi_render)
+            psfj_render = psfj_render.reshape(psfj_render.shape[0]*psfj_render.shape[0])/np.sum(psfj_render)
 
-psf1.bounding_box = ((psf1.x_mean, ),(,))
-psf2.bounding_box = bbox
+            covMat[i, j] = np.dot(psfi_render, psfj_render)
 
-psf1_render = psf1.render()
-psf2_render = psf2.render()
 
 plt.subplot(121)
-plt.imshow(psf1_render, interpolation='none')
+plt.imshow(psfi_render, interpolation='none')
 plt.colorbar()
 plt.subplot(122)
-plt.imshow(psf2_render, interpolation='none')
+plt.imshow(psfj_render, interpolation='none')
 plt.colorbar()
 plt.show()
 
