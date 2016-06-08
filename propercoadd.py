@@ -16,14 +16,8 @@ from astropy.modeling import models
 from astropy.nddata.utils import extract_array
 from photutils import psf
 import sep
-# at this point we assume several images.
-# An image is an object with the pixel data and some methods for computing,
-#  background and, source detection.
-# Psf and a flux scale, are two properties of the image, that can be .
 
-#  M_j = (F_j T) * Psf_j + e_j
 
-# and we have an idea of Var(e_j) = sigma_j (assuming...)
 
 class SingleImage(object):
     def __init__(self, img, imagefile=False, sim=False, meta={}):
@@ -84,7 +78,8 @@ class SingleImage(object):
         print fitshape
 
         if model=='photutils-IntegratedGaussianPRF':
-            prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2., sigma=size/3.)
+            prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2.,
+                                                    sigma=size/3.)
             prf_model.fixed['flux'] = False
             prf_model.fixed['sigma'] = False
             prf_model.fixed['x_0'] = False
@@ -254,7 +249,8 @@ class ImageStats(object):
         return m
 
     def to1d(self):
-        #self._oneDdata = np.reshape(self.pixmatrix, self.pixmatrix.shape[0]*self.pixmatrix.shape[1])
+        #self._oneDdata = np.reshape(self.pixmatrix,
+        #            self.pixmatrix.shape[0]*self.pixmatrix.shape[1])
         self._oneDdata = self.pixmatrix.flatten()
         return
 
