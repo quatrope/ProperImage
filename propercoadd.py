@@ -147,14 +147,13 @@ class SingleImage(object):
         psf_models = self.fit_psf_sep()
         covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
 
+        renders = [g.render() for g in fitted_models]
+
         for i in range(len(fitted_models)):
             for j in range(len(fitted_models)):
                 if i<=j:
-                    psfi = fitted_models[i].copy()
-                    psfj = fitted_models[j].copy()
-
-                    psfi_render = psfi.render()
-                    psfj_render = psfj.render()
+                    psfi_render = renders[i]
+                    psfj_render = renders[j]
 
                     inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                     psfj_render.flatten()/np.sum(psfj_render))
@@ -163,8 +162,26 @@ class SingleImage(object):
                     covMat[j, i] = inner
         return covMat
 
+    def kl_PSF(self, pow_threshold=0.9):
+        covMat = self.covMat_psf()
+        valh, vech = np.linalg.eigh(covMat)
 
+        power = abs(valh)/np.sum(abs(valh))
+        cum = 0
+        cut = 0
+        while cum < pow_threshold:
+            cut -= 1
+            cum += power[cut]
 
+        #  Build psf basis
+        N_psf_basis = abs(cut)
+        lambdas = valh[cut:]
+        xs = vech[:,cut:]
+        psf_basis = []
+        for i in range(N_psf_basis):
+            psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
+
+        self.psf_KL_basis = psf_basis
 
 
 
