@@ -40,6 +40,10 @@ fitted_models = sim.fit_psf_sep()
 # =============================================================================
 #    PSF spatially variant
 # =============================================================================
+from astropy.modeling import models
+from astropy.modeling import fitting
+
+
 x_sds = np.zeros(len(fitted_models))
 y_sds = np.zeros(len(fitted_models))
 x = np.zeros(len(fitted_models))
@@ -61,4 +65,18 @@ fwhm = max(fwhm_x, fwhm_y)
 
 print fwhm_x, fwhm_y
 
-#renders = [g.render() for g in fitted_models]
+
+xpol_model = models.Polynomial2D(degree=3)
+ypol_model = models.Polynomial2D(degree=3)
+
+fit_p = fitting.LevMarLSQFitter()
+
+
+
+
+
+
+
+
+
+

@@ -3,29 +3,38 @@
 import numpy as np
 import scipy as sp
 from scipy import signal as sg
+from scipy.ndimage.interpolation import rotate
 from scipy import stats
 from astropy.convolution import convolve_fft
 from astropy.modeling import models
 
-def Psf(N, FWHM):
+def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
     """Psf es una funcion que proporciona una matriz 2D con una gaussiana
     simétrica en ambos ejes. con N se especifica el tamaño en pixeles que
     necesitamos y con FWHM el ancho sigma de la gaussiana en pixeles
+
+    theta is in degrees
 
     FASTER
     %timeit simtools.Psf(128, 10)
     1 loops, best of 3: 234 ms per loop
 
     """
+    if Y_FWHM == 0: Y_FWHM = X_FWHM
+
     a = np.zeros((N, N))
     mu = (N-1)/2.
-    sigma = FWHM/2.335
+    sigma_x = X_FWHM/2.335
+    sigma_y = Y_FWHM/2.335
+    sigma = max(sigma_x, sigma_y)
     tail_len = min(int(5*sigma), N/2.)
     mu_int = int(mu)
     for i in range(mu_int - tail_len, mu_int + tail_len, 1):
         for j in range(mu_int - tail_len, mu_int + tail_len, 1):
-            a[i, j] = stats.norm.pdf(i, loc=mu, scale=sigma) * \
-                       stats.norm.pdf(j, loc=mu, scale=sigma)
+            a[i, j] = stats.norm.pdf(i, loc=mu, scale=sigma_x) * \
+                       stats.norm.pdf(j, loc=mu, scale=sigma_y)
+    if theta is not 0:
+        a = rotate(a, theta)
     return(a/np.sum(a))
 
 def astropy_Psf(N, FWHM):
@@ -197,7 +206,8 @@ def incline2(gal, theta):
     return(gal2)
 
 
-def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
+def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
+            bkg_pdf='poisson', std=None):
     """
     funcion que genera una imagen con ruido y seeing a partir
     de un master frame, y la pixeliza hasta tamaño N2
@@ -213,7 +223,8 @@ def image(MF, N2, t_exp, FWHM, SN, bkg_pdf='poisson', std=None):
     std : en caso que bkg_pdf sea gaussian, valor de std
     """
     N = np.shape(MF)[0]
-    PSF = Psf(5*FWHM, FWHM)
+    FWHM = max(X_FWHM, Y_FWHM)
+    PSF = Psf(5*FWHM, X_FWHM, Y_FWHM, theta)
     IM = convol_gal_psf_fft(MF, PSF)
 
     if N != N2:

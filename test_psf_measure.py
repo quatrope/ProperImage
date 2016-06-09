@@ -36,22 +36,27 @@ import propercoadd as pc
 #     PSF measure test by propercoadd
 # =============================================================================
 N = 1024  # side
-FWHM = 8
+X_FWHM = 8
+Y_FWHM = 7
+theta = 10
+t_exp = 1
+max_fw = max(X_FWHM, Y_FWHM)
 test_dir = os.path.abspath('./test_images/measure_psf')
 
-x = np.linspace(6*FWHM, N-6*FWHM, 10)
-y = np.linspace(6*FWHM, N-6*FWHM, 10)
+x = np.linspace(6*max_fw, N-6*max_fw, 10)
+y = np.linspace(6*max_fw, N-6*max_fw, 10)
 xy = simtools.cartesian_product([x, y])
 
 
 SN =  1000. # SN para poder medir psf
 weights = list(np.linspace(10, 100, len(xy)))
 m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
-im = simtools.image(m, N, t_exp=1, FWHM=FWHM, SN=SN, bkg_pdf='poisson')
+im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
+                    SN=SN, bkg_pdf='poisson')
 
 sim = pc.SingleImage(im)
 sim.subtract_back()
-sep.set_extract_pixstack(500000)
+sep.set_extract_pixstack(800000)
 srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
 posflux = srcs[['x','y', 'flux']]
 
@@ -64,14 +69,15 @@ print fitshape
 
 x_sds = [g.x_stddev for g in fitted_models]
 y_sds = [g.y_stddev for g in fitted_models]
-
+th = [g.theta*180/np.pi for g in fitted_models]
 amplitudes = [g.amplitude for g in fitted_models]
 
 fwhm_x = 2.335*np.mean(x_sds)
 fwhm_y = 2.335*np.mean(y_sds)
+mean_th = np.mean(th)
 fwhm = max(fwhm_x, fwhm_y)
 
-print fwhm_x, fwhm_y
+print fwhm_x, fwhm_y, mean_th
 
 # =============================================================================
 #    PSF spatially variant

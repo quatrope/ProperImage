@@ -59,7 +59,7 @@ class SingleImage(object):
         try:
             srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
         except Exception:
-            sep.set_extract_pixstack(500000)
+            sep.set_extract_pixstack(700000)
             srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
 
         if len(srcs)<10:
@@ -67,7 +67,7 @@ class SingleImage(object):
                 srcs = sep.extract(self.bkg_sub_img, \
                     thresh=2.5*self.bkg.globalrms)
             except Exception:
-                sep.set_extract_pixstack(500000)
+                sep.set_extract_pixstack(900000)
                 srcs = sep.extract(self.bkg_sub_img, \
                     thresh=2.5*self.bkg.globalrms)
         if len(srcs)<10:
@@ -116,11 +116,15 @@ class SingleImage(object):
             model_fits = []
 
             best_big = srcs['tnpix']>=p_sizes[0]**2.
+            print 'best_big',best_big
             best_small = srcs['tnpix']<=p_sizes[2]**2.
+            print 'best_small',best_small
             best_flag = srcs['flag']<31
+            print 'best_flag',best_flag
             best_flux = srcs['flux']> 0.
+            print 'best_flux',best_flux
             best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
-
+            print len(best_srcs)
             for row in best_srcs:
                 position = (row['y'], row['x'])
                 y = extract_array(indices[0], fitshape, position)
@@ -132,10 +136,10 @@ class SingleImage(object):
                 prf_model.y_mean = position[0]
                 fit = fitter(prf_model, x, y, sub_array_data)
                 resid = sub_array_data - fit(x,y)
-                if np.sum(resid*resid) < self.bkg.globalrms*fitshape[0]**2:
+                if np.sum(resid*resid) < 3*self.bkg.globalrms*fitshape[0]**2:
                     print fit
                     model_fits.append(fit)
-        print fitshape
+
         return model_fits
 
     def covMat_psf(self):
