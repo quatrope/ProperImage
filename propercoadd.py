@@ -75,7 +75,7 @@ class SingleImage(object):
 
         p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
         fitshape = (int(p_sizes[1]), int(p_sizes[1]))
-        print fitshape
+        print 'Fitshape =', fitshape
 
         if model=='photutils-IntegratedGaussianPRF':
             prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2.,
@@ -117,10 +117,10 @@ class SingleImage(object):
 
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
-            best_flag = srcs['flag']<31
+            best_flag = srcs['flag']<=16
             best_flux = srcs['flux']> 0.
             best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
-            print 'Sources good to be fitted ='.format(len(best_srcs))
+            print 'Sources good to be fitted ={}'.format(len(best_srcs))
 
             for row in best_srcs:
                 position = (row['y'], row['x'])
@@ -133,10 +133,71 @@ class SingleImage(object):
                 prf_model.y_mean = position[0]
                 fit = fitter(prf_model, x, y, sub_array_data)
                 resid = sub_array_data - fit(x,y)
-                if np.sum(resid*resid) < 3*self.bkg.globalrms*fitshape[0]**2:
+                if np.sum(np.square(resid)) < 3*self.bkg.globalrms*fitshape[0]**2:
                     model_fits.append(fit)
-            print 'succesful fits'.format(len(model_fits))
+            print 'succesful fits = {}'.format(len(model_fits))
         return model_fits
+
+    def covMat_from_stars(self):
+        """
+        Fit and calculate the Psf cov matrix of an image using sep source detection
+        """
+        # calculate x, y, flux of stars
+        self.subtract_back()
+        try:
+            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
+        except Exception:
+            sep.set_extract_pixstack(700000)
+            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
+
+        if len(srcs)<10:
+            try:
+                srcs = sep.extract(self.bkg_sub_img, \
+                    thresh=2.5*self.bkg.globalrms)
+            except Exception:
+                sep.set_extract_pixstack(900000)
+                srcs = sep.extract(self.bkg_sub_img, \
+                    thresh=2.5*self.bkg.globalrms)
+        if len(srcs)<10:
+            print 'No sources detected'
+
+        p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
+        fitshape = (int(p_sizes[1]), int(p_sizes[1]))
+        print 'Fitshape = {}'.format(fitshape)
+
+        indices = np.indices(self.bkg_sub_img.shape)
+        renders = []
+
+        best_big = srcs['tnpix']>=p_sizes[0]**2.
+        best_small = srcs['tnpix']<=p_sizes[2]**2.
+        best_flag = srcs['flag']<=1
+        best_flux = srcs['flux']> 0.
+        best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
+        print 'Sources good to calculate ={}'.format(len(best_srcs))
+
+        for row in best_srcs:
+            position = (row['y'], row['x'])
+            y = extract_array(indices[0], fitshape, position)
+            x = extract_array(indices[1], fitshape, position)
+            sub_array_data = extract_array(self.bkg_sub_img,
+                                            fitshape, position,
+                                            fill_value=self.bkg.globalrms)
+            renders.append(sub_array_data)
+
+        covMat = np.zeros(shape=(len(renders), len(renders)))
+
+        for i in range(len(renders)):
+            for j in range(len(renders)):
+                if i<=j:
+                    psfi_render = renders[i]
+                    psfj_render = renders[j]
+
+                    inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
+                                    psfj_render.flatten()/np.sum(psfj_render))
+
+                    covMat[i, j] = inner
+                    covMat[j, i] = inner
+        return covMat
 
     def covMat_psf(self):
         psf_models = self.fit_psf_sep()
@@ -156,6 +217,7 @@ class SingleImage(object):
                     covMat[i, j] = inner
                     covMat[j, i] = inner
         return covMat
+
 
     def kl_PSF(self, pow_threshold=0.9):
         covMat = self.covMat_psf()
@@ -177,6 +239,28 @@ class SingleImage(object):
             psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
 
         self.psf_KL_basis = psf_basis
+
+    def kl_from_stars(self, pow_threshold=0.9):
+        covMat = self.covMat_from_stars()
+        valh, vech = np.linalg.eigh(covMat)
+
+        power = abs(valh)/np.sum(abs(valh))
+        cum = 0
+        cut = 0
+        while cum < pow_threshold:
+            cut -= 1
+            cum += power[cut]
+
+        #  Build psf basis
+        N_psf_basis = abs(cut)
+        lambdas = valh[cut:]
+        xs = vech[:,cut:]
+        psf_basis = []
+        for i in range(N_psf_basis):
+            psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
+
+        self.psf_KL_basis = psf_basis
+
 
 
 

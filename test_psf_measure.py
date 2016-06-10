@@ -35,16 +35,16 @@ import propercoadd as pc
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
-N = 1024  # side
-X_FWHM = 8
+N = 512  # side
+X_FWHM = 6
 Y_FWHM = 7
-theta = 10
+theta = 78
 t_exp = 1
 max_fw = max(X_FWHM, Y_FWHM)
 test_dir = os.path.abspath('./test_images/measure_psf')
 
-x = np.linspace(6*max_fw, N-6*max_fw, 10)
-y = np.linspace(6*max_fw, N-6*max_fw, 10)
+x = np.linspace(6*max_fw, N-6*max_fw, 7)
+y = np.linspace(6*max_fw, N-6*max_fw, 7)
 xy = simtools.cartesian_product([x, y])
 
 
@@ -56,16 +56,14 @@ im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
 
 sim = pc.SingleImage(im)
 sim.subtract_back()
-sep.set_extract_pixstack(800000)
-srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
-posflux = srcs[['x','y', 'flux']]
-
 fitted_models = sim.fit_psf_sep()
 
-
-p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
-fitshape = (int(p_sizes[1]), int(p_sizes[1]))
-print fitshape
+#sep.set_extract_pixstack(800000)
+#srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
+#posflux = srcs[['x','y', 'flux']]
+#p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
+#fitshape = (int(p_sizes[1]), int(p_sizes[1]))
+#print fitshape
 
 x_sds = [g.x_stddev for g in fitted_models]
 y_sds = [g.y_stddev for g in fitted_models]
@@ -74,10 +72,10 @@ amplitudes = [g.amplitude for g in fitted_models]
 
 fwhm_x = 2.335*np.mean(x_sds)
 fwhm_y = 2.335*np.mean(y_sds)
-mean_th = np.mean(th)
+mean_th = round(np.mean(th))
 fwhm = max(fwhm_x, fwhm_y)
 
-print fwhm_x, fwhm_y, mean_th
+print 'X Fwhm = {}, Y Fwhm = {}, Mean Theta = {}'.format(fwhm_x, fwhm_y, mean_th)
 
 # =============================================================================
 #    PSF spatially variant
