@@ -44,18 +44,19 @@ class SingleImage(object):
             self.bkg_sd = self.bkg.std()
 
     @property
-    def subtract_back(self):
-        self.bkg = sep.Background(self.imagedata)
-        self.bkg_sub_img = self.imagedata - self.bkg
-        return self.bkg_sub_img
+    def bkg_sub_img(self):
+        if not hasattr(self, 'bkg_sub_img'):
+            self.bkg = sep.Background(self.imagedata)
+            self._bkg_sub_img = self.imagedata - self.bkg
+        return self._bkg_sub_img
 
     def fit_psf_sep(self, model='astropy-Gaussian2D'):
         """
         Fit and calculate the Psf of an image using sep source detection
         """
         # calculate x, y, flux of stars
-        best_srcs = self._best_srcs()['sources']
-        fitshape = self._best_srcs()['fitshape']
+        best_srcs = self._best_srcs['sources']
+        fitshape = self._best_srcs['fitshape']
         print 'Fitshape = {}'.format(fitshape)
 
         fitter = fitting.LevMarLSQFitter()
@@ -106,7 +107,6 @@ class SingleImage(object):
     @property
     def _best_srcs(self):
         if not hasattr(self, '_best_sources'):
-            self.subtract_back()
             try:
                 srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
             except Exception:
@@ -123,6 +123,8 @@ class SingleImage(object):
                         thresh=2.5*self.bkg.globalrms)
             if len(srcs)<10:
                 print 'No sources detected'
+            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
+            fitshape = (int(p_sizes[1]), int(p_sizes[1]))
 
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
@@ -130,7 +132,7 @@ class SingleImage(object):
             best_flux = srcs['flux']> 0.
             best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
             print 'Sources good to calculate = {}'.format(len(best_srcs))
-            self._best_sources = {'sources'=best_srcs, 'fitshape'=fitshape}
+            self._best_sources = {'sources':best_srcs, 'fitshape':fitshape}
         return self._best_sources
 
 
@@ -140,8 +142,8 @@ class SingleImage(object):
         detected stars in the image
         """
         # calculate x, y, flux of stars
-        best_srcs = self._best_srcs()['sources']
-        fitshape = self._best_srcs()['fitshape']
+        best_srcs = self._best_srcs['sources']
+        fitshape = self._best_srcs['fitshape']
         print 'Fitshape = {}'.format(fitshape)
 
         best_srcs = best_srcs[best_srcs['flag']<=1]
@@ -270,6 +272,7 @@ class SingleImage(object):
             fitshape = self._best_srcs()['fitshape']
             best_srcs = best_srcs[best_srcs['flag']<=1]
 
+            indices = np.indices(self.bkg_sub_img.shape)
             P = []
 
             for row in best_srcs:
@@ -282,9 +285,29 @@ class SingleImage(object):
                 P.append([sub_array_data, position])
 
             # Each element in P brings information about the real PSF evaluated
-            # -or measured-
+            # -or measured-, giving an interpolation point for a
 
-        return a_fields
+            a_fields = []
+            for i in range(N_fields):
+                p_i = psf_basis[i].flatten()
+                p_i_sq = np.sum(np.dot(p_i, p_i))
+
+                measures = []
+                for a_pos in P:
+                    pos = P[1]
+                    Pval = P[0].flatten()
+                    a_measured = np.dot(Pval, p_i)/p_i_sq
+                    measures.append([pos, a_measured])
+
+                # x_domain = [0, self.imagedata.shape[0]]
+                # y_domain = [0, self.imagedata.shape[1]]
+                a_field_model = models.Polynomial2D(degree=3)
+                    # , x_domain=x_domain, y_domain=y_domain)
+
+
+
+
+        return self._a_fields
 
 
 class ImageStats(object):

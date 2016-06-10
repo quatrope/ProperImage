@@ -55,15 +55,8 @@ im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
                     SN=SN, bkg_pdf='poisson')
 
 sim = pc.SingleImage(im)
-sim.subtract_back()
-fitted_models = sim.fit_psf_sep()
 
-#sep.set_extract_pixstack(800000)
-#srcs = sep.extract(sim.bkg_sub_img, thresh=30*sim.bkg.globalrms)
-#posflux = srcs[['x','y', 'flux']]
-#p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
-#fitshape = (int(p_sizes[1]), int(p_sizes[1]))
-#print fitshape
+fitted_models = sim.fit_psf_sep()
 
 x_sds = [g.x_stddev for g in fitted_models]
 y_sds = [g.y_stddev for g in fitted_models]
