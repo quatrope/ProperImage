@@ -7,7 +7,6 @@ PhD of Astromoy - UNC"""
 
 
 import numpy as np
-import scipy.fftpack as fft
 from scipy.stats import stats
 from astropy.io import fits
 from astropy.stats import sigma_clip
@@ -16,7 +15,6 @@ from astropy.modeling import models
 from astropy.nddata.utils import extract_array
 from photutils import psf
 import sep
-
 
 
 class SingleImage(object):
@@ -40,14 +38,15 @@ class SingleImage(object):
         return 'SingleImage instance for {}'.format(self._attached_to)
 
     def sigma_clip_bkg(self):
-        self.bkg = sigma_clip(self.imagedata, iters=10)
-        self.bkg_mean = self.bkg.mean()
-        self.bkg_sd = self.bkg.std()
+        if not hasattr(self, 'bkg'):
+            self.bkg = sigma_clip(self.imagedata, iters=10)
+            self.bkg_mean = self.bkg.mean()
+            self.bkg_sd = self.bkg.std()
 
+    @property
     def subtract_back(self):
         self.bkg = sep.Background(self.imagedata)
         self.bkg_sub_img = self.imagedata - self.bkg
-
         return self.bkg_sub_img
 
     def fit_psf_sep(self, model='astropy-Gaussian2D'):
@@ -55,27 +54,13 @@ class SingleImage(object):
         Fit and calculate the Psf of an image using sep source detection
         """
         # calculate x, y, flux of stars
-        self.subtract_back()
-        try:
-            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
-        except Exception:
-            sep.set_extract_pixstack(700000)
-            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
+        best_srcs = self._best_srcs()['sources']
+        fitshape = self._best_srcs()['fitshape']
+        print 'Fitshape = {}'.format(fitshape)
 
-        if len(srcs)<10:
-            try:
-                srcs = sep.extract(self.bkg_sub_img, \
-                    thresh=2.5*self.bkg.globalrms)
-            except Exception:
-                sep.set_extract_pixstack(900000)
-                srcs = sep.extract(self.bkg_sub_img, \
-                    thresh=2.5*self.bkg.globalrms)
-        if len(srcs)<10:
-            print 'No sources detected'
-
-        p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
-        fitshape = (int(p_sizes[1]), int(p_sizes[1]))
-        print 'Fitshape =', fitshape
+        fitter = fitting.LevMarLSQFitter()
+        indices = np.indices(self.bkg_sub_img.shape)
+        model_fits = []
 
         if model=='photutils-IntegratedGaussianPRF':
             prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2.,
@@ -84,16 +69,6 @@ class SingleImage(object):
             prf_model.fixed['sigma'] = False
             prf_model.fixed['x_0'] = False
             prf_model.fixed['y_0'] = False
-
-            fitter = fitting.LevMarLSQFitter()
-            indices = np.indices(self.bkg_sub_img.shape)
-            model_fits = []
-
-            best_big = srcs['tnpix']>=p_sizes[0]**2.
-            best_small = srcs['tnpix']<=p_sizes[2]**2.
-            best_flag = srcs['flag']<31
-            best_flux = srcs['flux']> 0.
-            best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
 
             for row in best_srcs:
                 position = (row['y'], row['x'])
@@ -105,22 +80,12 @@ class SingleImage(object):
                 prf_model.x_0 = position[1]
                 prf_model.y_0 = position[0]
                 resid = sub_array_data - fit(x,y)
-                if np.sum(resid*resid) < self.bkg.globalrms*fitshape[0]**2:
-                    print fit
+                if np.sum(np.square(resid)) < 5*self.bkg.globalrms*fitshape[0]**2:
                     model_fits.append(fit)
+            print 'succesful fits = {}'.format(len(model_fits))
 
         elif model=='astropy-Gaussian2D':
             prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
-            fitter = fitting.LevMarLSQFitter()
-            indices = np.indices(self.bkg_sub_img.shape)
-            model_fits = []
-
-            best_big = srcs['tnpix']>=p_sizes[0]**2.
-            best_small = srcs['tnpix']<=p_sizes[2]**2.
-            best_flag = srcs['flag']<=16
-            best_flux = srcs['flux']> 0.
-            best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
-            print 'Sources good to be fitted ={}'.format(len(best_srcs))
 
             for row in best_srcs:
                 position = (row['y'], row['x'])
@@ -133,47 +98,56 @@ class SingleImage(object):
                 prf_model.y_mean = position[0]
                 fit = fitter(prf_model, x, y, sub_array_data)
                 resid = sub_array_data - fit(x,y)
-                if np.sum(np.square(resid)) < 3*self.bkg.globalrms*fitshape[0]**2:
+                if np.sum(np.square(resid)) < 5*self.bkg.globalrms*fitshape[0]**2:
                     model_fits.append(fit)
             print 'succesful fits = {}'.format(len(model_fits))
         return model_fits
 
-    def covMat_from_stars(self):
+    @property
+    def _best_srcs(self):
+        if not hasattr(self, '_best_sources'):
+            self.subtract_back()
+            try:
+                srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
+            except Exception:
+                sep.set_extract_pixstack(700000)
+                srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
+
+            if len(srcs)<10:
+                try:
+                    srcs = sep.extract(self.bkg_sub_img, \
+                        thresh=2.5*self.bkg.globalrms)
+                except Exception:
+                    sep.set_extract_pixstack(900000)
+                    srcs = sep.extract(self.bkg_sub_img, \
+                        thresh=2.5*self.bkg.globalrms)
+            if len(srcs)<10:
+                print 'No sources detected'
+
+            best_big = srcs['tnpix']>=p_sizes[0]**2.
+            best_small = srcs['tnpix']<=p_sizes[2]**2.
+            best_flag = srcs['flag']<=16
+            best_flux = srcs['flux']> 0.
+            best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
+            print 'Sources good to calculate = {}'.format(len(best_srcs))
+            self._best_sources = {'sources'=best_srcs, 'fitshape'=fitshape}
+        return self._best_sources
+
+
+    def _covMat_from_stars(self):
         """
-        Fit and calculate the Psf cov matrix of an image using sep source detection
+        Determines the covariance matrix for psf directly from the
+        detected stars in the image
         """
         # calculate x, y, flux of stars
-        self.subtract_back()
-        try:
-            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
-        except Exception:
-            sep.set_extract_pixstack(700000)
-            srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
-
-        if len(srcs)<10:
-            try:
-                srcs = sep.extract(self.bkg_sub_img, \
-                    thresh=2.5*self.bkg.globalrms)
-            except Exception:
-                sep.set_extract_pixstack(900000)
-                srcs = sep.extract(self.bkg_sub_img, \
-                    thresh=2.5*self.bkg.globalrms)
-        if len(srcs)<10:
-            print 'No sources detected'
-
-        p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
-        fitshape = (int(p_sizes[1]), int(p_sizes[1]))
+        best_srcs = self._best_srcs()['sources']
+        fitshape = self._best_srcs()['fitshape']
         print 'Fitshape = {}'.format(fitshape)
+
+        best_srcs = best_srcs[best_srcs['flag']<=1]
 
         indices = np.indices(self.bkg_sub_img.shape)
         renders = []
-
-        best_big = srcs['tnpix']>=p_sizes[0]**2.
-        best_small = srcs['tnpix']<=p_sizes[2]**2.
-        best_flag = srcs['flag']<=1
-        best_flux = srcs['flux']> 0.
-        best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
-        print 'Sources good to calculate ={}'.format(len(best_srcs))
 
         for row in best_srcs:
             position = (row['y'], row['x'])
@@ -199,7 +173,11 @@ class SingleImage(object):
                     covMat[j, i] = inner
         return covMat
 
-    def covMat_psf(self):
+    def _covMat_psf(self):
+        """
+        Determines the covariance matrix for psf gaussian models fitted to
+        detected stars in the image
+        """
         psf_models = self.fit_psf_sep()
         covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
 
@@ -218,51 +196,79 @@ class SingleImage(object):
                     covMat[j, i] = inner
         return covMat
 
+    @property
+    def _kl_PSF(self, pow_threshold=0.9):
+        """
+        Determines the KL psf_basis from PSF gaussian models fitted to
+        stars detected in the field.
+        """
+        if not hasattr(self, 'psf_KL_basis_model'):
+            covMat = self._covMat_psf()
+            valh, vech = np.linalg.eigh(covMat)
 
-    def kl_PSF(self, pow_threshold=0.9):
-        covMat = self.covMat_psf()
-        valh, vech = np.linalg.eigh(covMat)
+            power = abs(valh)/np.sum(abs(valh))
+            cum = 0
+            cut = 0
+            while cum < pow_threshold:
+                cut -= 1
+                cum += power[cut]
 
-        power = abs(valh)/np.sum(abs(valh))
-        cum = 0
-        cut = 0
-        while cum < pow_threshold:
-            cut -= 1
-            cum += power[cut]
+            #  Build psf basis
+            N_psf_basis = abs(cut)
+            lambdas = valh[cut:]
+            xs = vech[:,cut:]
+            psf_basis = []
+            for i in range(N_psf_basis):
+                psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
 
-        #  Build psf basis
-        N_psf_basis = abs(cut)
-        lambdas = valh[cut:]
-        xs = vech[:,cut:]
-        psf_basis = []
-        for i in range(N_psf_basis):
-            psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
+            self._psf_KL_basis_model = psf_basis
 
-        self.psf_KL_basis = psf_basis
+        return self._psf_KL_basis_model
 
-    def kl_from_stars(self, pow_threshold=0.9):
-        covMat = self.covMat_from_stars()
-        valh, vech = np.linalg.eigh(covMat)
+    @property
+    def _kl_from_stars(self, pow_threshold=0.9):
+        """
+        Determines the KL psf_basis from stars detected in the field.
+        """
+        if not hasattr(self, 'psf_KL_basis_stars'):
+            covMat = self._covMat_from_stars()
+            valh, vech = np.linalg.eigh(covMat)
 
-        power = abs(valh)/np.sum(abs(valh))
-        cum = 0
-        cut = 0
-        while cum < pow_threshold:
-            cut -= 1
-            cum += power[cut]
+            power = abs(valh)/np.sum(abs(valh))
+            cum = 0
+            cut = 0
+            while cum < pow_threshold:
+                cut -= 1
+                cum += power[cut]
 
-        #  Build psf basis
-        N_psf_basis = abs(cut)
-        lambdas = valh[cut:]
-        xs = vech[:,cut:]
-        psf_basis = []
-        for i in range(N_psf_basis):
-            psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
+            #  Build psf basis
+            N_psf_basis = abs(cut)
+            lambdas = valh[cut:]
+            xs = vech[:,cut:]
+            psf_basis = []
+            for i in range(N_psf_basis):
+                psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
 
-        self.psf_KL_basis = psf_basis
+            self._psf_KL_basis = psf_basis
+
+        return self._psf_KL_basis_stars
+
+    @property
+    def _kl_a_fields(self, pow_threshold=0.9, from_stars=True):
+        """
+        Calculate the coefficients of the expansion in basis of KLoeve.
+        """
+        if not hasattr(self, 'kl_a_fields'):
+            if from_stars:
+                psf_basis = self._kl_from_stars()
+            else:
+                psf_basis = self._kl_PSF()
+
+            N_fields = len(psf_basis)
 
 
 
+        return a_fields
 
 
 class ImageStats(object):
@@ -292,15 +298,15 @@ class ImageStats(object):
             except:
                 raise InputError('Dataformat not set nor guessable')
 
-        if dataformat not in ('CCDData', 'fits_file', 'numpy_array', 'hdu',\
-                                'ndarray', 'str', 'HDUList'):
+        if dataformat not in ('CCDData', 'fits_file', 'numpy_array', 'hdu',
+                            'ndarray', 'str', 'HDUList'):
             raise InputError('Dataformat not recognized, try one of these \
             \n CCDData, fits_file, numpy_array, hdu')
 
         if dataformat == 'CCDData':
             self.pixmatrix = image_obj.data
-            assert isinstance(pixmatrix, np.array)
-        elif dataformat == 'fits_file' or dataformat =='str':
+            assert isinstance(self.pixmatrix, np.array)
+        elif dataformat == 'fits_file' or dataformat == 'str':
             self.pixmatrix = fits.open(image_obj)[0].data
         elif dataformat == 'numpy_array' or dataformat == 'ndarray':
             self.pixmatrix = image_obj
@@ -323,7 +329,7 @@ class ImageStats(object):
         return m
 
     def count_hist(self):
-        h = stats.histogram(self.pixmatrix.flatten(), numbins = 30)
+        h = stats.histogram(self.pixmatrix.flatten(), numbins=30)
         self.full_description['histogram'] = h
         return h
 
@@ -333,8 +339,6 @@ class ImageStats(object):
         return m
 
     def to1d(self):
-        #self._oneDdata = np.reshape(self.pixmatrix,
-        #            self.pixmatrix.shape[0]*self.pixmatrix.shape[1])
         self._oneDdata = self.pixmatrix.flatten()
         return
 
@@ -343,26 +347,18 @@ class ImageStats(object):
         self.median = self.pix_median()
         self.hist = self.count_hist()
         self.mean = self.pix_mean()
-        #self.to1d()
+        # self.to1d()
         return
 
     def summary(self):
         self.to1d()
         self.summ = stats.describe(self._oneDdata)
-        #print self.summ
+        # print self.summ
         return
 
 
 def match_filter(image, objfilter):
     """
     Function to apply matched filtering to an image
-    """
-    return None
-
-
-def psf_extract(image, xy):
-    """Function to extract the psf of an image.
-
-    xy should be a list of tuples with positions of the stars
     """
     return None
