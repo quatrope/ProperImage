@@ -216,10 +216,10 @@ class SingleImage(object):
             #  Build psf basis
             N_psf_basis = abs(cut)
             lambdas = valh[cut:]
-            xs = vech[:,cut:]
+            xs = vech[:, cut:]
             psf_basis = []
             for i in range(N_psf_basis):
-                psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
+                psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
 
             self._psf_KL_basis_model = psf_basis
 
@@ -244,10 +244,10 @@ class SingleImage(object):
             #  Build psf basis
             N_psf_basis = abs(cut)
             lambdas = valh[cut:]
-            xs = vech[:,cut:]
+            xs = vech[:, cut:]
             psf_basis = []
             for i in range(N_psf_basis):
-                psf_basis.append(np.tensordot(xs[:,i], renders, axes=[0,0]))
+                psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
 
             self._psf_KL_basis = psf_basis
 
@@ -266,7 +266,23 @@ class SingleImage(object):
 
             N_fields = len(psf_basis)
 
+            best_srcs = self._best_srcs()['sources']
+            fitshape = self._best_srcs()['fitshape']
+            best_srcs = best_srcs[best_srcs['flag']<=1]
 
+            P = []
+
+            for row in best_srcs:
+                position = (row['y'], row['x'])
+                y = extract_array(indices[0], fitshape, position)
+                x = extract_array(indices[1], fitshape, position)
+                sub_array_data = extract_array(self.bkg_sub_img,
+                                                fitshape, position,
+                                                fill_value=self.bkg.globalrms)
+                P.append([sub_array_data, position])
+
+            # Each element in P brings information about the real PSF evaluated
+            # -or measured-
 
         return a_fields
 
