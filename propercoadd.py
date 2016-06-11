@@ -173,14 +173,14 @@ class SingleImage(object):
 
                     covMat[i, j] = inner
                     covMat[j, i] = inner
-        return covMat
+        return [covMat, renders]
 
     def _covMat_psf(self):
         """
         Determines the covariance matrix for psf gaussian models fitted to
         detected stars in the image
         """
-        psf_models = self.fit_psf_sep()
+        fitted_models = self.fit_psf_sep()
         covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
 
         renders = [g.render() for g in fitted_models]
@@ -196,7 +196,7 @@ class SingleImage(object):
 
                     covMat[i, j] = inner
                     covMat[j, i] = inner
-        return covMat
+        return [covMat, renders]
 
     @property
     def _kl_PSF(self, pow_threshold=0.9):
@@ -205,7 +205,7 @@ class SingleImage(object):
         stars detected in the field.
         """
         if not hasattr(self, 'psf_KL_basis_model'):
-            covMat = self._covMat_psf()
+            covMat, renders = self._covMat_psf()
             valh, vech = np.linalg.eigh(covMat)
 
             power = abs(valh)/np.sum(abs(valh))
@@ -233,7 +233,7 @@ class SingleImage(object):
         Determines the KL psf_basis from stars detected in the field.
         """
         if not hasattr(self, 'psf_KL_basis_stars'):
-            covMat = self._covMat_from_stars()
+            covMat, renders = self._covMat_from_stars()
             valh, vech = np.linalg.eigh(covMat)
 
             power = abs(valh)/np.sum(abs(valh))
@@ -262,14 +262,15 @@ class SingleImage(object):
         """
         if not hasattr(self, 'kl_a_fields'):
             if from_stars:
-                psf_basis = self._kl_from_stars()
+                psf_basis = self._kl_from_stars
+
             else:
-                psf_basis = self._kl_PSF()
+                psf_basis = self._kl_PSF
 
             N_fields = len(psf_basis)
 
-            best_srcs = self._best_srcs()['sources']
-            fitshape = self._best_srcs()['fitshape']
+            best_srcs = self._best_srcs['sources']
+            fitshape = self._best_srcs['fitshape']
             best_srcs = best_srcs[best_srcs['flag']<=1]
 
             indices = np.indices(self.bkg_sub_img.shape)
