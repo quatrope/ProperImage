@@ -21,8 +21,8 @@ import propercoadd as pc
 # =============================================================================
 N = 512  # side
 X_FWHM = 6
-Y_FWHM = 7
-theta = 78
+Y_FWHM = 9
+theta = 50
 t_exp = 1
 max_fw = max(X_FWHM, Y_FWHM)
 test_dir = os.path.abspath('./test_images/measure_psf')
@@ -41,7 +41,7 @@ im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
 
 
 sim = pc.SingleImage(im)
-sim.subtract_back()
+
 fitted_models = sim.fit_psf_sep()
 
 # =============================================================================
@@ -55,6 +55,7 @@ x_sds = np.zeros(len(fitted_models))
 y_sds = np.zeros(len(fitted_models))
 x = np.zeros(len(fitted_models))
 y = np.zeros(len(fitted_models))
+th = np.zeros(len(fitted_models))
 amplitudes = np.zeros(len(fitted_models))
 
 i = 0
@@ -62,6 +63,7 @@ for g in fitted_models:
     x_sds[i] = g.x_stddev.value
     y_sds[i] = g.y_stddev.value
     amplitudes[i] = g.amplitude.value
+    th[i] = g.theta*180/np.pi
     x[i] = round(g.x_mean.value - 0.5)
     y[i] = round(g.y_mean.value - 0.5)
     i += 1
@@ -69,8 +71,9 @@ for g in fitted_models:
 fwhm_x = 2.335*np.mean(x_sds)
 fwhm_y = 2.335*np.mean(y_sds)
 fwhm = max(fwhm_x, fwhm_y)
+mean_th = round(np.mean(th))
 
-print fwhm_x, fwhm_y
+print 'X Fwhm = {}, Y Fwhm = {}, Mean Theta = {}'.format(fwhm_x, fwhm_y, mean_th)
 
 
 xpol_model = models.Polynomial2D(degree=3)

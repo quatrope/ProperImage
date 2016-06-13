@@ -138,7 +138,7 @@ class SingleImage(object):
             Patch = []
             pos = []
             for row in best_srcs:
-                position = (row['y'], row['x'])
+                position = [row['y'], row['x']]
                 y = extract_array(indices[0], fitshape, position)
                 x = extract_array(indices[1], fitshape, position)
                 sub_array_data = extract_array(self.bkg_sub_img,
@@ -146,8 +146,8 @@ class SingleImage(object):
                                                 fill_value=self.bkg.globalrms)
                 Patch.append(sub_array_data)
                 pos.append(position)
-            self._best_sources['patches'] = Patch
-            self._best_sources['positions'] = pos
+            self._best_sources['patches'] = np.array(Patch)
+            self._best_sources['positions'] = np.array(pos)
         return self._best_sources
 
 
@@ -276,8 +276,8 @@ class SingleImage(object):
 
             best_srcs = self._best_srcs['sources']
             fitshape = self._best_srcs['fitshape']
-            patches = np.array(self._best_srcs['patches'])[best_srcs['flag']<=1]
-            positions = np.array(self._best_srcs['positions'])[best_srcs['flag']<=1]
+            patches = self._best_srcs['patches'][best_srcs['flag']<=1]
+            positions = self._best_srcs['positions'][best_srcs['flag']<=1]
             best_srcs = best_srcs[best_srcs['flag']<=1]
 
             # Each element in patches brings information about the real PSF
@@ -289,21 +289,27 @@ class SingleImage(object):
                 p_i_sq = np.sum(np.dot(p_i, p_i))
 
                 measures = []
-                for j in range(len(positions)):
-                    pos = positions[j]
-                    Pval = patches[j].flatten()
-                    a_measured = np.dot(Pval, p_i)/p_i_sq
-                    measures.append([pos, a_measured])
+                x = positions[:, 0]
+                y = positions[:, 1]
+                for a_patch in patches:
+                    Pval = a_patch.flatten()
+                    measures.append(np.dot(Pval, p_i)/p_i_sq)
 
+                z = np.array(measures)
+                print z
                 # x_domain = [0, self.imagedata.shape[0]]
                 # y_domain = [0, self.imagedata.shape[1]]
                 a_field_model = models.Polynomial2D(degree=3)
                     # , x_domain=x_domain, y_domain=y_domain)
+                fitter = fitting.LevMarLSQFitter()
+                a_fields.append(fitter(a_field_model, x, y, z))
 
-
-
-
+            self._a_fields = a_fields
         return self._a_fields
+
+    def get_variable_psf(self):
+        return
+
 
 
 class ImageStats(object):
