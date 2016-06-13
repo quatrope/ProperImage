@@ -19,28 +19,36 @@ import propercoadd as pc
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
-N = 512  # side
-X_FWHM = 6
-Y_FWHM = 9
-theta = 50
-t_exp = 1
-max_fw = max(X_FWHM, Y_FWHM)
-test_dir = os.path.abspath('./test_images/measure_psf')
 
-x = np.linspace(6*max_fw, N-6*max_fw, 7)
-y = np.linspace(6*max_fw, N-6*max_fw, 7)
-xy = simtools.cartesian_product([x, y])
+frames = []
+for theta in [0, 45, 105, 150]:
+    N = 512  # side
+    X_FWHM = 6
+    Y_FWHM = 9
+    t_exp = 1
+    max_fw = max(X_FWHM, Y_FWHM)
+    test_dir = os.path.abspath('./test_images/measure_psf')
 
-
-SN =  1000. # SN para poder medir psf
-weights = list(np.linspace(10, 100, len(xy)))
-m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
-im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
-                    SN=SN, bkg_pdf='poisson')
+    x = np.linspace(6*max_fw, N-6*max_fw, 7)
+    y = np.linspace(6*max_fw, N-6*max_fw, 7)
+    xy = simtools.cartesian_product([x, y])
 
 
+    SN =  1000. # SN para poder medir psf
+    weights = list(np.linspace(10, 100, len(xy)))
+    m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
+    im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
+                        SN=SN, bkg_pdf='poisson')
+    frames.append(im)
 
-sim = pc.SingleImage(im)
+frame = np.zeros((1024, 1024))
+for j in range(2):
+    for i in range(2):
+        frame[i*512:(i+1)*512, j*512:(j+1)*512] = frames[i+2*j]
+
+
+
+sim = pc.SingleImage(frame)
 
 fitted_models = sim.fit_psf_sep()
 
@@ -75,14 +83,8 @@ mean_th = round(np.mean(th))
 
 print 'X Fwhm = {}, Y Fwhm = {}, Mean Theta = {}'.format(fwhm_x, fwhm_y, mean_th)
 
-
-xpol_model = models.Polynomial2D(degree=3)
-ypol_model = models.Polynomial2D(degree=3)
-
-fit_p = fitting.LevMarLSQFitter()
-
-
-
+psf_basis = sim._kl_from_stars
+a_fields = sim._kl_a_fields
 
 
 

@@ -203,7 +203,7 @@ class SingleImage(object):
         return [covMat, renders]
 
     @property
-    def _kl_PSF(self, pow_threshold=0.9):
+    def _kl_PSF(self, pow_th=0.99):
         """
         Determines the KL psf_basis from PSF gaussian models fitted to
         stars detected in the field.
@@ -215,14 +215,18 @@ class SingleImage(object):
             power = abs(valh)/np.sum(abs(valh))
             cum = 0
             cut = 0
-            while cum < pow_threshold:
-                cut -= 1
-                cum += power[cut]
+            if not pow_th == 1:
+                while cum <= pow_th:
+                    cut -= 1
+                    cum += power[cut]
+            else:
+                cut = -len(valh)
 
             #  Build psf basis
             N_psf_basis = abs(cut)
             lambdas = valh[cut:]
             xs = vech[:, cut:]
+            print cut, lambdas
             psf_basis = []
             for i in range(N_psf_basis):
                 psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
@@ -232,7 +236,7 @@ class SingleImage(object):
         return self._psf_KL_basis_model
 
     @property
-    def _kl_from_stars(self, pow_threshold=0.9):
+    def _kl_from_stars(self, pow_th=0.99):
         """
         Determines the KL psf_basis from stars detected in the field.
         """
@@ -244,14 +248,18 @@ class SingleImage(object):
             power = abs(valh)/np.sum(abs(valh))
             cum = 0
             cut = 0
-            while cum < pow_threshold:
-                cut -= 1
-                cum += power[cut]
+            if not pow_th == 1:
+                while cum <= pow_th:
+                    cut -= 1
+                    cum += power[cut]
+            else:
+                cut = -len(valh)
 
             #  Build psf basis
             N_psf_basis = abs(cut)
             lambdas = valh[cut:]
             xs = vech[:, cut:]
+            print lambdas
             psf_basis = []
             for i in range(N_psf_basis):
                 psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
@@ -261,7 +269,7 @@ class SingleImage(object):
         return self._psf_KL_basis_stars
 
     @property
-    def _kl_a_fields(self, pow_threshold=0.9, from_stars=True):
+    def _kl_a_fields(self, pow_threshold=0.95, from_stars=True):
         """
         Calculate the coefficients of the expansion in basis of KLoeve.
         """
@@ -296,7 +304,6 @@ class SingleImage(object):
                     measures.append(np.dot(Pval, p_i)/p_i_sq)
 
                 z = np.array(measures)
-                print z
                 # x_domain = [0, self.imagedata.shape[0]]
                 # y_domain = [0, self.imagedata.shape[1]]
                 a_field_model = models.Polynomial2D(degree=3)
