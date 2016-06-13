@@ -133,6 +133,21 @@ class SingleImage(object):
             best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
             print 'Sources good to calculate = {}'.format(len(best_srcs))
             self._best_sources = {'sources':best_srcs, 'fitshape':fitshape}
+
+            indices = np.indices(self.bkg_sub_img.shape)
+            Patch = []
+            pos = []
+            for row in best_srcs:
+                position = (row['y'], row['x'])
+                y = extract_array(indices[0], fitshape, position)
+                x = extract_array(indices[1], fitshape, position)
+                sub_array_data = extract_array(self.bkg_sub_img,
+                                                fitshape, position,
+                                                fill_value=self.bkg.globalrms)
+                Patch.append(sub_array_data)
+                pos.append(position)
+            self._best_sources['patches'] = Patch
+            self._best_sources['positions'] = pos
         return self._best_sources
 
 
@@ -146,19 +161,8 @@ class SingleImage(object):
         fitshape = self._best_srcs['fitshape']
         print 'Fitshape = {}'.format(fitshape)
 
-        best_srcs = best_srcs[best_srcs['flag']<=1]
-
-        indices = np.indices(self.bkg_sub_img.shape)
-        renders = []
-
-        for row in best_srcs:
-            position = (row['y'], row['x'])
-            y = extract_array(indices[0], fitshape, position)
-            x = extract_array(indices[1], fitshape, position)
-            sub_array_data = extract_array(self.bkg_sub_img,
-                                            fitshape, position,
-                                            fill_value=self.bkg.globalrms)
-            renders.append(sub_array_data)
+        # best_srcs = best_srcs[best_srcs['flag']<=1]
+        renders = self._best_srcs['patches']
 
         covMat = np.zeros(shape=(len(renders), len(renders)))
 
@@ -173,7 +177,7 @@ class SingleImage(object):
 
                     covMat[i, j] = inner
                     covMat[j, i] = inner
-        return [covMat, renders]
+        return covMat
 
     def _covMat_psf(self):
         """
@@ -232,8 +236,9 @@ class SingleImage(object):
         """
         Determines the KL psf_basis from stars detected in the field.
         """
-        if not hasattr(self, 'psf_KL_basis_stars'):
-            covMat, renders = self._covMat_from_stars()
+        if not hasattr(self, '_psf_KL_basis_stars'):
+            covMat = self._covMat_from_stars()
+            renders = self._best_srcs['patches']
             valh, vech = np.linalg.eigh(covMat)
 
             power = abs(valh)/np.sum(abs(valh))
@@ -251,7 +256,7 @@ class SingleImage(object):
             for i in range(N_psf_basis):
                 psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
 
-            self._psf_KL_basis = psf_basis
+            self._psf_KL_basis_stars = psf_basis
 
         return self._psf_KL_basis_stars
 
@@ -271,22 +276,12 @@ class SingleImage(object):
 
             best_srcs = self._best_srcs['sources']
             fitshape = self._best_srcs['fitshape']
+            patches = np.array(self._best_srcs['patches'])[best_srcs['flag']<=1]
+            positions = np.array(self._best_srcs['positions'])[best_srcs['flag']<=1]
             best_srcs = best_srcs[best_srcs['flag']<=1]
 
-            indices = np.indices(self.bkg_sub_img.shape)
-            P = []
-
-            for row in best_srcs:
-                position = (row['y'], row['x'])
-                y = extract_array(indices[0], fitshape, position)
-                x = extract_array(indices[1], fitshape, position)
-                sub_array_data = extract_array(self.bkg_sub_img,
-                                                fitshape, position,
-                                                fill_value=self.bkg.globalrms)
-                P.append([sub_array_data, position])
-
-            # Each element in P brings information about the real PSF evaluated
-            # -or measured-, giving an interpolation point for a
+            # Each element in patches brings information about the real PSF
+            # evaluated -or measured-, giving an interpolation point for a
 
             a_fields = []
             for i in range(N_fields):
@@ -294,9 +289,9 @@ class SingleImage(object):
                 p_i_sq = np.sum(np.dot(p_i, p_i))
 
                 measures = []
-                for a_pos in P:
-                    pos = P[1]
-                    Pval = P[0].flatten()
+                for j in range(len(positions)):
+                    pos = positions[j]
+                    Pval = patches[j].flatten()
                     a_measured = np.dot(Pval, p_i)/p_i_sq
                     measures.append([pos, a_measured])
 
