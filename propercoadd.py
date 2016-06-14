@@ -41,7 +41,10 @@ class SingleImage(object):
 
         if imagefile:
             self.imagedata = fits.getdata(img)
-            self.imagedata = self.imagedata.byteswap().newbyteorder()
+            if not self.imagedata.dtype == 'uint16':
+                self.imagedata = self.imagedata.byteswap().newbyteorder()
+            else:
+                self.imagedata = self.imagedata.astype('float')
         else:
             self.imagedata = img
 
@@ -118,7 +121,7 @@ class SingleImage(object):
                 prf_model.y_mean = position[0]
                 fit = fitter(prf_model, x, y, sub_array_data)
                 resid = sub_array_data - fit(x,y)
-                if np.sum(np.square(resid)) < 8*self.bkg.globalrms*fitshape[0]**2:
+                if np.sum(np.square(resid)) < 5*(self.bkg.globalrms*fitshape[0])**2:
                     model_fits.append(fit)
             print 'succesful fits = {}'.format(len(model_fits))
         return model_fits
@@ -131,6 +134,10 @@ class SingleImage(object):
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img, thresh=12*self.bkg.globalrms)
+            except ValueError:
+                srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
+                    thresh=12*self.bkg.globalrms)
+
 
             if len(srcs)<10:
                 try:
@@ -142,7 +149,7 @@ class SingleImage(object):
                         thresh=2.5*self.bkg.globalrms)
             if len(srcs)<10:
                 print 'No sources detected'
-            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,85]))
+            p_sizes = np.sqrt(np.percentile(srcs['npix'], q=[25,55,85]))
             print p_sizes
             if not p_sizes[1]<11:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
@@ -151,9 +158,11 @@ class SingleImage(object):
 
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
-            best_flag = srcs['flag']<=2
-            best_flux = srcs['flux']> 0.
-            best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
+            best_flag = srcs['flag']<=16
+            fluxes_quartiles = np.percentile(srcs['flux'], q=[30, 60])
+            low_flux = srcs['flux'] > fluxes_quartiles[0]
+            hig_flux = srcs['flux'] < fluxes_quartiles[1]
+            best_srcs = srcs[ best_big & best_flag & best_small & hig_flux & low_flux]
 
             if len(best_srcs) > 100:
                 best_srcs = best_srcs[0:100]

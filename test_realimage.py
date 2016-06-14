@@ -20,9 +20,9 @@ import propercoadd as pc
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
-datapath = os.path.abspath('/home/bruno/Documentos/Doctorado/reabog/data')
+datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/Landolt_C53')
 
-frame = os.path.join(datapath, 'coadd.fits')
+frame = os.path.join(datapath, 'Landolt_C53-006.fit')
 
 sim = pc.SingleImage(frame, imagefile=True)
 
@@ -31,7 +31,6 @@ sim = pc.SingleImage(frame, imagefile=True)
 # =============================================================================
 #    PSF spatially variant
 # =============================================================================
-
 psf_basis = sim._kl_from_stars
 a_fields = sim._kl_a_fields
 
@@ -43,7 +42,6 @@ plt.colorbar(orientation='horizontal')
 plt.savefig(os.path.join(test_dir, 'test_frame.png'))
 plt.close()
 
-
 subplots = int(np.sqrt(len(psf_basis)) + 1)
 plt.figure(figsize=(16, 16))
 for i in range(len(psf_basis)):
@@ -53,7 +51,7 @@ for i in range(len(psf_basis)):
 plt.savefig(os.path.join(test_dir, 'psf_basis.png'))
 plt.close()
 
-x, y = np.mgrid[:1024, :1024]
+x, y = np.mgrid[:sim.imagedata.shape[0], :sim.imagedata.shape[1]]
 plt.figure(figsize=(16, 16))
 for i in range(len(a_fields)):
     plt.subplot(subplots, subplots, i+1);
