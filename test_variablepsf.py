@@ -23,11 +23,11 @@ import propercoadd as pc
 frames = []
 for theta in [0, 45, 105, 150]:
     N = 512  # side
-    X_FWHM = 6
+    X_FWHM = 6 + 12*theta/180
     Y_FWHM = 9
     t_exp = 1
     max_fw = max(X_FWHM, Y_FWHM)
-    test_dir = os.path.abspath('./test_images/measure_psf')
+    test_dir = os.path.abspath('./test_images/psf_basis_kl')
 
     x = np.linspace(6*max_fw, N-6*max_fw, 7)
     y = np.linspace(6*max_fw, N-6*max_fw, 7)
@@ -86,7 +86,28 @@ print 'X Fwhm = {}, Y Fwhm = {}, Mean Theta = {}'.format(fwhm_x, fwhm_y, mean_th
 psf_basis = sim._kl_from_stars
 a_fields = sim._kl_a_fields
 
+plt.imshow(frame)
+plt.colorbar()
+plt.savefig(os.path.join(test_dir, 'test_frame.png'))
+plt.close()
 
+
+plt.figure(figsize=(18, 6))
+for i in range(len(psf_basis)):
+    plt.subplot(1, len(psf_basis), i+1);
+    plt.imshow(psf_basis[i], interpolation='none')
+    plt.colorbar()
+plt.savefig(os.path.join(test_dir, 'psf_basis.png'))
+plt.close()
+
+x, y = np.mgrid[:1024, :1024]
+plt.figure(figsize=(18, 6))
+for i in range(len(a_fields)):
+    plt.subplot(1, len(psf_basis), i+1);
+    plt.imshow(a_fields[i](x, y))
+    plt.colorbar()
+plt.savefig(os.path.join(test_dir, 'a_fields.png'))
+plt.close()
 
 
 
