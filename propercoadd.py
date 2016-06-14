@@ -18,11 +18,30 @@ import sep
 
 
 class SingleImage(object):
+    """
+    Atomic processor class for a single image.
+    Contains several tools for PSF measures, and different coadding
+    building structures.
+
+    It includes the pixel matrix data, as long as some descriptions.
+    For statistical values of the pixel matrix the class' methods need to be
+    called.
+    Parameters
+    ----------
+    img : `~numpy.ndarray` or :class:`~ccdproc.CCDData`,
+                `~astropy.io.fits.HDUList`  or a `str` naming the filename.
+        The image object to work with
+
+    imagefile : `bool`
+        optional information regarding if the img is a fits file
+        Default to None, and a guessing attempt will be made.
+    """
     def __init__(self, img, imagefile=False, sim=False, meta={}):
         self._attached_to = img.__class__.__name__
 
         if imagefile:
             self.imagedata = fits.getdata(img)
+            self.imagedata = self.imagedata.byteswap().newbyteorder()
         else:
             self.imagedata = img
 
@@ -99,7 +118,7 @@ class SingleImage(object):
                 prf_model.y_mean = position[0]
                 fit = fitter(prf_model, x, y, sub_array_data)
                 resid = sub_array_data - fit(x,y)
-                if np.sum(np.square(resid)) < 5*self.bkg.globalrms*fitshape[0]**2:
+                if np.sum(np.square(resid)) < 8*self.bkg.globalrms*fitshape[0]**2:
                     model_fits.append(fit)
             print 'succesful fits = {}'.format(len(model_fits))
         return model_fits
@@ -108,10 +127,10 @@ class SingleImage(object):
     def _best_srcs(self):
         if not hasattr(self, '_best_sources'):
             try:
-                srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
+                srcs = sep.extract(self.bkg_sub_img, thresh=12*self.bkg.globalrms)
             except Exception:
                 sep.set_extract_pixstack(700000)
-                srcs = sep.extract(self.bkg_sub_img, thresh=6*self.bkg.globalrms)
+                srcs = sep.extract(self.bkg_sub_img, thresh=12*self.bkg.globalrms)
 
             if len(srcs)<10:
                 try:
@@ -123,14 +142,22 @@ class SingleImage(object):
                         thresh=2.5*self.bkg.globalrms)
             if len(srcs)<10:
                 print 'No sources detected'
-            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,75]))
-            fitshape = (int(p_sizes[1]), int(p_sizes[1]))
+            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25,55,85]))
+            print p_sizes
+            if not p_sizes[1]<11:
+                fitshape = (int(p_sizes[1]), int(p_sizes[1]))
+            else:
+                fitshape = (11,11)
 
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
-            best_flag = srcs['flag']<=16
+            best_flag = srcs['flag']<=2
             best_flux = srcs['flux']> 0.
             best_srcs = srcs[ best_big & best_flag & best_small & best_flux]
+
+            if len(best_srcs) > 100:
+                best_srcs = best_srcs[0:100]
+
             print 'Sources good to calculate = {}'.format(len(best_srcs))
             self._best_sources = {'sources':best_srcs, 'fitshape':fitshape}
 
@@ -308,7 +335,7 @@ class SingleImage(object):
                 # y_domain = [0, self.imagedata.shape[1]]
                 a_field_model = models.Polynomial2D(degree=3)
                     # , x_domain=x_domain, y_domain=y_domain)
-                fitter = fitting.LevMarLSQFitter()
+                fitter = fitting.LinearLSQFitter()
                 a_fields.append(fitter(a_field_model, x, y, z))
 
             self._a_fields = a_fields
