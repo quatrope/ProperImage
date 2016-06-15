@@ -20,9 +20,9 @@ import propercoadd as pc
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
-datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/Landolt_C53')
+datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/02_preprocessed')
 
-frame = os.path.join(datapath, 'Landolt_C53-006.fit')
+frame = os.path.join(datapath, 'NGC1073/preprocessed_NGC1073-010.fit')
 
 sim = pc.SingleImage(frame, imagefile=True)
 

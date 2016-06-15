@@ -50,11 +50,11 @@ class SingleImage(object):
 
         if sim:
             self.meta = meta
-        else:
-            imgstats = ImageStats(self.imagedata, 'numpy_array')
-            imgstats.calc_stats()
-            imgstats.summary()
-            self.meta = imgstats.full_description
+        else:pass
+            #imgstats = ImageStats(self.imagedata, 'numpy_array')
+            #imgstats.calc_stats()
+            #imgstats.summary()
+            #self.meta = imgstats.full_description
 
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
