@@ -162,7 +162,8 @@ class SingleImage(object):
             fluxes_quartiles = np.percentile(srcs['flux'], q=[30, 60])
             low_flux = srcs['flux'] > fluxes_quartiles[0]
             hig_flux = srcs['flux'] < fluxes_quartiles[1]
-            best_srcs = srcs[ best_big & best_flag & best_small & hig_flux & low_flux]
+
+            best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
 
             if len(best_srcs) > 100:
                 best_srcs = best_srcs[0:100]
@@ -224,18 +225,36 @@ class SingleImage(object):
         covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
 
         renders = [g.render() for g in fitted_models]
+        shapes = [np.array(r.shape) for r in renders]
+        maxshape = np.array((np.max(shapes), np.max(shapes)))
 
         for i in range(len(fitted_models)):
             for j in range(len(fitted_models)):
                 if i<=j:
                     psfi_render = renders[i]
                     psfj_render = renders[j]
+                    shapei = maxshape - np.array(psfi_render.shape)
+                    shapej = maxshape - np.array(psfj_render.shape)
+                    psfi_render = np.pad(psfi_render,
+                                    [[int(shapei[0]/2.), int(round(shapei[0]/2.))],
+                                    [int(shapei[1]/2.), int(round(shapei[1]/2.))]],
+                                    'edge')
+
+                    psfj_render = np.pad(psfj_render,
+                                    [[int(shapej[0]/2.), int(round(shapej[0]/2.))],
+                                    [int(shapej[1]/2.), int(round(shapej[1]/2.))]],
+                                    'edge')
+
 
                     inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                     psfj_render.flatten()/np.sum(psfj_render))
 
                     covMat[i, j] = inner
                     covMat[j, i] = inner
+
+                    renders[i] = psfi_render
+                    renders[j] = psfj_render
+
         return [covMat, renders]
 
     @property
