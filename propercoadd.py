@@ -149,8 +149,8 @@ class SingleImage(object):
                         thresh=2.5*self.bkg.globalrms)
             if len(srcs)<10:
                 print 'No sources detected'
-            p_sizes = np.sqrt(np.percentile(srcs['npix'], q=[25,55,85]))
-            print p_sizes
+            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[35,55,85]))
+
             if not p_sizes[1]<11:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
             else:
@@ -158,7 +158,7 @@ class SingleImage(object):
 
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
-            best_flag = srcs['flag']<=16
+            best_flag = srcs['flag']<=1
             fluxes_quartiles = np.percentile(srcs['flux'], q=[30, 60])
             low_flux = srcs['flux'] > fluxes_quartiles[0]
             hig_flux = srcs['flux'] < fluxes_quartiles[1]
@@ -166,7 +166,8 @@ class SingleImage(object):
             best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
 
             if len(best_srcs) > 100:
-                best_srcs = best_srcs[0:100]
+                jj = np.random.choice(len(best_srcs), 100, replace=False)
+                best_srcs = best_srcs[jj]
 
             print 'Sources good to calculate = {}'.format(len(best_srcs))
             self._best_sources = {'sources':best_srcs, 'fitshape':fitshape}
@@ -185,6 +186,7 @@ class SingleImage(object):
                 pos.append(position)
             self._best_sources['patches'] = np.array(Patch)
             self._best_sources['positions'] = np.array(pos)
+            self._best_sources['detected'] = srcs
         return self._best_sources
 
 
@@ -361,7 +363,7 @@ class SingleImage(object):
                 z = np.array(measures)
                 # x_domain = [0, self.imagedata.shape[0]]
                 # y_domain = [0, self.imagedata.shape[1]]
-                a_field_model = models.Polynomial2D(degree=3)
+                a_field_model = models.Polynomial2D(degree=4)
                     # , x_domain=x_domain, y_domain=y_domain)
                 fitter = fitting.LinearLSQFitter()
                 a_fields.append(fitter(a_field_model, x, y, z))
@@ -370,6 +372,7 @@ class SingleImage(object):
         return self._a_fields
 
     def get_variable_psf(self):
+
         return
 
 
