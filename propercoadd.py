@@ -8,6 +8,7 @@ PhD of Astromoy - UNC"""
 
 import numpy as np
 from scipy.stats import stats
+from scipy import signal as sg
 from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.modeling import fitting
@@ -50,11 +51,11 @@ class SingleImage(object):
 
         if sim:
             self.meta = meta
-        else:pass
-            #imgstats = ImageStats(self.imagedata, 'numpy_array')
-            #imgstats.calc_stats()
-            #imgstats.summary()
-            #self.meta = imgstats.full_description
+        else:
+            imgstats = ImageStats(self.imagedata, 'numpy_array')
+            imgstats.calc_stats()
+            imgstats.summary()
+            self.meta = imgstats.full_description
 
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
@@ -375,7 +376,34 @@ class SingleImage(object):
         a_fields = self._kl_a_fields
         psf_basis = self._kl_from_stars
         del(self._best_srcs['patches'])
-        return
+        return [a_fields, psf_basis]
+
+    @property
+    def normal_image(self):
+        if not hasattr(self, '_normal_image'):
+            a_fields, psf_basis = self.get_variable_psf()
+            conv = np.zeros_like(a_fields[0])
+
+            for i in range(len(a_fields)):
+                a = a_fields[i]
+                psf_i = psf_basis[i]
+                conv += sg.fftconvolve(a, psf_i, mode='same')
+
+            self._normal_image = conv
+        return self._normal_image
+
+    def m_filter(self):
+        var = self.meta['std']
+        a_fields, psf_basis = self.get_variable_psf()
+        mfilter = np.zeros_like(self.bkg_sub_img)
+        for i in range(len(a_fields)):
+            a = a_fields[i]
+            psf = psf_basis[i]
+            conv = a*sg.fftconvolve(self.bkg_sub_img, psf, mode='same')
+            mfilter += conv
+
+        mfilter = mfilter/self.normal_image
+        return mfilter/var**2
 
 
 
