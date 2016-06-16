@@ -372,7 +372,9 @@ class SingleImage(object):
         return self._a_fields
 
     def get_variable_psf(self):
-
+        a_fields = self._kl_a_fields
+        psf_basis = self._kl_from_stars
+        del(self._best_srcs['patches'])
         return
 
 
