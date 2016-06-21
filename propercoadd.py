@@ -8,7 +8,6 @@ PhD of Astromoy - UNC"""
 from multiprocessing import Process
 from multiprocessing import Queue
 from collections import MutableSequence
-
 import numpy as np
 from scipy.stats import stats
 from scipy import signal as sg
@@ -20,6 +19,8 @@ from astropy.convolution import convolve_fft
 from astropy.nddata.utils import extract_array
 from photutils import psf
 import sep
+import pickle
+
 
 class ImageEnsemble(MutableSequence):
     """
@@ -33,6 +34,8 @@ class ImageEnsemble(MutableSequence):
     def __init__(self, imgpaths, *arg, **kwargs):
         super(ImageEnsemble, self).__init__(*arg, **kwargs)
         self.imgl = imgpaths
+        self.global_shape = fits.getdata(imgpaths[0]).shape
+        print self.global_shape
 
     def __setitem__(self, i, v):
         self.imgl[i] = v
@@ -70,10 +73,13 @@ class ImageEnsemble(MutableSequence):
 
         for proc in procs:
             proc.join()
-
+        
+        S = np.zeros(self.global_shape)
         for q in queues:
             serialized = q.get()
-            S = np.add(pickle.loads(serialized), S)
+            s_comp = pickle.loads(serialized)
+            print s_comp.shape, S.shape
+            S = np.add(s_comp, S)
 
         return S
 
@@ -87,9 +93,11 @@ class Combinator(Process):
 
     def run(self):
         shape = self.list_to_combine[0].imagedata.shape
-        S = np.zeros_like(shape)
+        S = np.zeros(shape)
         for img in self.list_to_combine:
-            S = np.add(img.s_component(), S)
+            s_comp = img.s_component()
+            print s_comp.shape, S.shape
+            S = np.add(s_comp, S)
         serialized = pickle.dumps(S)
         self.q.put(serialized)
 
@@ -365,7 +373,7 @@ class SingleImage(object):
             N_psf_basis = abs(cut)
             lambdas = valh[cut:]
             xs = vech[:, cut:]
-            print cut, lambdas
+            # print cut, lambdas
             psf_basis = []
             for i in range(N_psf_basis):
                 psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
@@ -398,7 +406,7 @@ class SingleImage(object):
             N_psf_basis = abs(cut)
             lambdas = valh[cut:]
             xs = vech[:, cut:]
-            print lambdas
+            # print lambdas
             psf_basis = []
             for i in range(N_psf_basis):
                 psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
