@@ -65,7 +65,7 @@ class ImageEnsemble(MutableSequence):
             proc.start()
 
             queues.append(queue)
-            procs.append(procs)
+            procs.append(proc)
 
         for proc in procs:
             proc.join()
