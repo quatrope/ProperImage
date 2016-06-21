@@ -392,7 +392,7 @@ class SingleImage(object):
             self._normal_image = conv
         return self._normal_image
 
-    def m_filter(self):
+    def s_component(self):
         var = self.meta['std']
         a_fields, psf_basis = self.get_variable_psf()
         mfilter = np.zeros_like(self.bkg_sub_img)
