@@ -5,6 +5,8 @@ Written by Bruno SANCHEZ
 
 PhD of Astromoy - UNC"""
 
+from multiprocessing import Process
+from collections import MutableSequence
 
 import numpy as np
 from scipy.stats import stats
@@ -18,6 +20,63 @@ from astropy.nddata.utils import extract_array
 from photutils import psf
 import sep
 
+class ImageEnsemble(MutableSequence):
+    """
+    Processor for several images that uses SingleImage as an atomic processing
+    unit. It deploys the utilities provided in the mentioned class and combines
+    the results, making possible to coadd and subtract astronomical images with
+    optimal techniques.
+
+
+    """
+    def __init__(self, imglist, *arg, **kwargs):
+        super(ImageEnsemble, self).__init__(*arg, **kwargs)
+        self.imgl = imglist
+
+    def __setitem__(self, i, v):
+        return self.imgl[i] = v
+
+    def __getitem__(self, i):
+        return self.imgl[i]
+
+    def __delitem__(self, i):
+        del self.imgl[i]
+
+    def __len__(self):
+        return len(self.imgl)
+
+    def insert(self, i, v):
+        self.imgl.insert(i, v)
+
+    def atoms(self):
+        if not hasattr(self, '_atoms'):
+            self._atoms = [SingleImage(img) for img in self.imgl]
+        elif len(atoms) is not len(self.imgl):
+            self._atoms = [SingleImage(img) for img in self.imgl]
+        return self._atoms
+
+    def calculate_S(self, n_procs=2):
+
+
+
+class Combinator(Process):
+
+    def __init__(self, ensemble, *args, **kwargs):
+        super(Combinator, self).__init__(*args, **kwargs)
+        self.list_to_oombine = ensemble
+        self.q = q
+
+    def run(self):
+        shape = self.list_to_combine[0].imagedata.shape
+        S = np.zeros_like(shape)
+        for img in self.list_to_combine:
+            S += img.s_component()
+        serialized = pickle.dumps(S)
+        self.q.put(serialized)
+
+
+
+
 
 class SingleImage(object):
     """
@@ -28,6 +87,8 @@ class SingleImage(object):
     It includes the pixel matrix data, as long as some descriptions.
     For statistical values of the pixel matrix the class' methods need to be
     called.
+
+
     Parameters
     ----------
     img : `~numpy.ndarray` or :class:`~ccdproc.CCDData`,
@@ -508,6 +569,15 @@ class ImageStats(object):
         # print self.summ
         return
 
+
+def chunk_it(seq, num):
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+    while last < len(seq):
+        out.append(seq[int(last):int(last + avg)])
+        last += avg
+    return sorted(out, reverse=True)
 
 def match_filter(image, objfilter):
     """
