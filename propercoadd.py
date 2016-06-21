@@ -6,6 +6,7 @@ Written by Bruno SANCHEZ
 PhD of Astromoy - UNC"""
 
 from multiprocessing import Process
+from multiprocessing import Queue
 from collections import MutableSequence
 
 import numpy as np
@@ -60,7 +61,7 @@ class ImageEnsemble(MutableSequence):
         queues = []
         procs  = []
         for chunk in chunk_it(self.atoms, n_procs):
-            queue = multiprocess.Queue()
+            queue = Queue()
             proc = Combinator(chunk, queue)
             proc.start()
 
