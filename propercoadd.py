@@ -132,7 +132,7 @@ class SingleImage(object):
         else:
             imgstats = ImageStats(self.imagedata, 'numpy_array')
             imgstats.calc_stats()
-            #imgstats.summary()
+            # imgstats.summary()
             self.meta = imgstats.full_description
 
     def __repr__(self):
