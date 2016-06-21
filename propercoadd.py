@@ -29,9 +29,9 @@ class ImageEnsemble(MutableSequence):
 
 
     """
-    def __init__(self, imglist, *arg, **kwargs):
+    def __init__(self, imgpaths, *arg, **kwargs):
         super(ImageEnsemble, self).__init__(*arg, **kwargs)
-        self.imgl = imglist
+        self.imgl = imgpaths
 
     def __setitem__(self, i, v):
         self.imgl[i] = v
@@ -51,9 +51,9 @@ class ImageEnsemble(MutableSequence):
     @property
     def atoms(self):
         if not hasattr(self, '_atoms'):
-            self._atoms = [SingleImage(img) for img in self.imgl]
+            self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
         elif len(atoms) is not len(self.imgl):
-            self._atoms = [SingleImage(img) for img in self.imgl]
+            self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
         return self._atoms
 
     def calculate_S(self, n_procs=2):
@@ -81,7 +81,7 @@ class Combinator(Process):
 
     def __init__(self, ensemble, q, *args, **kwargs):
         super(Combinator, self).__init__(*args, **kwargs)
-        self.list_to_oombine = ensemble
+        self.list_to_combine = ensemble
         self.q = q
 
     def run(self):
@@ -594,9 +594,3 @@ def chunk_it(seq, num):
         out.append(seq[int(last):int(last + avg)])
         last += avg
     return sorted(out, reverse=True)
-
-def match_filter(image, objfilter):
-    """
-    Function to apply matched filtering to an image
-    """
-    return None
