@@ -132,7 +132,7 @@ class SingleImage(object):
         else:
             imgstats = ImageStats(self.imagedata, 'numpy_array')
             imgstats.calc_stats()
-            imgstats.summary()
+            # imgstats.summary()
             self.meta = imgstats.full_description
 
     def __repr__(self):
@@ -574,7 +574,7 @@ class ImageStats(object):
     def calc_stats(self):
         self.sd = self.pix_sd()
         self.median = self.pix_median()
-        self.hist = self.count_hist()
+        #self.hist = self.count_hist()
         self.mean = self.pix_mean()
         # self.to1d()
         return
