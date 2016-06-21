@@ -13,6 +13,7 @@ from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.modeling import fitting
 from astropy.modeling import models
+from astropy.convolution import convolve_fft
 from astropy.nddata.utils import extract_array
 from photutils import psf
 import sep
@@ -71,6 +72,8 @@ class SingleImage(object):
         if not hasattr(self, 'bkg_sub_img'):
             self.bkg = sep.Background(self.imagedata)
             self._bkg_sub_img = self.imagedata - self.bkg
+            self._masked = np.ma.masked_array(self._bkg_sub_img ,
+                np.isnan(self._bkg_sub_img))
         return self._bkg_sub_img
 
     def fit_psf_sep(self, model='astropy-Gaussian2D'):
@@ -331,7 +334,7 @@ class SingleImage(object):
         """
         Calculate the coefficients of the expansion in basis of KLoeve.
         """
-        if not hasattr(self, 'kl_a_fields'):
+        if not hasattr(self, '_a_fields'):
             if from_stars:
                 psf_basis = self._kl_from_stars
 
@@ -372,20 +375,25 @@ class SingleImage(object):
             self._a_fields = a_fields
         return self._a_fields
 
-    def get_variable_psf(self):
+    def get_variable_psf(self, delete_patches=False):
         a_fields = self._kl_a_fields
         psf_basis = self._kl_from_stars
-        del(self._best_srcs['patches'])
+        if delete_patches:
+            del(self._best_srcs['patches'])
+            print 'Patches deleted!'
         return [a_fields, psf_basis]
 
     @property
     def normal_image(self):
         if not hasattr(self, '_normal_image'):
             a_fields, psf_basis = self.get_variable_psf()
-            conv = np.zeros_like(a_fields[0])
+            x, y = np.mgrid[:self.imagedata.shape[0],
+                            :self.imagedata.shape[1]]
+            conv = np.zeros_like(self.bkg_sub_img)
 
             for i in range(len(a_fields)):
                 a = a_fields[i]
+                a = a(x, y)
                 psf_i = psf_basis[i]
                 conv += sg.fftconvolve(a, psf_i, mode='same')
 
@@ -394,15 +402,21 @@ class SingleImage(object):
 
     def s_component(self):
         var = self.meta['std']
-        a_fields, psf_basis = self.get_variable_psf()
+        nrm = self.normal_image
+        a_fields, psf_basis = self.get_variable_psf(delete_patches=True)
         mfilter = np.zeros_like(self.bkg_sub_img)
+        x, y = np.mgrid[:mfilter.shape[0], :mfilter.shape[1]]
+
         for i in range(len(a_fields)):
             a = a_fields[i]
             psf = psf_basis[i]
-            conv = a*sg.fftconvolve(self.bkg_sub_img, psf, mode='same')
+            #cross = sg.fftconvolve(self._masked, psf, mode='same')
+            cross = convolve_fft(self.bkg_sub_img, psf)
+            # import ipdb; ipdb.set_trace()
+            conv = np.multiply(a(x, y), cross)
             mfilter += conv
 
-        mfilter = mfilter/self.normal_image
+        mfilter = mfilter/nrm
         return mfilter/var**2
 
 
@@ -446,6 +460,8 @@ class ImageStats(object):
             self.pixmatrix = fits.open(image_obj)[0].data
         elif dataformat == 'numpy_array' or dataformat == 'ndarray':
             self.pixmatrix = image_obj
+            self.pixmatrix = np.ma.masked_array(self.pixmatrix,
+                np.isnan(self.pixmatrix))
         elif dataformat == 'HDUList':
             self.pixmatrix = image_obj[0].data
         else:
