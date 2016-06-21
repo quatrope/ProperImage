@@ -34,7 +34,7 @@ class ImageEnsemble(MutableSequence):
         self.imgl = imglist
 
     def __setitem__(self, i, v):
-        return self.imgl[i] = v
+        self.imgl[i] = v
 
     def __getitem__(self, i):
         return self.imgl[i]
@@ -48,6 +48,7 @@ class ImageEnsemble(MutableSequence):
     def insert(self, i, v):
         self.imgl.insert(i, v)
 
+    @property
     def atoms(self):
         if not hasattr(self, '_atoms'):
             self._atoms = [SingleImage(img) for img in self.imgl]
@@ -56,12 +57,29 @@ class ImageEnsemble(MutableSequence):
         return self._atoms
 
     def calculate_S(self, n_procs=2):
+        queues = []
+        procs  = []
+        for chunk in chunk_it(self.atoms, n_procs):
+            queue = multiprocess.Queue()
+            proc = Combinator(chunk, queue)
+            proc.start()
 
+            queues.append(queue)
+            procs.append(procs)
+
+        for proc in procs:
+            proc.join()
+
+        for q in queues():
+            serialized = q.get()
+            S = pickle.loads(serialized)
+
+        return S
 
 
 class Combinator(Process):
 
-    def __init__(self, ensemble, *args, **kwargs):
+    def __init__(self, ensemble, q, *args, **kwargs):
         super(Combinator, self).__init__(*args, **kwargs)
         self.list_to_oombine = ensemble
         self.q = q
@@ -73,8 +91,6 @@ class Combinator(Process):
             S += img.s_component()
         serialized = pickle.dumps(S)
         self.q.put(serialized)
-
-
 
 
 
