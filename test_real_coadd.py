@@ -25,8 +25,9 @@ datapath = os.path.abspath('/home/bos0109/DATA/Data/Tolar2015/CAMPAÑA_LIGO_OBSE
 S = np.zeros((1365, 1365))
 
 for root, dirs, files in os.walk(datapath):
-    ensemble = pc.ImageEnsemble(files)
-    S = ensemble.calculate_S(n_procs=8)
+    fs = [os.path.join(root, afile) for afile in files]
+    ensemble = pc.ImageEnsemble(fs)
+    S = ensemble.calculate_S(n_procs=10)
 
 test_dir = os.path.abspath('./test_images/real_coadd_test/')
 

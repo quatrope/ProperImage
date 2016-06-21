@@ -71,9 +71,9 @@ class ImageEnsemble(MutableSequence):
         for proc in procs:
             proc.join()
 
-        for q in queues():
+        for q in queues:
             serialized = q.get()
-            S = pickle.loads(serialized)
+            S = np.add(pickle.loads(serialized), S)
 
         return S
 
@@ -89,7 +89,7 @@ class Combinator(Process):
         shape = self.list_to_combine[0].imagedata.shape
         S = np.zeros_like(shape)
         for img in self.list_to_combine:
-            S += img.s_component()
+            S = np.add(img.s_component(), S)
         serialized = pickle.dumps(S)
         self.q.put(serialized)
 
