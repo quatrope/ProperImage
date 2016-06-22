@@ -22,7 +22,7 @@ import propercoadd as pc
 # =============================================================================
 #datapath = os.path.abspath('/home/bos0109/DATA/Data/Tolar2015/CAMPAÑA_LIGO_OBSERVACIONES_MACON/20151212/preprocessed/Landolt_C53')
 
-datapath = os.path.abspath('/home/bruno/Documents/reduccionTolar/20151212/subset')
+datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/subset/')
 
 S = np.zeros((1365, 1365))
 
@@ -36,11 +36,11 @@ test_dir = os.path.abspath('./test_images/real_coadd_test/')
 if not os.path.exists(test_dir):
     os.mkdir(test_dir)
 
-# plt.figure(figsize=(16,16))
-# plt.imshow(np.log10(S), interpolation='none')
-# plt.colorbar(orientation='horizontal')
-# plt.savefig(os.path.join(test_dir, 'S.png'))
-# plt.close()
+plt.figure(figsize=(16,16))
+plt.imshow(np.log10(S), interpolation='none')
+plt.colorbar(orientation='horizontal')
+plt.savefig(os.path.join(test_dir, 'S.png'))
+plt.close()
 
 with file(os.path.join(test_dir,'S.npy'), 'w') as f:
     np.save(f, S)
