@@ -71,13 +71,14 @@ class ImageEnsemble(MutableSequence):
 
             queues.append(queue)
             procs.append(proc)
-	print 'all chunks started, and procs appended'
-         
+    print 'all chunks started, and procs appended'
+
         S = np.zeros(self.global_shape)
         for q in queues:
             serialized = q.get()
             print 'loading pickles'
             s_comp = pickle.loads(serialized)
+            s_comp = np.ma.masked_array(s_comp, np.isnan(s_comp))
             S = np.add(s_comp, S)
         print 'S calculated, now starting to join processes'
 
