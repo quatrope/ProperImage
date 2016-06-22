@@ -66,21 +66,25 @@ class ImageEnsemble(MutableSequence):
         for chunk in chunk_it(self.atoms, n_procs):
             queue = Queue()
             proc = Combinator(chunk, queue)
+            print 'starting new process'
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
-
-        for proc in procs:
-            proc.join()
-        
+	print 'all chunks started, and procs appended'
+         
         S = np.zeros(self.global_shape)
         for q in queues:
             serialized = q.get()
+            print 'loading pickles'
             s_comp = pickle.loads(serialized)
-            print s_comp.shape, S.shape
             S = np.add(s_comp, S)
+        print 'S calculated, now starting to join processes'
 
+        for proc in procs:
+            print 'waiting for procs to join'
+            proc.join()
+        print 'processes joined, now returning S'
         return S
 
 
@@ -96,8 +100,9 @@ class Combinator(Process):
         S = np.zeros(shape)
         for img in self.list_to_combine:
             s_comp = img.s_component()
-            print s_comp.shape, S.shape
+            print 'S component obtained, summing arrays'
             S = np.add(s_comp, S)
+        print 'chunk processed, now pickling'
         serialized = pickle.dumps(S)
         self.q.put(serialized)
 

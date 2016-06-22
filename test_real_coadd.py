@@ -27,7 +27,7 @@ S = np.zeros((1365, 1365))
 for root, dirs, files in os.walk(datapath):
     fs = [os.path.join(root, afile) for afile in files]
     ensemble = pc.ImageEnsemble(fs)
-    S = ensemble.calculate_S(n_procs=10)
+    S = ensemble.calculate_S(n_procs=14)
 
 test_dir = os.path.abspath('./test_images/real_coadd_test/')
 
