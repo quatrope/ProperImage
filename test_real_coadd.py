@@ -36,11 +36,12 @@ test_dir = os.path.abspath('./test_images/real_coadd_test/')
 if not os.path.exists(test_dir):
     os.mkdir(test_dir)
 
-plt.figure(figsize=(16,16))
-plt.imshow(np.log10(S), interpolation='none')
-plt.colorbar(orientation='horizontal')
-plt.savefig(os.path.join(test_dir, 'S.png'))
-plt.close()
+# plt.figure(figsize=(16,16))
+# plt.imshow(np.log10(S), interpolation='none')
+# plt.colorbar(orientation='horizontal')
+# plt.savefig(os.path.join(test_dir, 'S.png'))
+# plt.close()
 
-
+with file(os.path.join(test_dir,'S.npy'), 'w') as f:
+    np.save(f, S)
 
