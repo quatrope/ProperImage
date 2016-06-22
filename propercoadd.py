@@ -23,12 +23,19 @@ import pickle
 
 
 class ImageEnsemble(MutableSequence):
-    """
-    Processor for several images that uses SingleImage as an atomic processing
+    """Processor for several images that uses SingleImage as an atomic processing
     unit. It deploys the utilities provided in the mentioned class and combines
     the results, making possible to coadd and subtract astronomical images with
     optimal techniques.
 
+    Parameters
+    ----------
+    imgpaths: List or tuple of path of images. At this moment it should be a
+    fits file for each image.
+
+    Returns
+    -------
+    An instance of ImageEnsemble
 
     """
     def __init__(self, imgpaths, *arg, **kwargs):
@@ -54,6 +61,22 @@ class ImageEnsemble(MutableSequence):
 
     @property
     def atoms(self):
+        """Property method.
+        Transforms the list of images into a list of 'atoms'
+        that are instances of the SingleImage class.
+        This atoms are capable of compute statistics of Psf on every image,
+        and are the main unit of image processing.
+
+        Parameters
+        ----------
+        None parameters are passed, it is a property.
+
+        Returns
+        -------
+        A list of instances of SingleImage class, one per each image in the
+        list of images passed to ImageEnsemble.
+
+        """
         if not hasattr(self, '_atoms'):
             self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
         elif len(atoms) is not len(self.imgl):
@@ -61,6 +84,23 @@ class ImageEnsemble(MutableSequence):
         return self._atoms
 
     def calculate_S(self, n_procs=2):
+        """Method for properly coadding images given by Zackay & Ofek 2015
+        (http://arxiv.org/abs/1512.06872, and http://arxiv.org/abs/1512.06879)
+        It uses multiprocessing for parallelization of the processing of each
+        image.
+
+        Parameters
+        ----------
+        n_procs: int
+            number of processes for computational parallelization. Should not
+            be greater than the number of cores of the machine.
+
+        Returns
+        -------
+        S: np.array 2D of floats
+            S image, calculated by the SingleImage method s_component.
+
+        """
         queues = []
         procs  = []
         for chunk in chunk_it(self.atoms, n_procs):
@@ -71,6 +111,7 @@ class ImageEnsemble(MutableSequence):
 
             queues.append(queue)
             procs.append(proc)
+
         print 'all chunks started, and procs appended'
 
         S = np.zeros(self.global_shape)
@@ -79,23 +120,62 @@ class ImageEnsemble(MutableSequence):
             print 'loading pickles'
             s_comp = pickle.loads(serialized)
             s_comp = np.ma.masked_array(s_comp, np.isnan(s_comp))
-
             S = np.add(s_comp.filled(0.), S)
+
         print 'S calculated, now starting to join processes'
 
         for proc in procs:
             print 'waiting for procs to finish'
             proc.join()
+
         print 'processes finished, now returning S'
         return S
 
 
 class Combinator(Process):
+    """Combination engine.
+    An engine for image combination in parallel, using multiprocessing.Process
+    class.
+    Uses an ensemble of images and a queue to calculate the propercoadd of
+    the list of images.
 
-    def __init__(self, ensemble, q, *args, **kwargs):
+    Parameters
+    ----------
+    ensemble: list or tuple
+        list of SingleImage instances used in the combination process
+
+    queue: multiprocessing.Queue instance
+        an instance of multiprocessing.Queue class where to pickle the
+        intermediate results.
+
+    Returns
+    -------
+    Combinator process
+        An instance of Combinator.
+        This can be launched like a multiprocessing.Process
+
+    Example
+    -------
+    queue1 = multiprocessing.Queue()
+    queue2 = multiprocessing.Queue()
+    p1 = Combinator(list1, queue1)
+    p2 = Combinator(list2, queue2)
+
+    p1.start()
+    p2.start()
+
+    #results are in queues
+    result1 = queue1.get()
+    result2 = queue2.get()
+
+    p1.join()
+    p2.join()
+
+    """
+    def __init__(self, ensemble, queue, *args, **kwargs):
         super(Combinator, self).__init__(*args, **kwargs)
         self.list_to_combine = ensemble
-        self.q = q
+        self.queue = queue
 
     def run(self):
         shape = self.list_to_combine[0].imagedata.shape
@@ -106,7 +186,7 @@ class Combinator(Process):
             S = np.add(s_comp, S)
         print 'chunk processed, now pickling'
         serialized = pickle.dumps(S)
-        self.q.put(serialized)
+        self.queue.put(serialized)
 
 
 
@@ -155,6 +235,19 @@ class SingleImage(object):
         return 'SingleImage instance for {}'.format(self._attached_to)
 
     def sigma_clip_bkg(self):
+        """Determine background using sigma clipping stats.
+        Sets the bkg, bkg_mean, and bkg_std attributes of the
+        SingleImage instance.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        """
         if not hasattr(self, 'bkg'):
             self.bkg = sigma_clip(self.imagedata, iters=10)
             self.bkg_mean = self.bkg.mean()
@@ -162,6 +255,9 @@ class SingleImage(object):
 
     @property
     def bkg_sub_img(self):
+        """Image background subtracted property of SingleImage.
+
+        """
         if not hasattr(self, 'bkg_sub_img'):
             self.bkg = sep.Background(self.imagedata)
             self._bkg_sub_img = self.imagedata - self.bkg
