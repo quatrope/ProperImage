@@ -256,6 +256,13 @@ class SingleImage(object):
     @property
     def bkg_sub_img(self):
         """Image background subtracted property of SingleImage.
+        The background is estimated using sep. This also sets an attribute,
+        called self._masked that contains a mask for nans.
+
+        Returns
+        -------
+        numpy.array 2D
+            a background subtracted image is returned
 
         """
         if not hasattr(self, 'bkg_sub_img'):
@@ -266,8 +273,13 @@ class SingleImage(object):
         return self._bkg_sub_img
 
     def fit_psf_sep(self, model='astropy-Gaussian2D'):
-        """
-        Fit and calculate the Psf of an image using sep source detection
+        """Fit and calculate the Psf of an image using sep source detection.
+
+        Parameters
+        ----------
+        model: str
+            'photutils-IntegratedGaussianPRF' or
+            'astropy-Gaussian2D
         """
         # calculate x, y, flux of stars
         best_srcs = self._best_srcs['sources']
