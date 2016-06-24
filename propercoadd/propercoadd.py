@@ -356,10 +356,10 @@ class SingleImage(object):
                 print 'No sources detected'
             p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[35,55,85]))
 
-            if not p_sizes[1]<11:
+            if not p_sizes[1]<12:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
             else:
-                fitshape = (11,11)
+                fitshape = (12,12)
 
             best_big = srcs['tnpix']>=p_sizes[0]**2.
             best_small = srcs['tnpix']<=p_sizes[2]**2.
@@ -611,10 +611,10 @@ class SingleImage(object):
         for i in range(len(a_fields)):
             a = a_fields[i]
             psf = psf_basis[i]
-            #cross = sg.fftconvolve(self._masked, psf, mode='same')
-            cross = convolve_fft(self.bkg_sub_img, psf)
+            cross = np.multiply(a(x, y), self._masked)
+            #cross = convolve_fft(self.bkg_sub_img, psf)
             # import ipdb; ipdb.set_trace()
-            conv = np.multiply(a(x, y), cross)
+            conv = sg.correlate2d(cross, psf, mode='same')
             mfilter += conv
 
         mfilter = mfilter/nrm

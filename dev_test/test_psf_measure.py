@@ -41,7 +41,7 @@ Y_FWHM = 7
 theta = 78
 t_exp = 1
 max_fw = max(X_FWHM, Y_FWHM)
-test_dir = os.path.abspath('./test_images/measure_psf')
+test_dir = os.path.abspath('../test_images/measure_psf')
 
 x = np.linspace(6*max_fw, N-6*max_fw, 7)
 y = np.linspace(6*max_fw, N-6*max_fw, 7)
