@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 
 from astropy.io import fits
 
-import propercoadd as pc
+from propercoadd import propercoadd as pc
+
 
 # =============================================================================
 #     PSF measure test by propercoadd
@@ -45,3 +46,19 @@ plt.close()
 with file(os.path.join(test_dir,'S.npy'), 'w') as f:
     np.save(f, S)
 
+
+def fftwn(array, nthreads=4):
+    array = array.astype('complex').copy()
+    outarray = array.copy()
+    fft_forward = fftw3.Plan(array, outarray, direction='forward',
+            flags=['estimate'], nthreads=nthreads)
+    fft_forward.execute()
+    return outarray
+
+def ifftwn(array, nthreads=4):
+    array = array.astype('complex').copy()
+    outarray = array.copy()
+    fft_backward = fftw3.Plan(array, outarray, direction='backward',
+            flags=['estimate'], nthreads=nthreads)
+    fft_backward.execute()
+    return outarray / np.size(array)
