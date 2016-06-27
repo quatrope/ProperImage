@@ -607,8 +607,8 @@ class SingleImage(object):
                 a = a_fields[i]
                 a = a(x, y)
                 psf_i = psf_basis[i]
-                conv += convolve_fft(a, psf_i, mode='same',
-                    fftn=fftwn, ifftn=ifftwn))
+                conv += convolve_fft(a, psf_i, #mode='same',
+                    fftn=fftwn, ifftn=ifftwn)
                 #conv += sg.fftconvolve(a, psf_i, mode='same')
 
             self._normal_image = conv
@@ -740,7 +740,7 @@ _fftn=pyfftw.interfaces.numpy_fft.fftn
 _ifftn=pyfftw.interfaces.numpy_fft.ifftn
 
 def fftwn(*dat):
-    return _fftn(*dat, nthreads=4)
+    return _fftn(*dat, threads=4)
 
 def ifftwn(*dat):
         return _ifftn(*dat,threads=4)
