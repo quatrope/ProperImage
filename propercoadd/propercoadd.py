@@ -20,7 +20,7 @@ from astropy.nddata.utils import extract_array
 from photutils import psf
 import sep
 import pickle
-
+import pyfftw
 
 class ImageEnsemble(MutableSequence):
     """Processor for several images that uses SingleImage as an atomic processing
@@ -280,6 +280,11 @@ class SingleImage(object):
         model: str
             'photutils-IntegratedGaussianPRF' or
             'astropy-Gaussian2D
+
+        Returns
+        -------
+        a list of astropy models, fitted to the stars of the image.
+
         """
         # calculate x, y, flux of stars
         best_srcs = self._best_srcs['sources']
@@ -333,6 +338,9 @@ class SingleImage(object):
 
     @property
     def _best_srcs(self):
+        """Property, a table of best sources detected in the image.
+
+        """
         if not hasattr(self, '_best_sources'):
             try:
                 srcs = sep.extract(self.bkg_sub_img, thresh=12*self.bkg.globalrms)
@@ -396,9 +404,9 @@ class SingleImage(object):
 
 
     def _covMat_from_stars(self):
-        """
-        Determines the covariance matrix for psf directly from the
-        detected stars in the image
+        """Determines the covariance matrix of the psf measured directly from the
+        detected stars in the image.
+
         """
         # calculate x, y, flux of stars
         best_srcs = self._best_srcs['sources']
@@ -424,9 +432,9 @@ class SingleImage(object):
         return covMat
 
     def _covMat_psf(self):
-        """
-        Determines the covariance matrix for psf gaussian models fitted to
+        """Determines the covariance matrix for psf gaussian models fitted to
         detected stars in the image
+
         """
         fitted_models = self.fit_psf_sep()
         covMat = np.zeros(shape=(len(fitted_models), len(fitted_models)))
@@ -466,9 +474,9 @@ class SingleImage(object):
 
     @property
     def _kl_PSF(self, pow_th=0.99):
-        """
-        Determines the KL psf_basis from PSF gaussian models fitted to
+        """Determines the KL psf_basis from PSF gaussian models fitted to
         stars detected in the field.
+
         """
         if not hasattr(self, 'psf_KL_basis_model'):
             covMat, renders = self._covMat_psf()
@@ -499,8 +507,8 @@ class SingleImage(object):
 
     @property
     def _kl_from_stars(self, pow_th=0.99):
-        """
-        Determines the KL psf_basis from stars detected in the field.
+        """Determines the KL psf_basis from stars detected in the field.
+
         """
         if not hasattr(self, '_psf_KL_basis_stars'):
             covMat = self._covMat_from_stars()
@@ -532,8 +540,8 @@ class SingleImage(object):
 
     @property
     def _kl_a_fields(self, pow_threshold=0.95, from_stars=True):
-        """
-        Calculate the coefficients of the expansion in basis of KLoeve.
+        """Calculate the coefficients of the expansion in basis of KLoeve.
+
         """
         if not hasattr(self, '_a_fields'):
             if from_stars:
@@ -586,6 +594,9 @@ class SingleImage(object):
 
     @property
     def normal_image(self):
+        """Calculates the normalization image from kl
+
+        """
         if not hasattr(self, '_normal_image'):
             a_fields, psf_basis = self.get_variable_psf()
             x, y = np.mgrid[:self.imagedata.shape[0],
@@ -596,12 +607,18 @@ class SingleImage(object):
                 a = a_fields[i]
                 a = a(x, y)
                 psf_i = psf_basis[i]
-                conv += sg.fftconvolve(a, psf_i, mode='same')
+                conv += convolve_fft(a, psf_i, mode='same',
+                    fftn=fftwn, ifftn=ifftwn))
+                #conv += sg.fftconvolve(a, psf_i, mode='same')
 
             self._normal_image = conv
         return self._normal_image
 
     def s_component(self):
+        """Calculates the matched filter S (from propercoadd) component
+        from the image.
+
+        """
         var = self.meta['std']
         nrm = self.normal_image
         a_fields, psf_basis = self.get_variable_psf(delete_patches=True)
@@ -719,3 +736,11 @@ def chunk_it(seq, num):
         last += avg
     return sorted(out, reverse=True)
 
+_fftn=pyfftw.interfaces.numpy_fft.fftn
+_ifftn=pyfftw.interfaces.numpy_fft.ifftn
+
+def fftwn(*dat):
+    return _fftn(*dat, nthreads=4)
+
+def ifftwn(*dat):
+        return _ifftn(*dat,threads=4)
