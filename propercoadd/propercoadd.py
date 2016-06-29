@@ -22,6 +22,7 @@ import sep
 import pickle
 import pyfftw
 
+
 class ImageEnsemble(MutableSequence):
     """Processor for several images that uses SingleImage as an atomic processing
     unit. It deploys the utilities provided in the mentioned class and combines
