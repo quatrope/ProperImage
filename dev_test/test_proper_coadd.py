@@ -12,6 +12,9 @@ Created on Fri May 13 17:06:14 2016
 import os
 import shlex
 import subprocess
+import sys
+
+sys.path.insert(0, os.path.abspath('..'))
 
 import numpy as np
 import matplotlib.pyplot as plt

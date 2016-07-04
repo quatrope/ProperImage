@@ -28,6 +28,7 @@ from astropy.modeling import models
 from astropy.convolution import convolve_fft
 from astropy.nddata.utils import extract_array
 from photutils import psf
+from astroML import crossmatch as cx
 import sep
 import pickle
 import pyfftw
@@ -93,6 +94,9 @@ class ImageEnsemble(MutableSequence):
         elif len(atoms) is not len(self.imgl):
             self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
         return self._atoms
+
+    def transparencies(self):
+        pass
 
     def calculate_S(self, n_procs=2):
         """Method for properly coadding images given by Zackay & Ofek 2015
@@ -389,8 +393,8 @@ class SingleImage(object):
 
             best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
 
-            if len(best_srcs) > 100:
-                jj = np.random.choice(len(best_srcs), 100, replace=False)
+            if len(best_srcs) > 130:
+                jj = np.random.choice(len(best_srcs), 130, replace=False)
                 best_srcs = best_srcs[jj]
 
             print 'Sources good to calculate = {}'.format(len(best_srcs))
@@ -739,6 +743,23 @@ class ImageStats(object):
 
 
 def chunk_it(seq, num):
+    """Creates chunks of a sequence suitable for data parallelism using
+    multiprocessing.
+
+    Parameters
+    ----------
+    seq: list, array or sequence like object. (indexable)
+        data to separate in chunks
+
+    num: int
+        number of chunks required
+
+    Returns
+    -------
+    Sorted list.
+    List of chunks containing the data splited in num parts.
+
+    """
     avg = len(seq) / float(num)
     out = []
     last = 0.0
@@ -751,7 +772,77 @@ _fftn=pyfftw.interfaces.numpy_fft.fftn
 _ifftn=pyfftw.interfaces.numpy_fft.ifftn
 
 def fftwn(*dat):
+    """Wrapper around the fftw library, returning a transform of fourier.
+    Default number of threads is 4
+
+    """
     return _fftn(*dat, threads=4)
 
 def ifftwn(*dat):
+    """Wrapper around the fftw library, returning an inverse transform of fourier.
+    Default number of threads is 4
+
+    """
         return _ifftn(*dat,threads=4)
+
+
+def matching(master, cat, angular=False, radius=1.5):
+    """Function to match stars between frames.
+    """
+    if angular:
+        masterRaDec = np.empty((len(master), 2), dtype=np.float64)
+        try:
+            masterRaDec[:,0] = master['RA']
+            masterRaDec[:,1] = master['Dec']
+        except:
+            masterRaDec[:,0] = master['ra']
+            masterRaDec[:,1] = master['dec']
+        imRaDec = np.empty((len(cat), 2), dtype=np.float64)
+        try:
+            imRaDec[:,0] = cat['RA']
+            imRaDec[:,1] = cat['Dec']
+        except:
+            imRaDec[:,0] = cat['ra']
+            imRaDec[:,1] = cat['dec']
+        radius2 = radius/3600.
+        dist, ind = cx.crossmatch_angular(masterRaDec, imRaDec, max_distance=radius2/2.)
+        dist_,ind_= cx.crossmatch_angular(imRaDec, masterRaDec, max_distance=radius2/2.)
+    else:
+        masterXY = np.empty((len(master), 2), dtype=np.float64)
+        masterXY[:,0] = master['X_IMAGE']
+        masterXY[:,1] = master['Y_IMAGE']
+        imXY = np.empty((len(cat), 2), dtype=np.float64)
+        imXY[:,0] = cat['X_IMAGE']
+        imXY[:,1] = cat['Y_IMAGE']
+        dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
+        dist_, ind_ = cx.crossmatch( imXY, masterXY, max_distance=radius)
+        #imRaDec = imXY
+
+    match = ~np.isinf(dist)
+    match_= ~np.isinf(dist_)
+
+    IDs = np.zeros_like(ind_)-13133
+    for i in range(len(ind_)):
+        if dist_[i] != np.inf:
+            dist_o = dist_[i]
+            ind_o = ind_[i]
+            if dist[ind_o]!= np.inf:
+                dist_s = dist[ind_o]
+                ind_s = ind[ind_o]
+                if ind_s == i:
+                    try:
+                        IDs[i] = master['SOURCE_ID'][ind_o]
+                    except:
+                        try:
+                            IDs[i] = master['masterindex'][ind_o]
+                        except: raise
+                    #ff = master['SOURCE_ID'] == new_catID
+                    #handshake = i + 1 == master['SOURCE_ID'][ff]
+                    # if handshake is multiple is because multiple newsources point to a single
+                    # mastersource and this needs to be iterated
+                    #for h in handshake:
+                    #    if h: IDs.append(new_catID)
+        #if len(IDs) == i:
+        #    IDs.append(-13133)
+    #print len(IDs), len(ind_), len(ind)
+    return(IDs)
