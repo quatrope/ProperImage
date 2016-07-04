@@ -783,7 +783,7 @@ def ifftwn(*dat):
     Default number of threads is 4
 
     """
-        return _ifftn(*dat,threads=4)
+    return _ifftn(*dat,threads=4)
 
 
 def matching(master, cat, angular=False, radius=1.5):
@@ -809,11 +809,11 @@ def matching(master, cat, angular=False, radius=1.5):
         dist_,ind_= cx.crossmatch_angular(imRaDec, masterRaDec, max_distance=radius2/2.)
     else:
         masterXY = np.empty((len(master), 2), dtype=np.float64)
-        masterXY[:,0] = master['X_IMAGE']
-        masterXY[:,1] = master['Y_IMAGE']
+        masterXY[:,0] = master['x']
+        masterXY[:,1] = master['y']
         imXY = np.empty((len(cat), 2), dtype=np.float64)
-        imXY[:,0] = cat['X_IMAGE']
-        imXY[:,1] = cat['Y_IMAGE']
+        imXY[:,0] = cat['x']
+        imXY[:,1] = cat['y']
         dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
         dist_, ind_ = cx.crossmatch( imXY, masterXY, max_distance=radius)
         #imRaDec = imXY

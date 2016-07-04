@@ -24,7 +24,8 @@ from propercoadd import propercoadd as pc
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
-#datapath = os.path.abspath('/home/bos0109/DATA/Data/Tolar2015/CAMPAÑA_LIGO_OBSERVACIONES_MACON/20151212/preprocessed/Landolt_C53')
+#datapath = os.path.abspath('/home/bos0109/DATA/Data/Tolar2015/CAMPAÑA_LIGO_OBS
+#ERVACIONES_MACON/20151212/preprocessed/Landolt_C53')
 
 datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/subset/')
 
