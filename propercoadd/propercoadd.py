@@ -1,9 +1,19 @@
-"""
-sim_coadd_proper translation to Python.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Propercoadd module from ProperImage,
+for coadding astronomical images.
 
 Written by Bruno SANCHEZ
 
-PhD of Astromoy - UNC"""
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
 
 from multiprocessing import Process
 from multiprocessing import Queue
