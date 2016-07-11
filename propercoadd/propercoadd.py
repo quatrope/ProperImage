@@ -91,7 +91,7 @@ class ImageEnsemble(MutableSequence):
         """
         if not hasattr(self, '_atoms'):
             self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
-        elif len(atoms) is not len(self.imgl):
+        elif len(self._atoms) is not len(self.imgl):
             self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
         return self._atoms
 
@@ -117,10 +117,10 @@ class ImageEnsemble(MutableSequence):
 
         """
         queues = []
-        procs  = []
+        procs = []
         for chunk in chunk_it(self.atoms, n_procs):
             queue = Queue()
-            proc = Combinator(chunk, queue)
+            proc = Combinator(chunk, queue, stack=True, fourier=False)
             print 'starting new process'
             proc.start()
 
@@ -135,6 +135,7 @@ class ImageEnsemble(MutableSequence):
             print 'loading pickles'
             s_comp = pickle.loads(serialized)
             s_comp = np.ma.masked_array(s_comp, np.isnan(s_comp))
+
             S = np.add(s_comp.filled(0.), S)
 
         print 'S calculated, now starting to join processes'
@@ -145,6 +146,69 @@ class ImageEnsemble(MutableSequence):
 
         print 'processes finished, now returning S'
         return S
+
+    def calculate_R(self, n_procs=2):
+        """Method for properly coadding images given by Zackay & Ofek 2015
+        (http://arxiv.org/abs/1512.06872, and http://arxiv.org/abs/1512.06879)
+        It uses multiprocessing for parallelization of the processing of each
+        image.
+
+        Parameters
+        ----------
+        n_procs: int
+            number of processes for computational parallelization. Should not
+            be greater than the number of cores of the machine.
+
+        Returns
+        -------
+        R: np.array 2D of floats
+            R image, calculated by the ImageEnsemble method.
+
+        """
+        queues = []
+        procs = []
+        for chunk in chunk_it(self.atoms, n_procs):
+            queue = Queue()
+            proc = Combinator(chunk, queue, fourier=True, stack=False)
+            print 'starting new process'
+            proc.start()
+
+            queues.append(queue)
+            procs.append(proc)
+
+        print 'all chunks started, and procs appended'
+
+        S_stack = np.zeros((self.global_shape[0], self.global_shape[1],
+            len(self.imgl)))
+
+        S_hat_stack = np.zeros((self.global_shape[0], self.global_shape[1],
+            len(self.imgl)))
+
+        j = 0
+        for q in queues:
+            serialized = q.get()
+            print 'loading pickles'
+            s_list, s_hat_list = pickle.loads(serialized)
+
+            for i in range(len(s_list)):
+                s_comp = np.ma.masked_array(s_list[i], np.isnan(s_list[i]))
+                S_stack[:, :, j] = s_comp.filled(0.)
+                S_hat_stack[:, :, j] = s_hat_list[i]
+                j += 1
+
+        for proc in procs:
+            print 'waiting for procs to finish'
+            proc.join()
+
+        S = S_stack.sum(axis=2)
+        S_hat = fftwn(S)
+        hat_std = S_hat.std(axis=2)
+        R_hat = np.divide(S_hat, hat_std)
+
+        R = ifftwn(R_hat)
+
+        print 'processes finished, now returning R'
+        return R
 
 
 class Combinator(Process):
@@ -162,6 +226,22 @@ class Combinator(Process):
     queue: multiprocessing.Queue instance
         an instance of multiprocessing.Queue class where to pickle the
         intermediate results.
+
+    stack: boolean, default True
+        Whether to stack the results for coadd or just obtain individual
+        image calculations.
+        If True it will pickle in queue a coadded image of the chunk's images.
+        If False it will pickle in queue a list of individual matched filtered
+        images.
+
+    fourier: boolean, default False.
+        Whether to calculate individual fourier transform of each s_component
+        image.
+        If stack is True this parameter will be ignored.
+        If stack is False, and fourier is True, the pickled object will be a
+        tuple of two values, with the first one containing the list of
+        s_components, and the second one containing the list of fourier
+        transformed s_components.
 
     Returns
     -------
@@ -187,22 +267,44 @@ class Combinator(Process):
     p2.join()
 
     """
-    def __init__(self, ensemble, queue, *args, **kwargs):
+    def __init__(self, ensemble, queue, stack=True,
+    fourier=False, *args, **kwargs):
         super(Combinator, self).__init__(*args, **kwargs)
         self.list_to_combine = ensemble
         self.queue = queue
+        self.stack = stack
+        self.fourier = fourier
 
     def run(self):
-        shape = self.list_to_combine[0].imagedata.shape
-        S = np.zeros(shape)
-        for img in self.list_to_combine:
-            s_comp = img.s_component()
-            print 'S component obtained, summing arrays'
-            S = np.add(s_comp, S)
-        print 'chunk processed, now pickling'
-        serialized = pickle.dumps(S)
-        self.queue.put(serialized)
+        if self.stack:
+            shape = self.list_to_combine[0].imagedata.shape
+            S = np.zeros(shape)
+            for img in self.list_to_combine:
+                s_comp = img.s_component
+                print 'S component obtained, summing arrays'
+                S = np.add(s_comp, S)
 
+            print 'chunk processed, now pickling'
+            serialized = pickle.dumps(S)
+            self.queue.put(serialized)
+        else:
+            S_stack = []
+            S_stack_f = []
+            for img in self.list_to_combine:
+                s_comp = img.s_component
+                print 'S component obtained'
+                S_stack.append(s_comp)
+
+            if self.fourier:
+                S_stack_f = [fftwn(s_c) for s_c in S_stack]
+                print 'Fourier transformed'
+                print 'chunk processed, now pickling'
+                serialized = pickle.dump((S_stack, S_stack_f))
+            else:
+                print 'chunk processed, now pickling'
+                serialized = pickle.dump(S_stack)
+
+            self.queue.put(serialized)
 
 
 class SingleImage(object):
@@ -283,9 +385,51 @@ class SingleImage(object):
         if not hasattr(self, 'bkg_sub_img'):
             self.bkg = sep.Background(self.imagedata)
             self._bkg_sub_img = self.imagedata - self.bkg
-            self._masked = np.ma.masked_array(self._bkg_sub_img ,
+            self._masked = np.ma.masked_array(self._bkg_sub_img,
                 np.isnan(self._bkg_sub_img))
         return self._bkg_sub_img
+
+    def _fit_models_psf(self, best_srcs, indices, fitshape, prf_model, fitter):
+        """Hidden method, that fits prf models to selected stars.
+
+        Parameters
+        ----------
+        best_srcs: sep extraction data structure
+
+        indices: numpy indices extraction
+
+        fitshape: tuple or sequence, givin axis dimensions and sizes of
+            data patches arrays
+
+        prf_model: astropy psf model.
+
+        fitter: astropy.modeling fitter. LevMaqFitter is good one.
+
+        Returns
+        -------
+        model_fits: a list of fitted astropy models
+
+        """
+        model_fits = []
+        for row in best_srcs:
+            position = (row['y'], row['x'])
+            y = extract_array(indices[0], fitshape, position)
+            x = extract_array(indices[1], fitshape, position)
+            sub_array_data = extract_array(self.bkg_sub_img, fitshape,
+                position, fill_value=self.bkg.globalback)
+            try:
+                prf_model.x_0 = position[1]
+                prf_model.y_0 = position[0]
+            except:
+                prf_model.x_mean = position[1]
+                prf_model.y_mean = position[0]
+
+            fit = fitter(prf_model, x, y, sub_array_data)
+            resid = sub_array_data - fit(x, y)
+            if np.sum(np.square(resid)) < 5*self.bkg.globalrms*fitshape[0]**2:
+                model_fits.append(fit)
+        print 'succesful fits = {}'.format(len(model_fits))
+        return model_fits
 
     def fit_psf_sep(self, model='astropy-Gaussian2D'):
         """Fit and calculate the Psf of an image using sep source detection.
@@ -308,9 +452,9 @@ class SingleImage(object):
 
         fitter = fitting.LevMarLSQFitter()
         indices = np.indices(self.bkg_sub_img.shape)
-        model_fits = []
+        size = max(fitshape)
 
-        if model=='photutils-IntegratedGaussianPRF':
+        if model == 'photutils-IntegratedGaussianPRF':
             prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2.,
                                                     sigma=size/3.)
             prf_model.fixed['flux'] = False
@@ -318,37 +462,12 @@ class SingleImage(object):
             prf_model.fixed['x_0'] = False
             prf_model.fixed['y_0'] = False
 
-            for row in best_srcs:
-                position = (row['y'], row['x'])
-                y = extract_array(indices[0], fitshape, position)
-                x = extract_array(indices[1], fitshape, position)
-                sub_array_data = extract_array(self.bkg_sub_img,
-                                                fitshape, position,
-                                                fill_value=self.bkg.globalback)
-                prf_model.x_0 = position[1]
-                prf_model.y_0 = position[0]
-                resid = sub_array_data - fit(x,y)
-                if np.sum(np.square(resid)) < 5*self.bkg.globalrms*fitshape[0]**2:
-                    model_fits.append(fit)
-            print 'succesful fits = {}'.format(len(model_fits))
-
-        elif model=='astropy-Gaussian2D':
+        elif model == 'astropy-Gaussian2D':
             prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
 
-            for row in best_srcs:
-                position = (row['y'], row['x'])
-                y = extract_array(indices[0], fitshape, position)
-                x = extract_array(indices[1], fitshape, position)
-                sub_array_data = extract_array(self.bkg_sub_img,
-                                                fitshape, position,
-                                                fill_value=self.bkg.globalrms)
-                prf_model.x_mean = position[1]
-                prf_model.y_mean = position[0]
-                fit = fitter(prf_model, x, y, sub_array_data)
-                resid = sub_array_data - fit(x,y)
-                if np.sum(np.square(resid)) < 5*(self.bkg.globalrms*fitshape[0])**2:
-                    model_fits.append(fit)
-            print 'succesful fits = {}'.format(len(model_fits))
+        model_fits = self._fit_models_psf(best_srcs, indices, fitshape,
+            prf_model, fitter)
+
         return model_fits
 
     @property
@@ -358,35 +477,36 @@ class SingleImage(object):
         """
         if not hasattr(self, '_best_sources'):
             try:
-                srcs = sep.extract(self.bkg_sub_img, thresh=12*self.bkg.globalrms)
+                srcs = sep.extract(self.bkg_sub_img,
+                    thresh=12*self.bkg.globalrms)
             except Exception:
                 sep.set_extract_pixstack(700000)
-                srcs = sep.extract(self.bkg_sub_img, thresh=12*self.bkg.globalrms)
+                srcs = sep.extract(self.bkg_sub_img,
+                    thresh=12*self.bkg.globalrms)
             except ValueError:
                 srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
                     thresh=12*self.bkg.globalrms)
 
-
-            if len(srcs)<10:
+            if len(srcs) < 10:
                 try:
-                    srcs = sep.extract(self.bkg_sub_img, \
+                    srcs = sep.extract(self.bkg_sub_img,
                         thresh=2.5*self.bkg.globalrms)
                 except Exception:
                     sep.set_extract_pixstack(900000)
-                    srcs = sep.extract(self.bkg_sub_img, \
+                    srcs = sep.extract(self.bkg_sub_img,
                         thresh=2.5*self.bkg.globalrms)
-            if len(srcs)<10:
+            if len(srcs) < 10:
                 print 'No sources detected'
-            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[35,55,85]))
+            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[35, 55, 85]))
 
-            if not p_sizes[1]<12:
+            if not p_sizes[1] < 12:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
             else:
-                fitshape = (12,12)
+                fitshape = (12, 12)
 
-            best_big = srcs['tnpix']>=p_sizes[0]**2.
-            best_small = srcs['tnpix']<=p_sizes[2]**2.
-            best_flag = srcs['flag']<=1
+            best_big = srcs['tnpix'] >= p_sizes[0]**2.
+            best_small = srcs['tnpix'] <= p_sizes[2]**2.
+            best_flag = srcs['flag'] <= 1
             fluxes_quartiles = np.percentile(srcs['flux'], q=[30, 60])
             low_flux = srcs['flux'] > fluxes_quartiles[0]
             hig_flux = srcs['flux'] < fluxes_quartiles[1]
@@ -398,15 +518,12 @@ class SingleImage(object):
                 best_srcs = best_srcs[jj]
 
             print 'Sources good to calculate = {}'.format(len(best_srcs))
-            self._best_sources = {'sources':best_srcs, 'fitshape':fitshape}
+            self._best_sources = {'sources': best_srcs, 'fitshape': fitshape}
 
-            indices = np.indices(self.bkg_sub_img.shape)
             Patch = []
             pos = []
             for row in best_srcs:
                 position = [row['y'], row['x']]
-                y = extract_array(indices[0], fitshape, position)
-                x = extract_array(indices[1], fitshape, position)
                 sub_array_data = extract_array(self.bkg_sub_img,
                                                 fitshape, position,
                                                 fill_value=self.bkg.globalrms)
@@ -417,14 +534,13 @@ class SingleImage(object):
             self._best_sources['detected'] = srcs
         return self._best_sources
 
-
     def _covMat_from_stars(self):
-        """Determines the covariance matrix of the psf measured directly from the
-        detected stars in the image.
+        """Determines the covariance matrix of the psf measured directly from
+        the detected stars in the image.
 
         """
         # calculate x, y, flux of stars
-        best_srcs = self._best_srcs['sources']
+        # best_srcs = self._best_srcs['sources']
         fitshape = self._best_srcs['fitshape']
         print 'Fitshape = {}'.format(fitshape)
 
@@ -435,7 +551,7 @@ class SingleImage(object):
 
         for i in range(len(renders)):
             for j in range(len(renders)):
-                if i<=j:
+                if i <= j:
                     psfi_render = renders[i]
                     psfj_render = renders[j]
 
@@ -460,21 +576,20 @@ class SingleImage(object):
 
         for i in range(len(fitted_models)):
             for j in range(len(fitted_models)):
-                if i<=j:
+                if i <= j:
                     psfi_render = renders[i]
                     psfj_render = renders[j]
                     shapei = maxshape - np.array(psfi_render.shape)
                     shapej = maxshape - np.array(psfj_render.shape)
                     psfi_render = np.pad(psfi_render,
-                                    [[int(shapei[0]/2.), int(round(shapei[0]/2.))],
-                                    [int(shapei[1]/2.), int(round(shapei[1]/2.))]],
-                                    'edge')
+                                [[int(shapei[0]/2.), int(round(shapei[0]/2.))],
+                                [int(shapei[1]/2.), int(round(shapei[1]/2.))]],
+                                'edge')
 
                     psfj_render = np.pad(psfj_render,
-                                    [[int(shapej[0]/2.), int(round(shapej[0]/2.))],
-                                    [int(shapej[1]/2.), int(round(shapej[1]/2.))]],
-                                    'edge')
-
+                                [[int(shapej[0]/2.), int(round(shapej[0]/2.))],
+                                [int(shapej[1]/2.), int(round(shapej[1]/2.))]],
+                                'edge')
 
                     inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                     psfj_render.flatten()/np.sum(psfj_render))
@@ -509,7 +624,7 @@ class SingleImage(object):
 
             #  Build psf basis
             N_psf_basis = abs(cut)
-            lambdas = valh[cut:]
+            # lambdas = valh[cut:]  # unused variable
             xs = vech[:, cut:]
             # print cut, lambdas
             psf_basis = []
@@ -542,7 +657,7 @@ class SingleImage(object):
 
             #  Build psf basis
             N_psf_basis = abs(cut)
-            lambdas = valh[cut:]
+            # lambdas = valh[cut:]  # unused variable
             xs = vech[:, cut:]
             # print lambdas
             psf_basis = []
@@ -568,10 +683,10 @@ class SingleImage(object):
             N_fields = len(psf_basis)
 
             best_srcs = self._best_srcs['sources']
-            fitshape = self._best_srcs['fitshape']
-            patches = self._best_srcs['patches'][best_srcs['flag']<=1]
-            positions = self._best_srcs['positions'][best_srcs['flag']<=1]
-            best_srcs = best_srcs[best_srcs['flag']<=1]
+            # fitshape = self._best_srcs['fitshape']  # unused variable
+            patches = self._best_srcs['patches'][best_srcs['flag'] <= 1]
+            positions = self._best_srcs['positions'][best_srcs['flag'] <= 1]
+            best_srcs = best_srcs[best_srcs['flag'] <= 1]
 
             # Each element in patches brings information about the real PSF
             # evaluated -or measured-, giving an interpolation point for a
@@ -592,7 +707,7 @@ class SingleImage(object):
                 # x_domain = [0, self.imagedata.shape[0]]
                 # y_domain = [0, self.imagedata.shape[1]]
                 a_field_model = models.Polynomial2D(degree=4)
-                    # , x_domain=x_domain, y_domain=y_domain)
+                #     , x_domain=x_domain, y_domain=y_domain)
                 fitter = fitting.LinearLSQFitter()
                 a_fields.append(fitter(a_field_model, x, y, z))
 
@@ -622,36 +737,38 @@ class SingleImage(object):
                 a = a_fields[i]
                 a = a(x, y)
                 psf_i = psf_basis[i]
-                conv += convolve_fft(a, psf_i, #mode='same',
+                conv += convolve_fft(a, psf_i,  # mode='same',
                     fftn=fftwn, ifftn=ifftwn)
-                #conv += sg.fftconvolve(a, psf_i, mode='same')
+                # conv += sg.fftconvolve(a, psf_i, mode='same')
 
             self._normal_image = conv
         return self._normal_image
 
+    @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
         from the image.
 
         """
-        var = self.meta['std']
-        nrm = self.normal_image
-        a_fields, psf_basis = self.get_variable_psf(delete_patches=True)
-        mfilter = np.zeros_like(self.bkg_sub_img)
-        x, y = np.mgrid[:mfilter.shape[0], :mfilter.shape[1]]
+        if not hasattr(self, '_s_component'):
+            var = self.meta['std']
+            nrm = self.normal_image
+            a_fields, psf_basis = self.get_variable_psf(delete_patches=True)
+            mfilter = np.zeros_like(self.bkg_sub_img)
+            x, y = np.mgrid[:mfilter.shape[0], :mfilter.shape[1]]
 
-        for i in range(len(a_fields)):
-            a = a_fields[i]
-            psf = psf_basis[i]
-            cross = np.multiply(a(x, y), self._masked)
-            #cross = convolve_fft(self.bkg_sub_img, psf)
-            # import ipdb; ipdb.set_trace()
-            conv = sg.correlate2d(cross, psf, mode='same')
-            mfilter += conv
+            for i in range(len(a_fields)):
+                a = a_fields[i]
+                psf = psf_basis[i]
+                cross = np.multiply(a(x, y), self._masked)
+                # cross = convolve_fft(self.bkg_sub_img, psf)
+                # import ipdb; ipdb.set_trace()
+                conv = sg.correlate2d(cross, psf, mode='same')
+                mfilter += conv
 
-        mfilter = mfilter/nrm
-        return mfilter/var**2
-
+            mfilter = mfilter/nrm
+            self._s_component = mfilter/var**2
+        return self._s_component
 
 
 class ImageStats(object):
@@ -730,7 +847,7 @@ class ImageStats(object):
     def calc_stats(self):
         self.sd = self.pix_sd()
         self.median = self.pix_median()
-        #self.hist = self.count_hist()
+        # self.hist = self.count_hist()
         self.mean = self.pix_mean()
         # self.to1d()
         return
@@ -768,8 +885,9 @@ def chunk_it(seq, num):
         last += avg
     return sorted(out, reverse=True)
 
-_fftn=pyfftw.interfaces.numpy_fft.fftn
-_ifftn=pyfftw.interfaces.numpy_fft.ifftn
+_fftn = pyfftw.interfaces.numpy_fft.fftn
+_ifftn = pyfftw.interfaces.numpy_fft.ifftn
+
 
 def fftwn(*dat):
     """Wrapper around the fftw library, returning a transform of fourier.
@@ -777,6 +895,7 @@ def fftwn(*dat):
 
     """
     return _fftn(*dat, threads=4)
+
 
 def ifftwn(*dat):
     """Wrapper around the fftw library, returning an inverse transform of fourier.
@@ -792,41 +911,43 @@ def matching(master, cat, angular=False, radius=1.5):
     if angular:
         masterRaDec = np.empty((len(master), 2), dtype=np.float64)
         try:
-            masterRaDec[:,0] = master['RA']
-            masterRaDec[:,1] = master['Dec']
+            masterRaDec[:, 0] = master['RA']
+            masterRaDec[:, 1] = master['Dec']
         except:
-            masterRaDec[:,0] = master['ra']
-            masterRaDec[:,1] = master['dec']
+            masterRaDec[:, 0] = master['ra']
+            masterRaDec[:, 1] = master['dec']
         imRaDec = np.empty((len(cat), 2), dtype=np.float64)
         try:
-            imRaDec[:,0] = cat['RA']
-            imRaDec[:,1] = cat['Dec']
+            imRaDec[:, 0] = cat['RA']
+            imRaDec[:, 1] = cat['Dec']
         except:
-            imRaDec[:,0] = cat['ra']
-            imRaDec[:,1] = cat['dec']
+            imRaDec[:, 0] = cat['ra']
+            imRaDec[:, 1] = cat['dec']
         radius2 = radius/3600.
-        dist, ind = cx.crossmatch_angular(masterRaDec, imRaDec, max_distance=radius2/2.)
-        dist_,ind_= cx.crossmatch_angular(imRaDec, masterRaDec, max_distance=radius2/2.)
+        dist, ind = cx.crossmatch_angular(masterRaDec, imRaDec,
+                                        max_distance=radius2/2.)
+        dist_, ind_ = cx.crossmatch_angular(imRaDec, masterRaDec,
+                                            max_distance=radius2/2.)
     else:
         masterXY = np.empty((len(master), 2), dtype=np.float64)
-        masterXY[:,0] = master['x']
-        masterXY[:,1] = master['y']
+        masterXY[:, 0] = master['x']
+        masterXY[:, 1] = master['y']
         imXY = np.empty((len(cat), 2), dtype=np.float64)
-        imXY[:,0] = cat['x']
-        imXY[:,1] = cat['y']
+        imXY[:, 0] = cat['x']
+        imXY[:, 1] = cat['y']
         dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
         dist_, ind_ = cx.crossmatch( imXY, masterXY, max_distance=radius)
         #imRaDec = imXY
 
     match = ~np.isinf(dist)
-    match_= ~np.isinf(dist_)
+    match_ = ~np.isinf(dist_)
 
-    IDs = np.zeros_like(ind_)-13133
+    IDs = np.zeros_like(ind_) - 13133
     for i in range(len(ind_)):
         if dist_[i] != np.inf:
             dist_o = dist_[i]
             ind_o = ind_[i]
-            if dist[ind_o]!= np.inf:
+            if dist[ind_o] != np.inf:
                 dist_s = dist[ind_o]
                 ind_s = ind[ind_o]
                 if ind_s == i:
@@ -838,7 +959,8 @@ def matching(master, cat, angular=False, radius=1.5):
                         except: raise
                     #ff = master['SOURCE_ID'] == new_catID
                     #handshake = i + 1 == master['SOURCE_ID'][ff]
-                    # if handshake is multiple is because multiple newsources point to a single
+                    # if handshake is multiple is because multiple
+                    # newsources point to a single
                     # mastersource and this needs to be iterated
                     #for h in handshake:
                     #    if h: IDs.append(new_catID)
