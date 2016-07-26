@@ -27,7 +27,7 @@ def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
     sigma_x = X_FWHM/2.335
     sigma_y = Y_FWHM/2.335
     sigma = max(sigma_x, sigma_y)
-    tail_len = min(int(5*sigma), N/2.)
+    tail_len = min(int(5*sigma), N/2)
     mu_int = int(mu)
     for i in range(mu_int - tail_len, mu_int + tail_len, 1):
         for j in range(mu_int - tail_len, mu_int + tail_len, 1):

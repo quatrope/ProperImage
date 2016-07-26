@@ -34,6 +34,10 @@ import pickle
 import pyfftw
 
 
+_fftn = pyfftw.interfaces.numpy_fft.fftn
+_ifftn = pyfftw.interfaces.numpy_fft.ifftn
+
+
 class ImageEnsemble(MutableSequence):
     """Processor for several images that uses SingleImage as an atomic processing
     unit. It deploys the utilities provided in the mentioned class and combines
@@ -884,9 +888,6 @@ def chunk_it(seq, num):
         out.append(seq[int(last):int(last + avg)])
         last += avg
     return sorted(out, reverse=True)
-
-_fftn = pyfftw.interfaces.numpy_fft.fftn
-_ifftn = pyfftw.interfaces.numpy_fft.ifftn
 
 
 def fftwn(*dat):
