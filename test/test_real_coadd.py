@@ -30,16 +30,24 @@ from propercoadd import propercoadd as pc
 datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/subset/')
 
 S = np.zeros((1365, 1365))
+R = np.zeros((1365, 1365))
 
 for root, dirs, files in os.walk(datapath):
     fs = [os.path.join(root, afile) for afile in files]
     ensemble = pc.ImageEnsemble(fs)
-    S = ensemble.calculate_S(n_procs=4)
+    #S = ensemble.calculate_S(n_procs=4)
+    R, S = ensemble.calculate_R(n_procs=4, return_S=True)
 
 test_dir = os.path.abspath('./test_images/real_coadd_test/')
 
 if not os.path.exists(test_dir):
     os.mkdir(test_dir)
+
+with file(os.path.join(test_dir,'S.npy'), 'w') as f:
+    np.save(f, S)
+
+with file(os.path.join(test_dir,'R.npy'), 'w') as f:
+    np.save(f, R)
 
 plt.figure(figsize=(16,16))
 plt.imshow(np.log10(S), interpolation='none')
@@ -47,8 +55,11 @@ plt.colorbar(orientation='horizontal')
 plt.savefig(os.path.join(test_dir, 'S.png'))
 plt.close()
 
-with file(os.path.join(test_dir,'S.npy'), 'w') as f:
-    np.save(f, S)
+plt.figure(figsize=(16,16))
+plt.imshow(np.log10(R), interpolation='none')
+plt.colorbar(orientation='horizontal')
+plt.savefig(os.path.join(test_dir, 'R.png'))
+plt.close()
 
 
 def fftwn(array, nthreads=4):

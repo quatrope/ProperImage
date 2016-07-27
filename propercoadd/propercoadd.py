@@ -30,8 +30,12 @@ from astropy.nddata.utils import extract_array
 from photutils import psf
 from astroML import crossmatch as cx
 import sep
-import pickle
 import pyfftw
+
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 
 _fftn = pyfftw.interfaces.numpy_fft.fftn
@@ -151,7 +155,7 @@ class ImageEnsemble(MutableSequence):
         print 'processes finished, now returning S'
         return S
 
-    def calculate_R(self, n_procs=2):
+    def calculate_R(self, n_procs=2, return_S=False):
         """Method for properly coadding images given by Zackay & Ofek 2015
         (http://arxiv.org/abs/1512.06872, and http://arxiv.org/abs/1512.06879)
         It uses multiprocessing for parallelization of the processing of each
@@ -206,13 +210,18 @@ class ImageEnsemble(MutableSequence):
 
         S = S_stack.sum(axis=2)
         S_hat = fftwn(S)
-        hat_std = S_hat.std(axis=2)
+        import ipdb; ipdb.set_trace()
+        hat_std = S_hat_stack.std(axis=2)
         R_hat = np.divide(S_hat, hat_std)
 
         R = ifftwn(R_hat)
 
-        print 'processes finished, now returning R'
-        return R
+        if return_S:
+            print 'processes finished, now returning R, S'
+            return R, S
+        else:
+            print 'processes finished, now returning R'
+            return R
 
 
 class Combinator(Process):
@@ -271,8 +280,8 @@ class Combinator(Process):
     p2.join()
 
     """
-    def __init__(self, ensemble, queue, stack=True,
-    fourier=False, *args, **kwargs):
+    def __init__(self, ensemble, queue, stack=True, fourier=False,
+                 *args, **kwargs):
         super(Combinator, self).__init__(*args, **kwargs)
         self.list_to_combine = ensemble
         self.queue = queue
@@ -303,10 +312,10 @@ class Combinator(Process):
                 S_stack_f = [fftwn(s_c) for s_c in S_stack]
                 print 'Fourier transformed'
                 print 'chunk processed, now pickling'
-                serialized = pickle.dump((S_stack, S_stack_f))
+                serialized = pickle.dumps((S_stack, S_stack_f))
             else:
                 print 'chunk processed, now pickling'
-                serialized = pickle.dump(S_stack)
+                serialized = pickle.dumps(S_stack)
 
             self.queue.put(serialized)
 
