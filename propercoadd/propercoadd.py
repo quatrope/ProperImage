@@ -186,23 +186,35 @@ class ImageEnsemble(MutableSequence):
 
         print 'all chunks started, and procs appended'
 
-        S_stack = np.zeros((self.global_shape[0], self.global_shape[1],
-            len(self.imgl)))
+        # S_stack = np.empty((self.global_shape[0], self.global_shape[1],
+        #    len(self.imgl)))
 
-        S_hat_stack = np.zeros((self.global_shape[0], self.global_shape[1],
-            len(self.imgl)))
+        # S_hat_stack = np.empty((self.global_shape[0], self.global_shape[1],
+        #    len(self.imgl)))
 
         j = 0
         for q in queues:
             serialized = q.get()
             print 'loading pickles'
-            s_list, s_hat_list = pickle.loads(serialized)
+            s_stack, s_hat_stack = pickle.loads(serialized)
 
-            for i in range(len(s_list)):
-                s_comp = np.ma.masked_array(s_list[i], np.isnan(s_list[i]))
-                S_stack[:, :, j] = s_comp.filled(0.)
-                S_hat_stack[:, :, j] = s_hat_list[i]
-                j += 1
+            if j == 0:
+                S_stack = np.ma.masked_array(s_stack, np.isnan(s_stack))
+                S_hat_stack = np.ma.masked_array(s_hat_stack,
+                                                 np.isnan(s_hat_stack))
+
+            else:
+                S_stack = np.concatenate((S_stack,
+                                         np.ma.masked_array(s_stack,
+                                                  np.isnan(s_stack))),
+                                         axis=2)
+
+                S_hat_stack = np.concatenate(S_hat_stack,
+                                             np.ma.masked_array(s_hat_stack,
+                                                                np.isnan(
+                                                                s_hat_stack)),
+                                             axis=2)
+            j += 1
 
         for proc in procs:
             print 'waiting for procs to finish'
@@ -289,8 +301,10 @@ class Combinator(Process):
         self.fourier = fourier
 
     def run(self):
+        N_images = len(self.list_to_combine)
+        shape = self.list_to_combine[0].imagedata.shape
+
         if self.stack:
-            shape = self.list_to_combine[0].imagedata.shape
             S = np.zeros(shape)
             for img in self.list_to_combine:
                 s_comp = img.s_component
@@ -300,17 +314,18 @@ class Combinator(Process):
             print 'chunk processed, now pickling'
             serialized = pickle.dumps(S)
             self.queue.put(serialized)
-        else:
-            S_stack = []
-            S_stack_f = []
-            for img in self.list_to_combine:
-                s_comp = img.s_component
-                print 'S component obtained'
-                S_stack.append(s_comp)
 
+        else:
+            S_stack = np.empty((shape[0], shape[1], N_images))
+            for i in range(N_images):
+                S_stack[:, :, i] = self.list_to_combine[i].s_component
+                print 'S component obtained'
+            S_stack = np.ma.masked_array(S_stack, np.isnan(S_stack))
             if self.fourier:
-                S_stack_f = [fftwn(s_c) for s_c in S_stack]
-                print 'Fourier transformed'
+                S_stack_f = np.empty_like(S_stack)
+                for i in range(N_images):
+                    S_stack_f[:, :, i] = fftwn(S_stack[:, :, i])
+                    print 'Fourier transformed'
                 print 'chunk processed, now pickling'
                 serialized = pickle.dumps((S_stack, S_stack_f))
             else:
@@ -908,7 +923,7 @@ def fftwn(*dat):
 
 
 def ifftwn(*dat):
-    """Wrapper around the fftw library, returning an inverse transform of fourier.
+    """Wrapper around the fftw library, returning an inverse fourier transform.
     Default number of threads is 4
 
     """
