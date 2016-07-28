@@ -38,7 +38,7 @@ for root, dirs, files in os.walk(datapath):
     #S = ensemble.calculate_S(n_procs=4)
     R, S = ensemble.calculate_R(n_procs=4, return_S=True)
 
-test_dir = os.path.abspath('./test_images/real_coadd_test/')
+test_dir = os.path.abspath('./test/test_images/real_coadd_test/')
 
 if not os.path.exists(test_dir):
     os.mkdir(test_dir)
@@ -62,18 +62,18 @@ plt.savefig(os.path.join(test_dir, 'R.png'))
 plt.close()
 
 
-def fftwn(array, nthreads=4):
-    array = array.astype('complex').copy()
-    outarray = array.copy()
-    fft_forward = fftw3.Plan(array, outarray, direction='forward',
-            flags=['estimate'], nthreads=nthreads)
-    fft_forward.execute()
-    return outarray
+#~ def fftwn(array, nthreads=4):
+    #~ array = array.astype('complex').copy()
+    #~ outarray = array.copy()
+    #~ fft_forward = fftw3.Plan(array, outarray, direction='forward',
+            #~ flags=['estimate'], nthreads=nthreads)
+    #~ fft_forward.execute()
+    #~ return outarray
 
-def ifftwn(array, nthreads=4):
-    array = array.astype('complex').copy()
-    outarray = array.copy()
-    fft_backward = fftw3.Plan(array, outarray, direction='backward',
-            flags=['estimate'], nthreads=nthreads)
-    fft_backward.execute()
-    return outarray / np.size(array)
+#~ def ifftwn(array, nthreads=4):
+    #~ array = array.astype('complex').copy()
+    #~ outarray = array.copy()
+    #~ fft_backward = fftw3.Plan(array, outarray, direction='backward',
+            #~ flags=['estimate'], nthreads=nthreads)
+    #~ fft_backward.execute()
+    #~ return outarray / np.size(array)

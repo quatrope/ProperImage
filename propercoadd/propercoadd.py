@@ -186,35 +186,20 @@ class ImageEnsemble(MutableSequence):
 
         print 'all chunks started, and procs appended'
 
-        # S_stack = np.empty((self.global_shape[0], self.global_shape[1],
-        #    len(self.imgl)))
+        S_stk = []
+        S_hat_stk = []
 
-        # S_hat_stack = np.empty((self.global_shape[0], self.global_shape[1],
-        #    len(self.imgl)))
-
-        j = 0
         for q in queues:
             serialized = q.get()
             print 'loading pickles'
-            s_stack, s_hat_stack = pickle.loads(serialized)
+            s_list, s_hat_list = pickle.loads(serialized)
 
-            if j == 0:
-                S_stack = np.ma.masked_array(s_stack, np.isnan(s_stack))
-                S_hat_stack = np.ma.masked_array(s_hat_stack,
-                                                 np.isnan(s_hat_stack))
+            S_stk.extend(s_list)
+            S_hat_stk.extend(s_hat_list)
+        import ipdb; ipdb.set_trace()
 
-            else:
-                S_stack = np.concatenate((S_stack,
-                                         np.ma.masked_array(s_stack,
-                                                  np.isnan(s_stack))),
-                                         axis=2)
-
-                S_hat_stack = np.concatenate(S_hat_stack,
-                                             np.ma.masked_array(s_hat_stack,
-                                                                np.isnan(
-                                                                s_hat_stack)),
-                                             axis=2)
-            j += 1
+        S_stack = np.stack(S_stk, axis=-1)
+        S_hat_stack = np.stack(S_hat_stk, axis=-1)
 
         for proc in procs:
             print 'waiting for procs to finish'
@@ -222,7 +207,6 @@ class ImageEnsemble(MutableSequence):
 
         S = S_stack.sum(axis=2)
         S_hat = fftwn(S)
-        import ipdb; ipdb.set_trace()
         hat_std = S_hat_stack.std(axis=2)
         R_hat = np.divide(S_hat, hat_std)
 
@@ -301,13 +285,12 @@ class Combinator(Process):
         self.fourier = fourier
 
     def run(self):
-        N_images = len(self.list_to_combine)
-        shape = self.list_to_combine[0].imagedata.shape
-
         if self.stack:
+            shape = self.list_to_combine[0].imagedata.shape
             S = np.zeros(shape)
             for img in self.list_to_combine:
-                s_comp = img.s_component
+                s_comp = np.ma.masked_array(img.s_component,
+                                            np.isnan(img.s_component))
                 print 'S component obtained, summing arrays'
                 S = np.add(s_comp, S)
 
@@ -316,18 +299,18 @@ class Combinator(Process):
             self.queue.put(serialized)
 
         else:
-            S_stack = np.empty((shape[0], shape[1], N_images))
-            for i in range(N_images):
-                S_stack[:, :, i] = self.list_to_combine[i].s_component
+            S_stack = []
+            for img in self.list_to_combine:
+                s_comp = np.ma.masked_array(img.s_component,
+                                            np.isnan(img.s_component))
                 print 'S component obtained'
-            S_stack = np.ma.masked_array(S_stack, np.isnan(S_stack))
+                S_stack.append(s_comp)
+
             if self.fourier:
-                S_stack_f = np.empty_like(S_stack)
-                for i in range(N_images):
-                    S_stack_f[:, :, i] = fftwn(S_stack[:, :, i])
-                    print 'Fourier transformed'
+                S_hat_stack = [fftwn(s_c) for s_c in S_stack]
+                print 'Fourier transformed'
                 print 'chunk processed, now pickling'
-                serialized = pickle.dumps((S_stack, S_stack_f))
+                serialized = pickle.dumps((S_stack, S_hat_stack))
             else:
                 print 'chunk processed, now pickling'
                 serialized = pickle.dumps(S_stack)
@@ -923,7 +906,7 @@ def fftwn(*dat):
 
 
 def ifftwn(*dat):
-    """Wrapper around the fftw library, returning an inverse fourier transform.
+    """Wrapper around the fftw library, returning an inverse transform of fourier.
     Default number of threads is 4
 
     """
