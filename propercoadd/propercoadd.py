@@ -196,8 +196,6 @@ class ImageEnsemble(MutableSequence):
 
             S_stk.extend(s_list)
             S_hat_stk.extend(s_hat_list)
-        import pdb; pdb.set_trace()
-
 
         S_stack = np.stack(S_stk, axis=-1)
         S_hat_stack = np.stack(S_hat_stk, axis=-1)

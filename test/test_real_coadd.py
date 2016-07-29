@@ -61,6 +61,14 @@ plt.colorbar(orientation='horizontal')
 plt.savefig(os.path.join(test_dir, 'R.png'))
 plt.close()
 
+shdu = fits.PrimaryHDU(S.filled())
+shdulist = fits.HDUList([shdu])
+shdulist.writeto(os.path.join(test_dir,'S.fits'), clobber=True)
+
+rhdu = fits.PrimaryHDU(R.real)
+rhdulist = fits.HDUList([rhdu])
+rhdulist.writeto(os.path.join(test_dir,'R.fits'), clobber=True)
+
 
 #~ def fftwn(array, nthreads=4):
     #~ array = array.astype('complex').copy()
