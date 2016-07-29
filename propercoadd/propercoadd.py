@@ -196,19 +196,23 @@ class ImageEnsemble(MutableSequence):
 
             S_stk.extend(s_list)
             S_hat_stk.extend(s_hat_list)
-        import ipdb; ipdb.set_trace()
+        import pdb; pdb.set_trace()
+
 
         S_stack = np.stack(S_stk, axis=-1)
         S_hat_stack = np.stack(S_hat_stk, axis=-1)
+
+        S_stack = np.ma.masked_array(S_stack, np.isnan(S_stack), fill_value=0)
+        S_hat_stack = np.ma.masked_array(S_hat_stack, np.isnan(S_hat_stack), fill_value=0)
 
         for proc in procs:
             print 'waiting for procs to finish'
             proc.join()
 
-        S = S_stack.sum(axis=2)
+        S = np.ma.sum(S_stack, axis=2)
         S_hat = fftwn(S)
-        hat_std = S_hat_stack.std(axis=2)
-        R_hat = np.divide(S_hat, hat_std)
+        hat_std = np.ma.std(S_hat_stack, axis=2)
+        R_hat = np.ma.divide(S_hat, hat_std)
 
         R = ifftwn(R_hat)
 
@@ -290,9 +294,10 @@ class Combinator(Process):
             S = np.zeros(shape)
             for img in self.list_to_combine:
                 s_comp = np.ma.masked_array(img.s_component,
-                                            np.isnan(img.s_component))
+                                            np.isnan(img.s_component),
+                                            fill_value=0)
                 print 'S component obtained, summing arrays'
-                S = np.add(s_comp, S)
+                S = np.ma.add(s_comp, S)
 
             print 'chunk processed, now pickling'
             serialized = pickle.dumps(S)
@@ -302,12 +307,17 @@ class Combinator(Process):
             S_stack = []
             for img in self.list_to_combine:
                 s_comp = np.ma.masked_array(img.s_component,
-                                            np.isnan(img.s_component))
+                                            np.isnan(img.s_component),
+                                            fill_value=0)
                 print 'S component obtained'
                 S_stack.append(s_comp)
 
             if self.fourier:
-                S_hat_stack = [fftwn(s_c) for s_c in S_stack]
+                S_hat_stack = []
+                for s_c in S_stack:
+                    sh = fftwn(s_c)
+                    S_hat_stack.append(np.ma.masked_array(sh,
+                                       np.isnan(sh), fill_value=0))
                 print 'Fourier transformed'
                 print 'chunk processed, now pickling'
                 serialized = pickle.dumps((S_stack, S_hat_stack))

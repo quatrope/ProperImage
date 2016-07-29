@@ -44,7 +44,7 @@ if not os.path.exists(test_dir):
     os.mkdir(test_dir)
 
 with file(os.path.join(test_dir,'S.npy'), 'w') as f:
-    np.save(f, S)
+    np.save(f, S.filled())
 
 with file(os.path.join(test_dir,'R.npy'), 'w') as f:
     np.save(f, R)
@@ -56,7 +56,7 @@ plt.savefig(os.path.join(test_dir, 'S.png'))
 plt.close()
 
 plt.figure(figsize=(16,16))
-plt.imshow(np.log10(R), interpolation='none')
+plt.imshow(np.log10(R.real), interpolation='none')
 plt.colorbar(orientation='horizontal')
 plt.savefig(os.path.join(test_dir, 'R.png'))
 plt.close()
