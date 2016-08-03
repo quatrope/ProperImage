@@ -142,9 +142,8 @@ class ImageEnsemble(MutableSequence):
             serialized = q.get()
             print 'loading pickles'
             s_comp = pickle.loads(serialized)
-            s_comp = np.ma.masked_array(s_comp, np.isnan(s_comp))
 
-            S = np.add(s_comp.filled(0.), S)
+            S = np.ma.add(s_comp, S)
 
         print 'S calculated, now starting to join processes'
 
@@ -199,9 +198,6 @@ class ImageEnsemble(MutableSequence):
 
         S_stack = np.stack(S_stk, axis=-1)
         S_hat_stack = np.stack(S_hat_stk, axis=-1)
-
-        S_stack = np.ma.masked_array(S_stack, np.isnan(S_stack), fill_value=0)
-        S_hat_stack = np.ma.masked_array(S_hat_stack, np.isnan(S_hat_stack), fill_value=0)
 
         for proc in procs:
             print 'waiting for procs to finish'
@@ -304,6 +300,8 @@ class Combinator(Process):
         else:
             S_stack = []
             for img in self.list_to_combine:
+                if np.any(np.isnan(img.s_component)):
+                    import ipdb; ipdb.set_trace()
                 s_comp = np.ma.masked_array(img.s_component,
                                             np.isnan(img.s_component),
                                             fill_value=0)
@@ -348,12 +346,16 @@ class SingleImage(object):
         Default to None, and a guessing attempt will be made.
     """
     def __init__(self, img, imagefile=False, sim=False, meta={}):
-        self._attached_to = img.__class__.__name__
+        if not imagefile:
+            self._attached_to = img.__class__.__name__
+        else:
+            self._attached_to = img
 
         if imagefile:
             self.imagedata = fits.getdata(img)
             if not self.imagedata.dtype == 'uint16':
                 self.imagedata = self.imagedata.byteswap().newbyteorder()
+
             else:
                 self.imagedata = self.imagedata.astype('float')
         else:
@@ -367,8 +369,13 @@ class SingleImage(object):
             # imgstats.summary()
             self.meta = imgstats.full_description
 
+        if np.any(np.isnan(self.imagedata)):
+            self.imagedata = np.ma.masked_array(self.imagedata,
+                                    np.isnan(self.imagedata)).filled(35000.)
+
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
+
 
     def sigma_clip_bkg(self):
         """Determine background using sigma clipping stats.

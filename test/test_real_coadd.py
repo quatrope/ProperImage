@@ -34,6 +34,7 @@ R = np.zeros((1365, 1365))
 
 for root, dirs, files in os.walk(datapath):
     fs = [os.path.join(root, afile) for afile in files]
+    print 'files to process: {}'.format(fs)
     ensemble = pc.ImageEnsemble(fs)
     #S = ensemble.calculate_S(n_procs=4)
     R, S = ensemble.calculate_R(n_procs=4, return_S=True)
@@ -43,11 +44,17 @@ test_dir = os.path.abspath('./test/test_images/real_coadd_test/')
 if not os.path.exists(test_dir):
     os.mkdir(test_dir)
 
-with file(os.path.join(test_dir,'S.npy'), 'w') as f:
-    np.save(f, S.filled())
+if isinstance(S, np.ma.masked_array):
+    S = S.filled(1.)
 
-with file(os.path.join(test_dir,'R.npy'), 'w') as f:
-    np.save(f, R)
+if isinstance(R, np.ma.masked_array):
+    R = R.real.filled(1.)
+
+#~ with file(os.path.join(test_dir,'S.npy'), 'w') as f:
+    #~ np.save(f, S)
+
+#~ with file(os.path.join(test_dir,'R.npy'), 'w') as f:
+    #~ np.save(f, R)
 
 plt.figure(figsize=(16,16))
 plt.imshow(np.log10(S), interpolation='none')
@@ -61,7 +68,7 @@ plt.colorbar(orientation='horizontal')
 plt.savefig(os.path.join(test_dir, 'R.png'))
 plt.close()
 
-shdu = fits.PrimaryHDU(S.filled())
+shdu = fits.PrimaryHDU(S)
 shdulist = fits.HDUList([shdu])
 shdulist.writeto(os.path.join(test_dir,'S.fits'), clobber=True)
 
