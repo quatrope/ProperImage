@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
 
-__package__ = 'propercoadd'
+# __package__ = 'propercoadd'
