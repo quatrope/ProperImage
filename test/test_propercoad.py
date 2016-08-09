@@ -30,4 +30,4 @@ class TestImageStats(unittest.TestCase):
 
 
     def test_array_init(self):
-
+        pass
