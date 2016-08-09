@@ -15,11 +15,11 @@
 # =============================================================================
 
 import sys
+import setuptools
 
 from ez_setup import use_setuptools
 use_setuptools()
 
-import setuptools
 
 # =============================================================================
 # CONSTANTS
@@ -32,13 +32,13 @@ REQUIREMENTS = ["numpy>=1.6.2",
                 "astroML>=0.3",
                 "sep>=0.5",
                 "pyFFTW>=0.10"
-]
-
+                ]
 
 # =============================================================================
 # FUNCTIONS
 # =============================================================================
 print setuptools.find_packages()
+
 
 def do_setup():
     setuptools.setup(
@@ -70,6 +70,7 @@ def do_setup():
 
 def do_publish():
     pass
+
 
 if __name__ == "__main__":
     if sys.argv[-1] == 'publish':
