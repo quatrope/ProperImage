@@ -715,9 +715,11 @@ class SingleImage(object):
 
             best_srcs = self._best_srcs['sources']
             # fitshape = self._best_srcs['fitshape']  # unused variable
-            patches = self._best_srcs['patches'][best_srcs['flag'] <= 1]
-            positions = self._best_srcs['positions'][best_srcs['flag'] <= 1]
-            best_srcs = best_srcs[best_srcs['flag'] <= 1]
+            flag_key = [col_name for col_name in best_srcs.colnames
+                        if 'flag' in col_name.lower()][0]
+            patches = self._best_srcs['patches'][best_srcs[flag_key] <= 1]
+            positions = self._best_srcs['positions'][best_srcs[flag_key] <= 1]
+            best_srcs = best_srcs[best_srcs[flag_key] <= 1]
 
             # Each element in patches brings information about the real PSF
             # evaluated -or measured-, giving an interpolation point for a
