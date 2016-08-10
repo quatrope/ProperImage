@@ -325,8 +325,7 @@ class Combinator(Process):
 
 
 class SingleImage(object):
-    """
-    Atomic processor class for a single image.
+    """Atomic processor class for a single image.
     Contains several tools for PSF measures, and different coadding
     building structures.
 
@@ -344,8 +343,9 @@ class SingleImage(object):
     imagefile : `bool`
         optional information regarding if the img is a fits file
         Default to None, and a guessing attempt will be made.
+
     """
-    def __init__(self, img, imagefile=False, sim=False, meta={}):
+    def __init__(self, img=None, imagefile=True, sim=False, meta={}):
         if not imagefile:
             self._attached_to = img.__class__.__name__
         else:
@@ -375,7 +375,6 @@ class SingleImage(object):
 
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
-
 
     def sigma_clip_bkg(self):
         """Determine background using sigma clipping stats.
@@ -412,7 +411,7 @@ class SingleImage(object):
             self.bkg = sep.Background(self.imagedata)
             self._bkg_sub_img = self.imagedata - self.bkg
             self._masked = np.ma.masked_array(self._bkg_sub_img,
-                np.isnan(self._bkg_sub_img))
+                                              np.isnan(self._bkg_sub_img))
         return self._bkg_sub_img
 
     def _fit_models_psf(self, best_srcs, indices, fitshape, prf_model, fitter):
@@ -441,8 +440,10 @@ class SingleImage(object):
             position = (row['y'], row['x'])
             y = extract_array(indices[0], fitshape, position)
             x = extract_array(indices[1], fitshape, position)
-            sub_array_data = extract_array(self.bkg_sub_img, fitshape,
-                position, fill_value=self.bkg.globalback)
+            sub_array_data = extract_array(self.bkg_sub_img,
+                                           fitshape,
+                                           position,
+                                           fill_value=self.bkg.globalback)
             try:
                 prf_model.x_0 = position[1]
                 prf_model.y_0 = position[0]
@@ -482,7 +483,7 @@ class SingleImage(object):
 
         if model == 'photutils-IntegratedGaussianPRF':
             prf_model = psf.IntegratedGaussianPRF(x_0=size/2., y_0=size/2.,
-                                                    sigma=size/3.)
+                                                  sigma=size/3.)
             prf_model.fixed['flux'] = False
             prf_model.fixed['sigma'] = False
             prf_model.fixed['x_0'] = False
@@ -492,7 +493,7 @@ class SingleImage(object):
             prf_model = models.Gaussian2D(x_stddev=1, y_stddev=1)
 
         model_fits = self._fit_models_psf(best_srcs, indices, fitshape,
-            prf_model, fitter)
+                                          prf_model, fitter)
 
         return model_fits
 
@@ -504,23 +505,23 @@ class SingleImage(object):
         if not hasattr(self, '_best_sources'):
             try:
                 srcs = sep.extract(self.bkg_sub_img,
-                    thresh=12*self.bkg.globalrms)
+                                   thresh=12*self.bkg.globalrms)
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img,
-                    thresh=12*self.bkg.globalrms)
+                                   thresh=12*self.bkg.globalrms)
             except ValueError:
                 srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
-                    thresh=12*self.bkg.globalrms)
+                                   thresh=12*self.bkg.globalrms)
 
             if len(srcs) < 10:
                 try:
                     srcs = sep.extract(self.bkg_sub_img,
-                        thresh=2.5*self.bkg.globalrms)
+                                       thresh=2.5*self.bkg.globalrms)
                 except Exception:
                     sep.set_extract_pixstack(900000)
                     srcs = sep.extract(self.bkg_sub_img,
-                        thresh=2.5*self.bkg.globalrms)
+                                       thresh=2.5*self.bkg.globalrms)
             if len(srcs) < 10:
                 print 'No sources detected'
             p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[35, 55, 85]))
@@ -551,13 +552,13 @@ class SingleImage(object):
             for row in best_srcs:
                 position = [row['y'], row['x']]
                 sub_array_data = extract_array(self.bkg_sub_img,
-                                                fitshape, position,
-                                                fill_value=self.bkg.globalrms)
+                                               fitshape, position,
+                                               fill_value=self.bkg.globalrms)
                 Patch.append(sub_array_data)
                 pos.append(position)
             self._best_sources['patches'] = np.array(Patch)
             self._best_sources['positions'] = np.array(pos)
-            self._best_sources['detected'] = srcs
+            # self._best_sources['detected'] = srcs
         return self._best_sources
 
     def _covMat_from_stars(self):
@@ -608,14 +609,18 @@ class SingleImage(object):
                     shapei = maxshape - np.array(psfi_render.shape)
                     shapej = maxshape - np.array(psfj_render.shape)
                     psfi_render = np.pad(psfi_render,
-                                [[int(shapei[0]/2.), int(round(shapei[0]/2.))],
-                                [int(shapei[1]/2.), int(round(shapei[1]/2.))]],
-                                'edge')
+                                         [[int(shapei[0]/2.),
+                                           int(round(shapei[0]/2.))],
+                                          [int(shapei[1]/2.),
+                                           int(round(shapei[1]/2.))]],
+                                         'edge')
 
                     psfj_render = np.pad(psfj_render,
-                                [[int(shapej[0]/2.), int(round(shapej[0]/2.))],
-                                [int(shapej[1]/2.), int(round(shapej[1]/2.))]],
-                                'edge')
+                                         [[int(shapej[0]/2.),
+                                           int(round(shapej[0]/2.))],
+                                          [int(shapej[1]/2.),
+                                           int(round(shapej[1]/2.))]],
+                                         'edge')
 
                     inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                     psfj_render.flatten()/np.sum(psfj_render))
@@ -764,7 +769,7 @@ class SingleImage(object):
                 a = a(x, y)
                 psf_i = psf_basis[i]
                 conv += convolve_fft(a, psf_i,  # mode='same',
-                    fftn=fftwn, ifftn=ifftwn)
+                                     fftn=fftwn, ifftn=ifftwn)
                 # conv += sg.fftconvolve(a, psf_i, mode='same')
 
             self._normal_image = conv
@@ -837,7 +842,7 @@ class ImageStats(object):
         elif dataformat == 'numpy_array' or dataformat == 'ndarray':
             self.pixmatrix = image_obj
             self.pixmatrix = np.ma.masked_array(self.pixmatrix,
-                np.isnan(self.pixmatrix))
+                                                np.isnan(self.pixmatrix))
         elif dataformat == 'HDUList':
             self.pixmatrix = image_obj[0].data
         else:
@@ -925,7 +930,7 @@ def ifftwn(*dat):
     Default number of threads is 4
 
     """
-    return _ifftn(*dat,threads=4)
+    return _ifftn(*dat, threads=4)
 
 
 def matching(master, cat, angular=False, radius=1.5):
@@ -948,7 +953,7 @@ def matching(master, cat, angular=False, radius=1.5):
             imRaDec[:, 1] = cat['dec']
         radius2 = radius/3600.
         dist, ind = cx.crossmatch_angular(masterRaDec, imRaDec,
-                                        max_distance=radius2/2.)
+                                          max_distance=radius2/2.)
         dist_, ind_ = cx.crossmatch_angular(imRaDec, masterRaDec,
                                             max_distance=radius2/2.)
     else:
@@ -959,7 +964,7 @@ def matching(master, cat, angular=False, radius=1.5):
         imXY[:, 0] = cat['x']
         imXY[:, 1] = cat['y']
         dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
-        dist_, ind_ = cx.crossmatch( imXY, masterXY, max_distance=radius)
+        dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
         #imRaDec = imXY
 
     match = ~np.isinf(dist)
