@@ -524,7 +524,7 @@ class SingleImage(object):
                                        thresh=2.5*self.bkg.globalrms)
             if len(srcs) < 10:
                 print 'No sources detected'
-            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[35, 55, 85]))
+            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25, 45, 75]))
 
             if not p_sizes[1] < 12:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
@@ -699,15 +699,13 @@ class SingleImage(object):
 
         return self._psf_KL_basis_stars
 
-    @property
-    def _kl_a_fields(self, pow_threshold=0.95, from_stars=True):
+    def _kl_a_fields(self, pow_threshold=0.99, from_stars=True):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
         if not hasattr(self, '_a_fields'):
             if from_stars:
                 psf_basis = self._kl_from_stars
-
             else:
                 psf_basis = self._kl_PSF
 
@@ -747,9 +745,12 @@ class SingleImage(object):
             self._a_fields = a_fields
         return self._a_fields
 
-    def get_variable_psf(self, delete_patches=False):
-        a_fields = self._kl_a_fields
-        psf_basis = self._kl_from_stars
+    def get_variable_psf(self, from_stars=True, delete_patches=False):
+        a_fields = self._kl_a_fields(from_stars=from_stars)
+        if from_stars:
+            psf_basis = self._kl_from_stars
+        else:
+            psf_basis = self._kl_PSF
         if delete_patches:
             del(self._best_srcs['patches'])
             print 'Patches deleted!'
