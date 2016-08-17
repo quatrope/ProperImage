@@ -30,16 +30,19 @@ from astropy.nddata.utils import extract_array
 from photutils import psf
 from astroML import crossmatch as cx
 import sep
-import pyfftw
 
 try:
     import cPickle as pickle
 except:
     import pickle
 
-
-_fftn = pyfftw.interfaces.numpy_fft.fftn
-_ifftn = pyfftw.interfaces.numpy_fft.ifftn
+try:
+    import pyfftw
+    _fftn = pyfftw.interfaces.numpy_fft.fftn
+    _ifftn = pyfftw.interfaces.numpy_fft.ifftn
+except:
+    _fftn = np.fft.fft2
+    _ifftn = np.fft.ifft2
 
 
 class ImageEnsemble(MutableSequence):
@@ -666,7 +669,6 @@ class SingleImage(object):
 
         return self._psf_KL_basis_model
 
-    @property
     def _kl_from_stars(self, pow_th=0.99):
         """Determines the KL psf_basis from stars detected in the field.
 
@@ -699,13 +701,13 @@ class SingleImage(object):
 
         return self._psf_KL_basis_stars
 
-    def _kl_a_fields(self, pow_threshold=0.99, from_stars=True):
+    def _kl_a_fields(self, pow_th=0.99, from_stars=True):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
         if not hasattr(self, '_a_fields'):
             if from_stars:
-                psf_basis = self._kl_from_stars
+                psf_basis = self._kl_from_stars(pow_th=pow_th)
             else:
                 psf_basis = self._kl_PSF
 
@@ -745,10 +747,12 @@ class SingleImage(object):
             self._a_fields = a_fields
         return self._a_fields
 
-    def get_variable_psf(self, from_stars=True, delete_patches=False):
-        a_fields = self._kl_a_fields(from_stars=from_stars)
+    def get_variable_psf(self, from_stars=True, delete_patches=False,
+                         pow_th=0.99):
+        a_fields = self._kl_a_fields(from_stars=from_stars,
+                                     pow_th=pow_th)
         if from_stars:
-            psf_basis = self._kl_from_stars
+            psf_basis = self._kl_from_stars(pow_th=pow_th)
         else:
             psf_basis = self._kl_PSF
         if delete_patches:
