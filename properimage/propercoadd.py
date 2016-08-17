@@ -557,6 +557,7 @@ class SingleImage(object):
                 sub_array_data = extract_array(self.bkg_sub_img,
                                                fitshape, position,
                                                fill_value=self.bkg.globalrms)
+                sub_array_data = sub_array_data/np.sum(sub_array_data)
                 Patch.append(sub_array_data)
                 pos.append(position)
             self._best_sources['patches'] = np.array(Patch)
