@@ -698,6 +698,7 @@ class SingleImage(object):
                 psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
 
             self._psf_KL_basis_stars = psf_basis
+            self._valh = valh
 
         return self._psf_KL_basis_stars
 
