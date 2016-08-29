@@ -244,8 +244,8 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
         std = b/SN
         print 'mean = {}, std = {}, b = {}, SN = {}'.format(mean, std, b, SN)
         C = cielo(N=N2, pdf=bkg_pdf, mean=mean, std=std)
-
-    F = C + image
+    bias = 100.
+    F = C + image + bias
     return(F)
 
 

@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 from astropy.io import fits
 
-from propercoadd import propercoadd as pc
+from properimage import propercoadd as pc
 
 
 # =============================================================================

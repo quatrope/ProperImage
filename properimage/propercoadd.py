@@ -150,9 +150,9 @@ class ImageEnsemble(MutableSequence):
 
         print 'S calculated, now starting to join processes'
 
-        for proc in procs:
-            print 'waiting for procs to finish'
-            proc.join()
+        #~ for proc in procs:
+            #~ print 'waiting for procs to finish'
+            #~ proc.join()
 
         print 'processes finished, now returning S'
         return S
@@ -202,9 +202,9 @@ class ImageEnsemble(MutableSequence):
         S_stack = np.stack(S_stk, axis=-1)
         S_hat_stack = np.stack(S_hat_stk, axis=-1)
 
-        for proc in procs:
-            print 'waiting for procs to finish'
-            proc.join()
+        #~ for proc in procs:
+            #~ print 'waiting for procs to finish'
+            #~ proc.join()
 
         S = np.ma.sum(S_stack, axis=2)
         S_hat = fftwn(S)
@@ -376,6 +376,10 @@ class SingleImage(object):
             self.imagedata = np.ma.masked_array(self.imagedata,
                                     np.isnan(self.imagedata)).filled(35000.)
 
+        if np.any(self.imagedata < 0.):
+            self.imagedata = np.ma.masked_array(self.imagedata,
+                                                self.imagedata < 0.).filled(13)
+
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
 
@@ -508,14 +512,14 @@ class SingleImage(object):
         if not hasattr(self, '_best_sources'):
             try:
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=12*self.bkg.globalrms)
+                                   thresh=5*self.bkg.globalrms)
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=12*self.bkg.globalrms)
+                                   thresh=5*self.bkg.globalrms)
             except ValueError:
                 srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
-                                   thresh=12*self.bkg.globalrms)
+                                   thresh=5*self.bkg.globalrms)
 
             if len(srcs) < 10:
                 try:
@@ -527,21 +531,26 @@ class SingleImage(object):
                                        thresh=2.5*self.bkg.globalrms)
             if len(srcs) < 10:
                 print 'No sources detected'
-            p_sizes = np.sqrt(np.percentile(srcs['tnpix'], q=[25, 45, 75]))
 
+            print 'raw sources = {}'.format(len(srcs))
+
+            p_sizes = np.percentile(srcs['tnpix'], q=[15, 55, 65])
+
+            best_big = srcs['tnpix'] >= p_sizes[0]
+            best_small = srcs['tnpix'] <= p_sizes[2]
+            best_flag = srcs['flag'] <= 2
+            fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
+            low_flux = srcs['flux'] > fluxes_quartiles[0]
+            hig_flux = srcs['flux'] < fluxes_quartiles[1]
+
+            # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
+            best_srcs = srcs[best_flag & best_small & low_flux]
+
+            p_sizes = np.sqrt(np.percentile(best_srcs['tnpix'], q=[15, 55, 65]))
             if not p_sizes[1] < 12:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
             else:
                 fitshape = (12, 12)
-
-            best_big = srcs['tnpix'] >= p_sizes[0]**2.
-            best_small = srcs['tnpix'] <= p_sizes[2]**2.
-            best_flag = srcs['flag'] <= 1
-            fluxes_quartiles = np.percentile(srcs['flux'], q=[30, 60])
-            low_flux = srcs['flux'] > fluxes_quartiles[0]
-            hig_flux = srcs['flux'] < fluxes_quartiles[1]
-
-            best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
 
             if len(best_srcs) > 130:
                 jj = np.random.choice(len(best_srcs), 130, replace=False)
@@ -717,7 +726,8 @@ class SingleImage(object):
 
             best_srcs = self._best_srcs['sources']
             # fitshape = self._best_srcs['fitshape']  # unused variable
-            flag_key = [col_name for col_name in best_srcs.colnames
+
+            flag_key = [col_name for col_name in best_srcs.dtype.fields.keys()
                         if 'flag' in col_name.lower()][0]
             patches = self._best_srcs['patches'][best_srcs[flag_key] <= 1]
             positions = self._best_srcs['positions'][best_srcs[flag_key] <= 1]
@@ -750,7 +760,7 @@ class SingleImage(object):
         return self._a_fields
 
     def get_variable_psf(self, from_stars=True, delete_patches=False,
-                         pow_th=0.99):
+                         pow_th=0.90):
         a_fields = self._kl_a_fields(from_stars=from_stars,
                                      pow_th=pow_th)
         if from_stars:
