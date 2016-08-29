@@ -534,10 +534,10 @@ class SingleImage(object):
 
             print 'raw sources = {}'.format(len(srcs))
 
-            p_sizes = np.percentile(srcs['tnpix'], q=[15, 55, 65])
+            p_sizes = np.percentile(srcs['npix'], q=[15, 55, 65])
 
-            best_big = srcs['tnpix'] >= p_sizes[0]
-            best_small = srcs['tnpix'] <= p_sizes[2]
+            best_big = srcs['npix'] >= p_sizes[0]
+            best_small = srcs['npix'] <= p_sizes[2]
             best_flag = srcs['flag'] <= 2
             fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
             low_flux = srcs['flux'] > fluxes_quartiles[0]
@@ -546,31 +546,35 @@ class SingleImage(object):
             # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
             best_srcs = srcs[best_flag & best_small & low_flux]
 
-            p_sizes = np.sqrt(np.percentile(best_srcs['tnpix'], q=[15, 55, 65]))
+            p_sizes = np.sqrt(np.percentile(best_srcs['npix'], q=[15, 55, 65]))
             if not p_sizes[1] < 12:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
             else:
                 fitshape = (12, 12)
 
-            if len(best_srcs) > 130:
-                jj = np.random.choice(len(best_srcs), 130, replace=False)
-                best_srcs = best_srcs[jj]
+            # if len(best_srcs) > 130:
+            #     jj = np.random.choice(len(best_srcs), 130, replace=False)
+            #     best_srcs = best_srcs[jj]
 
             print 'Sources good to calculate = {}'.format(len(best_srcs))
             self._best_sources = {'sources': best_srcs, 'fitshape': fitshape}
 
-            Patch = []
+            self.db = npdb.NumPyDB_cPickle('test_db', mode='load')
             pos = []
+            jj = 0
             for row in best_srcs:
                 position = [row['y'], row['x']]
                 sub_array_data = extract_array(self.bkg_sub_img,
                                                fitshape, position,
                                                fill_value=self.bkg.globalrms)
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
-                Patch.append(sub_array_data)
+                # Patch.append(sub_array_data)
+                self.db.dump(sub_array_data, jj)
                 pos.append(position)
-            self._best_sources['patches'] = np.array(Patch)
+                jj += 1
+            # self._best_sources['patches'] = np.array(Patch)
             self._best_sources['positions'] = np.array(pos)
+            self._best_sources['n_sources'] = jj
             # self._best_sources['detected'] = srcs
         return self._best_sources
 
@@ -585,15 +589,15 @@ class SingleImage(object):
         print 'Fitshape = {}'.format(fitshape)
 
         # best_srcs = best_srcs[best_srcs['flag']<=1]
-        renders = self._best_srcs['patches']
+        # renders = self._best_srcs['patches']
 
         covMat = np.zeros(shape=(len(renders), len(renders)))
 
-        for i in range(len(renders)):
-            for j in range(len(renders)):
+        for i in range(self._best_srcs['n_sources']):
+            for j in range(self._best_srcs['n_sources']):
                 if i <= j:
-                    psfi_render = renders[i]
-                    psfj_render = renders[j]
+                    psfi_render = self.db.load(i)
+                    psfj_render = self.db.load(j)
 
                     inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                     psfj_render.flatten()/np.sum(psfj_render))
