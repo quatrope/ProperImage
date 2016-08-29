@@ -787,7 +787,7 @@ class SingleImage(object):
                 a = a_fields[i]
                 a = a(x, y)
                 psf_i = psf_basis[i]
-                conv += convolve_fft(a, psf_i,  # mode='same',
+                conv += convolve_fft(a, psf_i, psf_pad=True, # mode='same',
                                      fftn=fftwn, ifftn=ifftwn)
                 # conv += sg.fftconvolve(a, psf_i, mode='same')
 
