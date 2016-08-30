@@ -30,6 +30,7 @@ from astropy.nddata.utils import extract_array
 from photutils import psf
 from astroML import crossmatch as cx
 import sep
+from . import numpydb as npdb
 
 try:
     import cPickle as pickle
@@ -590,11 +591,11 @@ class SingleImage(object):
 
         # best_srcs = best_srcs[best_srcs['flag']<=1]
         # renders = self._best_srcs['patches']
+        nsources = self._best_srcs['n_sources']
+        covMat = np.zeros(shape=(nsources, nsources))
 
-        covMat = np.zeros(shape=(len(renders), len(renders)))
-
-        for i in range(self._best_srcs['n_sources']):
-            for j in range(self._best_srcs['n_sources']):
+        for i in range(nsources):
+            for j in range(nsources):
                 if i <= j:
                     psfi_render = self.db.load(i)
                     psfj_render = self.db.load(j)
@@ -689,7 +690,7 @@ class SingleImage(object):
         """
         if not hasattr(self, '_psf_KL_basis_stars'):
             covMat = self._covMat_from_stars()
-            renders = self._best_srcs['patches']
+            # renders = self._best_srcs['patches']
             valh, vech = np.linalg.eigh(covMat)
 
             power = abs(valh)/np.sum(abs(valh))
@@ -708,9 +709,16 @@ class SingleImage(object):
             xs = vech[:, cut:]
             # print lambdas
             psf_basis = []
-            for i in range(N_psf_basis):
-                psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
+            #~ for i in range(N_psf_basis):
+                #~ psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
 
+            for i in range(N_psf_basis):
+                base = np.zeros(self._best_srcs['fitshape'])
+                for j in range(self._best_srcs['n_sources']):
+                    base += xs[j, i] * self.db.load(j)
+                psf_basis.append(base)
+
+            del(base)
             self._psf_KL_basis_stars = psf_basis
             self._valh = valh
 
@@ -733,9 +741,11 @@ class SingleImage(object):
 
             flag_key = [col_name for col_name in best_srcs.dtype.fields.keys()
                         if 'flag' in col_name.lower()][0]
-            patches = self._best_srcs['patches'][best_srcs[flag_key] <= 1]
-            positions = self._best_srcs['positions'][best_srcs[flag_key] <= 1]
-            best_srcs = best_srcs[best_srcs[flag_key] <= 1]
+
+            mask = best_srcs[flag_key] <= 1
+            # patches = self._best_srcs['patches'][mask]
+            positions = self._best_srcs['positions'][mask]
+            best_srcs = best_srcs[mask]
 
             # Each element in patches brings information about the real PSF
             # evaluated -or measured-, giving an interpolation point for a
@@ -748,9 +758,10 @@ class SingleImage(object):
                 measures = []
                 x = positions[:, 0]
                 y = positions[:, 1]
-                for a_patch in patches:
-                    Pval = a_patch.flatten()
-                    measures.append(np.dot(Pval, p_i)/p_i_sq)
+                for j in range(self._best_srcs['n_sources']):
+                    if mask[j]:
+                        Pval = self.db.load(j).flatten()
+                        measures.append(np.dot(Pval, p_i)/p_i_sq)
 
                 z = np.array(measures)
                 # x_domain = [0, self.imagedata.shape[0]]
@@ -763,7 +774,7 @@ class SingleImage(object):
             self._a_fields = a_fields
         return self._a_fields
 
-    def get_variable_psf(self, from_stars=True, delete_patches=False,
+    def get_variable_psf(self, from_stars=True, #delete_patches=False,
                          pow_th=0.90):
         a_fields = self._kl_a_fields(from_stars=from_stars,
                                      pow_th=pow_th)
@@ -771,9 +782,9 @@ class SingleImage(object):
             psf_basis = self._kl_from_stars(pow_th=pow_th)
         else:
             psf_basis = self._kl_PSF
-        if delete_patches:
-            del(self._best_srcs['patches'])
-            print 'Patches deleted!'
+        #if delete_patches:
+        #    del(self._best_srcs['patches'])
+        #    print 'Patches deleted!'
         return [a_fields, psf_basis]
 
     @property
@@ -807,7 +818,7 @@ class SingleImage(object):
         if not hasattr(self, '_s_component'):
             var = self.meta['std']
             nrm = self.normal_image
-            a_fields, psf_basis = self.get_variable_psf(delete_patches=True)
+            a_fields, psf_basis = self.get_variable_psf() #delete_patches=True)
             mfilter = np.zeros_like(self.bkg_sub_img)
             x, y = np.mgrid[:mfilter.shape[0], :mfilter.shape[1]]
 
