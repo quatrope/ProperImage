@@ -6,3 +6,5 @@ default.swarp
 *.png
 profile*
 *.fits
+._*.map
+._*.dat

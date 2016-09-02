@@ -235,7 +235,7 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
     b = np.max(image) #image[int(N2/2), int(N2/2)]
 
     if bkg_pdf == 'poisson':
-        mean = (b/SN)**2.
+        mean = b/SN
         print 'mean = {}, b = {}, SN = {}'.format(mean, b, SN)
         C = cielo(N=N2, pdf=bkg_pdf, mean=mean)
 
@@ -322,9 +322,11 @@ def delta_point(N, center=True, xy=None, weights=None):
     if center is False:
         if weights is None:
             weights = list(np.repeat(1., len(xy)))
+        j = -1
         for x, y in xy.__iter__():
-            w = weights.pop(0)
+            w = weights[j]
             m[x, y] = 1.*w
+            j -= 1
     else:
         m[int(N/2), int(N/2)] = 1
     return(m)
@@ -411,10 +413,7 @@ def capsule_corp(gal, t, t_exp, i, zero, path, round_int=False):
     zero       :   Punto cero de la fotometria
     """
     if round_int:
-        s = np.shape(gal)
-        for l in range(0, s[0]):
-            for j in range(0, s[1]):
-                gal[l, j]=round(gal[l, j])
+       gal =  gal.astype(int)
 
     file1 = fits.PrimaryHDU(gal)
     hdulist = fits.HDUList([file1])

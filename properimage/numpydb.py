@@ -43,6 +43,8 @@ class NumPyDB:
             fm = open(self.pn, 'w')
             fm.close()
 
+            self.positions = []
+
         elif mode == 'load':
             # check if files are there:
             if not os.path.isfile(self.dn) or \
@@ -67,7 +69,6 @@ class NumPyDB:
         bestapprox is a user-defined function for computing
         the distance between two identifiers.
         """
-        identifier = identifier.strip()
         # first search for an exact identifier match:
         selected_pos = -1
         selected_id = None
@@ -94,6 +95,7 @@ class NumPyDB_cPickle(NumPyDB):
             with open(self.pn, 'a') as fm:
                 # fd.tell(): return current position in datafile
                 fm.write("%d\t\t %s\n" % (fd.tell(), identifier))
+                self.positions.append((fd.tell(), identifier))
                 pickle.dump(a, fd, 1)  # 1: binary storage
 
     def load(self, identifier):

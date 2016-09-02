@@ -560,7 +560,8 @@ class SingleImage(object):
             print 'Sources good to calculate = {}'.format(len(best_srcs))
             self._best_sources = {'sources': best_srcs, 'fitshape': fitshape}
 
-            self.db = npdb.NumPyDB_cPickle('test_db', mode='load')
+            self._dbname = '._'+str(id(self))+'SingleImage'
+            self.db = npdb.NumPyDB_cPickle(self._dbname, mode='store')
             pos = []
             jj = 0
             for row in best_srcs:
@@ -577,6 +578,7 @@ class SingleImage(object):
             self._best_sources['positions'] = np.array(pos)
             self._best_sources['n_sources'] = jj
             # self._best_sources['detected'] = srcs
+            # self.db = npdb.NumPyDB_cPickle(self._dbname, mode='store')
         return self._best_sources
 
     def _covMat_from_stars(self):
@@ -597,8 +599,8 @@ class SingleImage(object):
         for i in range(nsources):
             for j in range(nsources):
                 if i <= j:
-                    psfi_render = self.db.load(i)
-                    psfj_render = self.db.load(j)
+                    psfi_render = self.db.load(i)[0]
+                    psfj_render = self.db.load(j)[0]
 
                     inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                     psfj_render.flatten()/np.sum(psfj_render))
@@ -715,7 +717,7 @@ class SingleImage(object):
             for i in range(N_psf_basis):
                 base = np.zeros(self._best_srcs['fitshape'])
                 for j in range(self._best_srcs['n_sources']):
-                    base += xs[j, i] * self.db.load(j)
+                    base += xs[j, i] * self.db.load(j)[0]
                 psf_basis.append(base)
 
             del(base)
@@ -760,7 +762,7 @@ class SingleImage(object):
                 y = positions[:, 1]
                 for j in range(self._best_srcs['n_sources']):
                     if mask[j]:
-                        Pval = self.db.load(j).flatten()
+                        Pval = self.db.load(j)[0].flatten()
                         measures.append(np.dot(Pval, p_i)/p_i_sq)
 
                 z = np.array(measures)
