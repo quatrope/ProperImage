@@ -40,7 +40,7 @@ if not os.path.exists(test_dir):
 now = '2016-05-17T00:00:00.1234567'
 t = Time(now)
 
-SN =20
+SN = 5
 weights = np.random.random(100)*20000 + 10
 
 for xfwhm in [3, 6]:

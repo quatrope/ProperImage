@@ -731,18 +731,23 @@ class SingleImage(object):
             power = abs(valh)/np.sum(abs(valh))
                         #  THIS IS A REFACTORING OF THRESHOLDS IN PSF BASIS
             pw = power >= pow_th
-            cut = -sum(pw)
+            if sum(pw) == 0:
+                cut = -1
+            else:
+                cut = -sum(pw)
             #  Build psf basis
             N_psf_basis = abs(cut)
             xs = vech[:, cut:]
             psf_basis = []
             # THIS IS AN IMPLEMENTATION OF numpydb METHOD FOR ARRAY STORING
+
             for i in range(N_psf_basis):
                 base = np.zeros(self._best_srcs['fitshape'])
                 for j in range(self._best_srcs['n_sources']):
-                    base += xs[j, i] * self.db.load(j)[0]
+                    try: pj = self.db.load(j)[0]
+                    except: import ipdb; ipdb.set_trace()
+                    base += xs[j, i] * pj
                 psf_basis.append(base)
-
             del(base)
             self._psf_KL_basis_stars = psf_basis
             self._valh = valh
