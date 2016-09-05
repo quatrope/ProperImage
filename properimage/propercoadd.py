@@ -25,7 +25,7 @@ from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.modeling import fitting
 from astropy.modeling import models
-from astropy.convolution import convolve_fft, convolve
+from astropy.convolution import convolve  # _fft, convolve
 from astropy.nddata.utils import extract_array
 from photutils import psf
 from astroML import crossmatch as cx
