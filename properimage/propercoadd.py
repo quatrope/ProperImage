@@ -14,7 +14,7 @@ Cordoba - Argentina
 
 Of 301
 """
-
+import os
 from multiprocessing import Process
 from multiprocessing import Queue
 from collections import MutableSequence
@@ -25,7 +25,7 @@ from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.modeling import fitting
 from astropy.modeling import models
-from astropy.convolution import convolve_fft
+from astropy.convolution import convolve_fft, convolve
 from astropy.nddata.utils import extract_array
 from photutils import psf
 from astroML import crossmatch as cx
@@ -39,11 +39,13 @@ except:
 
 try:
     import pyfftw
-    _fftn = pyfftw.interfaces.numpy_fft.fftn
-    _ifftn = pyfftw.interfaces.numpy_fft.ifftn
+    _fftwn = pyfftw.interfaces.numpy_fft.fftn
+    _ifftwn = pyfftw.interfaces.numpy_fft.ifftn
 except:
-    _fftn = np.fft.fft2
-    _ifftn = np.fft.ifft2
+    _fftwn = np.fft.fft2
+    _ifftwn = np.fft.ifft2
+
+
 
 
 class ImageEnsemble(MutableSequence):
@@ -82,6 +84,12 @@ class ImageEnsemble(MutableSequence):
 
     def insert(self, i, v):
         self.imgl.insert(i, v)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._clean()
 
     @property
     def atoms(self):
@@ -151,9 +159,10 @@ class ImageEnsemble(MutableSequence):
 
         print 'S calculated, now starting to join processes'
 
-        #~ for proc in procs:
-            #~ print 'waiting for procs to finish'
-            #~ proc.join()
+        for proc in procs:
+            print 'waiting for procs to finish'
+            proc.join()
+
 
         print 'processes finished, now returning S'
         return S
@@ -203,16 +212,16 @@ class ImageEnsemble(MutableSequence):
         S_stack = np.stack(S_stk, axis=-1)
         S_hat_stack = np.stack(S_hat_stk, axis=-1)
 
-        #~ for proc in procs:
-            #~ print 'waiting for procs to finish'
-            #~ proc.join()
-
         S = np.ma.sum(S_stack, axis=2)
-        S_hat = fftwn(S)
+        S_hat = _fftwn(S)
         hat_std = np.ma.std(S_hat_stack, axis=2)
         R_hat = np.ma.divide(S_hat, hat_std)
 
-        R = ifftwn(R_hat)
+        R = _ifftwn(R_hat)
+
+        for proc in procs:
+            print 'waiting for procs to finish'
+            proc.join()
 
         if return_S:
             print 'processes finished, now returning R, S'
@@ -220,6 +229,15 @@ class ImageEnsemble(MutableSequence):
         else:
             print 'processes finished, now returning R'
             return R
+
+    def _clean(self):
+        """Method to end the sequence processing stage. This is the end
+        of the ensemble's life. It empties the memory and cleans the numpydbs
+        created for each atom.
+
+        """
+        for anatom in self.atoms:
+            anatom._clean()
 
 
 class Combinator(Process):
@@ -300,7 +318,7 @@ class Combinator(Process):
             print 'chunk processed, now pickling'
             serialized = pickle.dumps(S)
             self.queue.put(serialized)
-
+            return
         else:
             S_stack = []
             for img in self.list_to_combine:
@@ -315,7 +333,7 @@ class Combinator(Process):
             if self.fourier:
                 S_hat_stack = []
                 for s_c in S_stack:
-                    sh = fftwn(s_c)
+                    sh = _fftwn(s_c)
                     S_hat_stack.append(np.ma.masked_array(sh,
                                        np.isnan(sh), fill_value=0))
                 print 'Fourier transformed'
@@ -324,8 +342,8 @@ class Combinator(Process):
             else:
                 print 'chunk processed, now pickling'
                 serialized = pickle.dumps(S_stack)
-
             self.queue.put(serialized)
+            return
 
 
 class SingleImage(object):
@@ -349,6 +367,12 @@ class SingleImage(object):
         Default to None, and a guessing attempt will be made.
 
     """
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._close()
+
     def __init__(self, img=None, imagefile=True, sim=False, meta={}):
         if not imagefile:
             self._attached_to = img.__class__.__name__
@@ -380,6 +404,8 @@ class SingleImage(object):
         if np.any(self.imagedata < 0.):
             self.imagedata = np.ma.masked_array(self.imagedata,
                                                 self.imagedata < 0.).filled(13)
+
+        self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
 
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
@@ -415,11 +441,12 @@ class SingleImage(object):
             a background subtracted image is returned
 
         """
-        if not hasattr(self, 'bkg_sub_img'):
+        if not hasattr(self, '_bkg_sub_img'):
             self.bkg = sep.Background(self.imagedata)
             self._bkg_sub_img = self.imagedata - self.bkg
             self._masked = np.ma.masked_array(self._bkg_sub_img,
                                               np.isnan(self._bkg_sub_img))
+            print 'background subtracted image obtained'
         return self._bkg_sub_img
 
     def _fit_models_psf(self, best_srcs, indices, fitshape, prf_model, fitter):
@@ -502,7 +529,7 @@ class SingleImage(object):
 
         model_fits = self._fit_models_psf(best_srcs, indices, fitshape,
                                           prf_model, fitter)
-
+        print 'returning model fits'
         return model_fits
 
     @property
@@ -551,7 +578,7 @@ class SingleImage(object):
             if not p_sizes[1] < 12:
                 fitshape = (int(p_sizes[1]), int(p_sizes[1]))
             else:
-                fitshape = (12, 12)
+                fitshape = (13, 13)
 
             # if len(best_srcs) > 130:
             #     jj = np.random.choice(len(best_srcs), 130, replace=False)
@@ -560,8 +587,8 @@ class SingleImage(object):
             print 'Sources good to calculate = {}'.format(len(best_srcs))
             self._best_sources = {'sources': best_srcs, 'fitshape': fitshape}
 
-            self._dbname = '._'+str(id(self))+'SingleImage'
-            self.db = npdb.NumPyDB_cPickle(self._dbname, mode='store')
+            self.db = npdb.NumPyDB_cPickle(self.dbname, mode='store')
+
             pos = []
             jj = 0
             for row in best_srcs:
@@ -570,15 +597,19 @@ class SingleImage(object):
                                                fitshape, position,
                                                fill_value=self.bkg.globalrms)
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
+
                 # Patch.append(sub_array_data)
                 self.db.dump(sub_array_data, jj)
                 pos.append(position)
                 jj += 1
+
             # self._best_sources['patches'] = np.array(Patch)
             self._best_sources['positions'] = np.array(pos)
             self._best_sources['n_sources'] = jj
             # self._best_sources['detected'] = srcs
             # self.db = npdb.NumPyDB_cPickle(self._dbname, mode='store')
+
+            print 'returning best sources'
         return self._best_sources
 
     def _covMat_from_stars(self):
@@ -607,6 +638,7 @@ class SingleImage(object):
 
                     covMat[i, j] = inner
                     covMat[j, i] = inner
+        print 'returning Covariance Matrix'
         return covMat
 
     def _covMat_psf(self):
@@ -650,16 +682,16 @@ class SingleImage(object):
 
                     renders[i] = psfi_render
                     renders[j] = psfj_render
-
+        print 'returning Covariance Matrix'
         return [covMat, renders]
 
     @property
-    def _kl_PSF(self, pow_th=0.99):
+    def _kl_PSF(self, pow_th=0.9):
         """Determines the KL psf_basis from PSF gaussian models fitted to
         stars detected in the field.
 
         """
-        if not hasattr(self, 'psf_KL_basis_model'):
+        if not hasattr(self, '_psf_KL_basis_model'):
             covMat, renders = self._covMat_psf()
             valh, vech = np.linalg.eigh(covMat)
 
@@ -684,9 +716,10 @@ class SingleImage(object):
 
             self._psf_KL_basis_model = psf_basis
 
+            print 'obtaining KL basis'
         return self._psf_KL_basis_model
 
-    def _kl_from_stars(self, pow_th=0.99):
+    def _kl_from_stars(self, pow_th=0.9):
         """Determines the KL psf_basis from stars detected in the field.
 
         """
@@ -696,24 +729,14 @@ class SingleImage(object):
             valh, vech = np.linalg.eigh(covMat)
 
             power = abs(valh)/np.sum(abs(valh))
-            cum = 0
-            cut = 0
-            if not pow_th == 1:
-                while cum <= pow_th:
-                    cut -= 1
-                    cum += power[cut]
-            else:
-                cut = -len(valh)
-
+                        #  THIS IS A REFACTORING OF THRESHOLDS IN PSF BASIS
+            pw = power >= pow_th
+            cut = -sum(pw)
             #  Build psf basis
             N_psf_basis = abs(cut)
-            # lambdas = valh[cut:]  # unused variable
             xs = vech[:, cut:]
-            # print lambdas
             psf_basis = []
-            #~ for i in range(N_psf_basis):
-                #~ psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
-
+            # THIS IS AN IMPLEMENTATION OF numpydb METHOD FOR ARRAY STORING
             for i in range(N_psf_basis):
                 base = np.zeros(self._best_srcs['fitshape'])
                 for j in range(self._best_srcs['n_sources']):
@@ -723,10 +746,10 @@ class SingleImage(object):
             del(base)
             self._psf_KL_basis_stars = psf_basis
             self._valh = valh
-
+            print 'obtainig KL basis, using k = {}'.format(N_psf_basis)
         return self._psf_KL_basis_stars
 
-    def _kl_a_fields(self, pow_th=0.99, from_stars=True):
+    def _kl_a_fields(self, pow_th=0.9, from_stars=True):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
@@ -766,27 +789,23 @@ class SingleImage(object):
                         measures.append(np.dot(Pval, p_i)/p_i_sq)
 
                 z = np.array(measures)
-                # x_domain = [0, self.imagedata.shape[0]]
-                # y_domain = [0, self.imagedata.shape[1]]
                 a_field_model = models.Polynomial2D(degree=4)
-                #     , x_domain=x_domain, y_domain=y_domain)
                 fitter = fitting.LinearLSQFitter()
                 a_fields.append(fitter(a_field_model, x, y, z))
 
             self._a_fields = a_fields
+            print 'obtaining a fields'
         return self._a_fields
 
-    def get_variable_psf(self, from_stars=True, #delete_patches=False,
-                         pow_th=0.90):
+    def get_variable_psf(self, from_stars=True, pow_th=0.9): #delete_patches=False,
         a_fields = self._kl_a_fields(from_stars=from_stars,
                                      pow_th=pow_th)
         if from_stars:
             psf_basis = self._kl_from_stars(pow_th=pow_th)
         else:
             psf_basis = self._kl_PSF
-        #if delete_patches:
-        #    del(self._best_srcs['patches'])
-        #    print 'Patches deleted!'
+
+        print 'returning variable psf'
         return [a_fields, psf_basis]
 
     @property
@@ -804,11 +823,12 @@ class SingleImage(object):
                 a = a_fields[i]
                 a = a(x, y)
                 psf_i = psf_basis[i]
-                conv += convolve_fft(a, psf_i, psf_pad=True, # mode='same',
-                                     fftn=fftwn, ifftn=ifftwn)
+                conv += convolve(a, psf_i)#, psf_pad=True)#, # mode='same',
+                                    # fftn=fftwn, ifftn=ifftwn)
                 # conv += sg.fftconvolve(a, psf_i, mode='same')
 
             self._normal_image = conv
+            print 'getting normal image'
         return self._normal_image
 
     @property
@@ -827,15 +847,24 @@ class SingleImage(object):
             for i in range(len(a_fields)):
                 a = a_fields[i]
                 psf = psf_basis[i]
+                print 'calculating Im . a_field({})'.format(i)
                 cross = np.multiply(a(x, y), self._masked)
                 # cross = convolve_fft(self.bkg_sub_img, psf)
-                # import ipdb; ipdb.set_trace()
+                print 'starting matched filter'
                 conv = sg.correlate2d(cross, psf, mode='same')
+                print 'stacking matched filter'
                 mfilter += conv
 
+            print 'matched filter succesful'
             mfilter = mfilter/nrm
             self._s_component = mfilter/var**2
+            print 'getting s component'
         return self._s_component
+
+    def _clean(self):
+        print 'cleaning... '
+        os.remove(self.dbname+'.dat')
+        os.remove(self.dbname+'.map')
 
 
 class ImageStats(object):
@@ -951,22 +980,6 @@ def chunk_it(seq, num):
         out.append(seq[int(last):int(last + avg)])
         last += avg
     return sorted(out, reverse=True)
-
-
-def fftwn(*dat):
-    """Wrapper around the fftw library, returning a transform of fourier.
-    Default number of threads is 4
-
-    """
-    return _fftn(*dat, threads=4)
-
-
-def ifftwn(*dat):
-    """Wrapper around the fftw library, returning an inverse transform of fourier.
-    Default number of threads is 4
-
-    """
-    return _ifftn(*dat, threads=4)
 
 
 def matching(master, cat, angular=False, radius=1.5):
