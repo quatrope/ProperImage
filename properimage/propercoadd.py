@@ -540,14 +540,14 @@ class SingleImage(object):
         if not hasattr(self, '_best_sources'):
             try:
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=5*self.bkg.globalrms)
+                                   thresh=6*self.bkg.globalrms)
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=5*self.bkg.globalrms)
+                                   thresh=6*self.bkg.globalrms)
             except ValueError:
                 srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
-                                   thresh=5*self.bkg.globalrms)
+                                   thresh=6*self.bkg.globalrms)
 
             if len(srcs) < 10:
                 try:
@@ -785,12 +785,11 @@ class SingleImage(object):
             # evaluated -or measured-, giving an interpolation point for a
 
             a_fields = []
-            measures = []
+            measures = np.zeros((N_fields, self._best_srcs['n_sources']))
             for i in range(N_fields):
                 p_i = psf_basis[i].flatten()
                 p_i_sq = np.sum(np.dot(p_i, p_i))
 
-                measures.append([])
                 x = positions[:, 0]
                 y = positions[:, 1]
                 for j in range(self._best_srcs['n_sources']):
@@ -798,12 +797,14 @@ class SingleImage(object):
                         Pval = self.db.load(j)[0].flatten()
                         #redefinir Pval
                         for ii in range(i):
-                            Pval -= measure[ii][i] * psf_basis[ii]
+                            Pval -= measures[ii, j] * psf_basis[ii].flatten()
 
-                        measures[i].append(np.dot(Pval, p_i)/p_i_sq)
+                        measures[i, j] = np.dot(Pval, p_i)/p_i_sq
+                    else:
+                        measures[i, j] = None
 
-
-                z = np.array(measures)
+                z = measures[i, :]
+                z = z[z > -10000.]
                 a_field_model = models.Polynomial2D(degree=4)
                 fitter = fitting.LinearLSQFitter()
                 a_fields.append(fitter(a_field_model, x, y, z))

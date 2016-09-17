@@ -35,7 +35,7 @@ from properimage import propercoadd as pc
 
 N = 1024  # side
 
-test_dir = os.path.abspath('./test/test_images/several_stars')
+test_dir = os.path.abspath('./test/test_images/several_stars_gramschmidt')
 if not os.path.exists(test_dir):
     os.makedirs(test_dir)
 
