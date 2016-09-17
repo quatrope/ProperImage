@@ -22,6 +22,8 @@
 #
 #
 import os
+import shlex
+import subprocess
 import numpy as np
 
 from astropy.io import fits
@@ -40,16 +42,16 @@ if not os.path.exists(test_dir):
 now = '2016-05-17T00:00:00.1234567'
 t = Time(now)
 
-SN = 5
+SN = 1
 weights = np.random.random(100)*20000 + 10
 
-for xfwhm in [3, 6]:
+for xfwhm in [4, 5, 6]:
     for yfwhm in [2, 3, 7]:
         for theta in [10, 50, 90, 130]:
             filenames = []
             x = np.random.randint(low=30, high=900, size=100)
             y = np.random.randint(low=30, high=900, size=100)
-            # xy = sm.cartesian_product([x, y])
+
             xy = [(x[i], y[i]) for i in range(100)]
             m = sm.delta_point(N, center=False, xy=xy, weights=weights)
 
@@ -63,6 +65,13 @@ for xfwhm in [3, 6]:
                               theta=theta, SN=SN, bkg_pdf='poisson')
                 filenames.append(sm.capsule_corp(im, t, t_exp=1, i=i,
                                 zero=3.1415, path=img_dir))
+
+            cmd = ' '
+            for files in filenames:
+                cmd += ' ' + files
+            coadd = os.path.join(img_dir, 'coadd.fits')
+            swarp = shlex.split('swarp '+cmd+' -IMAGEOUT_NAME '+coadd)
+            subprocess.call(swarp)
 
             with pc.ImageEnsemble(filenames) as ensemble:
                 # S = ensemble.calculate_S(n_procs=4)
@@ -81,12 +90,6 @@ for xfwhm in [3, 6]:
                 rhdu = fits.PrimaryHDU(R.real)
                 rhdulist = fits.HDUList([rhdu])
                 rhdulist.writeto(os.path.join(img_dir,'R.fits'), clobber=True)
-
-            #import ipdb; ipdb.set_trace()
-
-
-
-
 
 
 #~ for root, dirs, files in os.walk(test_dir):
@@ -112,6 +115,3 @@ for xfwhm in [3, 6]:
     #~ rhdulist.writeto(os.path.join(root,'R.fits'), clobber=True)
 
     #~ del(ensemble)
-
-
-

@@ -27,7 +27,8 @@ from properimage import propercoadd as pc
 #datapath = os.path.abspath('/home/bos0109/DATA/Data/Tolar2015/CAMPAÑA_LIGO_OBS
 #ERVACIONES_MACON/20151212/preprocessed/Landolt_C53')
 
-datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/subset/')
+datapath = os.path.abspath(
+           '/home/bruno/Documentos/Data/reduccionTolar/20151212/subset')
 
 S = np.zeros((1365, 1365))
 R = np.zeros((1365, 1365))
@@ -38,6 +39,9 @@ for root, dirs, files in os.walk(datapath):
     ensemble = pc.ImageEnsemble(fs)
     #S = ensemble.calculate_S(n_procs=4)
     R, S = ensemble.calculate_R(n_procs=4, return_S=True)
+
+ensemble._clean()
+
 
 test_dir = os.path.abspath('./test/test_images/real_coadd_test/')
 

@@ -371,7 +371,7 @@ class SingleImage(object):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._close()
+        self._clean()
 
     def __init__(self, img=None, imagefile=True, sim=False, meta={}):
         if not imagefile:
@@ -765,7 +765,9 @@ class SingleImage(object):
                 psf_basis = self._kl_PSF
 
             N_fields = len(psf_basis)
-
+            if N_fields == 1:
+                self._a_fields = None
+                return self._a_fields
             best_srcs = self._best_srcs['sources']
             # fitshape = self._best_srcs['fitshape']  # unused variable
 
@@ -820,19 +822,25 @@ class SingleImage(object):
         """
         if not hasattr(self, '_normal_image'):
             a_fields, psf_basis = self.get_variable_psf()
-            x, y = np.mgrid[:self.imagedata.shape[0],
-                            :self.imagedata.shape[1]]
-            conv = np.zeros_like(self.bkg_sub_img)
 
-            for i in range(len(a_fields)):
-                a = a_fields[i]
-                a = a(x, y)
-                psf_i = psf_basis[i]
-                conv += convolve(a, psf_i)#, psf_pad=True)#, # mode='same',
-                                    # fftn=fftwn, ifftn=ifftwn)
-                # conv += sg.fftconvolve(a, psf_i, mode='same')
+            if a_fields is None:
+                a = np.ones(self.imagedata.shape)
+                self._normal_image = convolve(a, psf_basis[0])
 
-            self._normal_image = conv
+            else:
+                x, y = np.mgrid[:self.imagedata.shape[0],
+                                :self.imagedata.shape[1]]
+                conv = np.zeros_like(self.bkg_sub_img)
+
+                for i in range(len(a_fields)):
+                    a = a_fields[i]
+                    a = a(x, y)
+                    psf_i = psf_basis[i]
+                    conv += convolve(a, psf_i)#, psf_pad=True)#, # mode='same',
+                                        # fftn=fftwn, ifftn=ifftwn)
+                    # conv += sg.fftconvolve(a, psf_i, mode='same')
+
+                self._normal_image = conv
             print 'getting normal image'
         return self._normal_image
 
@@ -849,16 +857,22 @@ class SingleImage(object):
             mfilter = np.zeros_like(self.bkg_sub_img)
             x, y = np.mgrid[:mfilter.shape[0], :mfilter.shape[1]]
 
-            for i in range(len(a_fields)):
-                a = a_fields[i]
-                psf = psf_basis[i]
-                print 'calculating Im . a_field({})'.format(i)
-                cross = np.multiply(a(x, y), self._masked)
-                # cross = convolve_fft(self.bkg_sub_img, psf)
+            if a_fields is None:
                 print 'starting matched filter'
-                conv = sg.correlate2d(cross, psf, mode='same')
-                print 'stacking matched filter'
-                mfilter += conv
+                mfilter = sg.correlate2d(self._masked,
+                                      psf_basis[0],
+                                      mode='same')
+            else:
+                for i in range(len(a_fields)):
+                    a = a_fields[i]
+                    psf = psf_basis[i]
+                    print 'calculating Im . a_field({})'.format(i)
+                    cross = np.multiply(a(x, y), self._masked)
+                    # cross = convolve_fft(self.bkg_sub_img, psf)
+                    print 'starting matched filter'
+                    conv = sg.correlate2d(cross, psf, mode='same')
+                    print 'stacking matched filter'
+                    mfilter += conv
 
             print 'matched filter succesful'
             mfilter = mfilter/nrm
