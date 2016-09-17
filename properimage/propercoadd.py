@@ -765,9 +765,11 @@ class SingleImage(object):
                 psf_basis = self._kl_PSF
 
             N_fields = len(psf_basis)
+
             if N_fields == 1:
                 self._a_fields = None
                 return self._a_fields
+
             best_srcs = self._best_srcs['sources']
             # fitshape = self._best_srcs['fitshape']  # unused variable
 
@@ -783,17 +785,23 @@ class SingleImage(object):
             # evaluated -or measured-, giving an interpolation point for a
 
             a_fields = []
+            measures = []
             for i in range(N_fields):
                 p_i = psf_basis[i].flatten()
                 p_i_sq = np.sum(np.dot(p_i, p_i))
 
-                measures = []
+                measures.append([])
                 x = positions[:, 0]
                 y = positions[:, 1]
                 for j in range(self._best_srcs['n_sources']):
                     if mask[j]:
                         Pval = self.db.load(j)[0].flatten()
-                        measures.append(np.dot(Pval, p_i)/p_i_sq)
+                        #redefinir Pval
+                        for ii in range(i):
+                            Pval -= measure[ii][i] * psf_basis[ii]
+
+                        measures[i].append(np.dot(Pval, p_i)/p_i_sq)
+
 
                 z = np.array(measures)
                 a_field_model = models.Polynomial2D(degree=4)
