@@ -90,28 +90,3 @@ for xfwhm in [4, 5, 6]:
                 rhdu = fits.PrimaryHDU(R.real)
                 rhdulist = fits.HDUList([rhdu])
                 rhdulist.writeto(os.path.join(img_dir,'R.fits'), clobber=True)
-
-
-#~ for root, dirs, files in os.walk(test_dir):
-    #~ fs = [os.path.join(root, afile) for afile in files]
-    #~ if len(fs) is 0: continue
-    #~ print 'files to process: {}'.format(fs)
-    #~ ensemble = pc.ImageEnsemble(fs)
-    #~ #S = ensemble.calculate_S(n_procs=4)
-    #~ R, S = ensemble.calculate_R(n_procs=4, return_S=True)
-
-    #~ if isinstance(S, np.ma.masked_array):
-        #~ S = S.filled(1.)
-
-    #~ if isinstance(R, np.ma.masked_array):
-        #~ R = R.real.filled(1.)
-
-    #~ shdu = fits.PrimaryHDU(S)
-    #~ shdulist = fits.HDUList([shdu])
-    #~ shdulist.writeto(os.path.join(root,'S.fits'), clobber=True)
-
-    #~ rhdu = fits.PrimaryHDU(R.real)
-    #~ rhdulist = fits.HDUList([rhdu])
-    #~ rhdulist.writeto(os.path.join(root,'R.fits'), clobber=True)
-
-    #~ del(ensemble)

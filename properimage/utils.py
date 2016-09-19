@@ -22,8 +22,12 @@
 #
 #
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
+from astroML import crossmatch as cx
 import matplotlib.pyplot as plt
+
+from . import simtools
 
 font = {'family'        : 'sans-serif',
         'sans-serif'    : ['Computer Modern Sans serif'],
@@ -93,6 +97,35 @@ def plot_S():
 def plot_R():
     return
 
+def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):
+    frames = []
+    for theta in thetas:
+        X_FWHM = 5 + 3.5*theta/180.
+        Y_FWHM = 5
+        bias = 100.
+        t_exp = 1
+        max_fw = max(X_FWHM, Y_FWHM)
+
+        x = np.random.randint(low=6*max_fw, high=N-6*max_fw, size=nstars/4)
+        y = np.random.randint(low=6*max_fw, high=N-6*max_fw, size=nstars/4)
+        xy = [(x[i], y[i]) for i in range(nstars/4)]
+
+        weights = list(np.linspace(1000., 100000., len(xy)))
+        m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
+        im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
+                            SN=SN, bkg_pdf='poisson')
+        frames.append(im+bias)
+
+    frame = np.zeros((2*N, 2*N))
+    for j in range(2):
+        for i in range(2):
+            frame[i*N:(i+1)*N, j*N:(j+1)*N] = frames[i+2*j]
+
+    return frame
+
+def sim_ref_new(x, y, SN=2.):
+    pass
+
 
 def primes(n):
     divisors = [ d for d in range(2,n//2+1) if n % d == 0 ]
@@ -102,3 +135,94 @@ def primes(n):
         return n
     else:
         return max(prims)
+
+
+def matching(master, cat, masteridskey=None,
+             angular=False, radius=1.5, masked=False):
+    """Function to match stars between frames.
+    """
+    if masteridskey is None:
+        masterids = np.arange(len(master))
+        master['masterindex'] = masterids
+        idkey = 'masterindex'
+    else:
+        idkey = masteridskey
+
+    if angular:
+        masterRaDec = np.empty((len(master), 2), dtype=np.float64)
+        try:
+            masterRaDec[:, 0] = master['RA']
+            masterRaDec[:, 1] = master['Dec']
+        except:
+            masterRaDec[:, 0] = master['ra']
+            masterRaDec[:, 1] = master['dec']
+        imRaDec = np.empty((len(cat), 2), dtype=np.float64)
+        try:
+            imRaDec[:, 0] = cat['RA']
+            imRaDec[:, 1] = cat['Dec']
+        except:
+            imRaDec[:, 0] = cat['ra']
+            imRaDec[:, 1] = cat['dec']
+        radius2 = radius/3600.
+        dist, ind = cx.crossmatch_angular(masterRaDec, imRaDec,
+                                          max_distance=radius2/2.)
+        dist_, ind_ = cx.crossmatch_angular(imRaDec, masterRaDec,
+                                            max_distance=radius2/2.)
+    else:
+        masterXY = np.empty((len(master), 2), dtype=np.float64)
+        masterXY[:, 0] = master['x']
+        masterXY[:, 1] = master['y']
+        imXY = np.empty((len(cat), 2), dtype=np.float64)
+        imXY[:, 0] = cat['x']
+        imXY[:, 1] = cat['y']
+        dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
+        dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
+
+    match = ~np.isinf(dist)
+    match_ = ~np.isinf(dist_)
+
+    IDs = np.zeros_like(ind_) - 13133
+    for i in range(len(ind_)):
+        if dist_[i] != np.inf:
+            dist_o = dist_[i]
+            ind_o = ind_[i]
+            if dist[ind_o] != np.inf:
+                dist_s = dist[ind_o]
+                ind_s = ind[ind_o]
+                if ind_s == i:
+                    IDs[i] = master[idkey][ind_o]
+
+    print len(IDs), len(ind_), len(ind)
+    if masked:
+        mask = IDs > 0
+        return(IDs, mask)
+    return(IDs)
+
+def transparency(images, master=None, ensemble=True):
+    """Transparency calculator, using Ofek method."""
+
+    if ensemble:
+        if master is None:
+            master = images.atoms[0]
+            imglist = images.atoms[1:]
+
+        mastercat = master._best_srcs['sources']
+        mastercat = append_fields(mastercat, 'sourceid',
+                                  np.arange(len(mastercat)))
+
+        mastercat = append_fields(mastercat, 'detected',
+                                  np.repeat(True, len(mastercat)))
+
+        for img in imglist:
+            newcat = img._best_srcs['sources']
+            newcat = append_fields(newcat, 'sourceid',
+                                   np.repeat(-1, len(newcat)))
+
+            ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
+                                 angular=False, radius=1., masked=True)
+
+            newcat[mask]['sourceid'] = mastercat[ids[mask]]['sourceid']
+
+            mastercat[mask]['detected'] = False
+            print mask
+        print mastercat['detected']

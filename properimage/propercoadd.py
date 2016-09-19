@@ -28,7 +28,7 @@ from astropy.modeling import models
 from astropy.convolution import convolve  # _fft, convolve
 from astropy.nddata.utils import extract_array
 from photutils import psf
-from astroML import crossmatch as cx
+
 import sep
 from . import numpydb as npdb
 
@@ -540,16 +540,16 @@ class SingleImage(object):
         if not hasattr(self, '_best_sources'):
             try:
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=6*self.bkg.globalrms)
+                                   thresh=4*self.bkg.globalrms)
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=6*self.bkg.globalrms)
+                                   thresh=4*self.bkg.globalrms)
             except ValueError:
                 srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
-                                   thresh=6*self.bkg.globalrms)
+                                   thresh=4*self.bkg.globalrms)
 
-            if len(srcs) < 10:
+            if len(srcs) < 20:
                 try:
                     srcs = sep.extract(self.bkg_sub_img,
                                        thresh=2.5*self.bkg.globalrms)
@@ -747,6 +747,7 @@ class SingleImage(object):
                     try: pj = self.db.load(j)[0]
                     except: import ipdb; ipdb.set_trace()
                     base += xs[j, i] * pj
+                    norm = np.sqrt(np.sum(base**2.))
                 psf_basis.append(base)
             del(base)
             self._psf_KL_basis_stars = psf_basis
@@ -891,8 +892,11 @@ class SingleImage(object):
 
     def _clean(self):
         print 'cleaning... '
-        os.remove(self.dbname+'.dat')
-        os.remove(self.dbname+'.map')
+        try:
+            os.remove(self.dbname+'.dat')
+            os.remove(self.dbname+'.map')
+        except:
+            print 'Nothing to clean. (Or something has failed)'
 
 
 class ImageStats(object):
@@ -1009,67 +1013,3 @@ def chunk_it(seq, num):
         last += avg
     return sorted(out, reverse=True)
 
-
-def matching(master, cat, angular=False, radius=1.5):
-    """Function to match stars between frames.
-    """
-    if angular:
-        masterRaDec = np.empty((len(master), 2), dtype=np.float64)
-        try:
-            masterRaDec[:, 0] = master['RA']
-            masterRaDec[:, 1] = master['Dec']
-        except:
-            masterRaDec[:, 0] = master['ra']
-            masterRaDec[:, 1] = master['dec']
-        imRaDec = np.empty((len(cat), 2), dtype=np.float64)
-        try:
-            imRaDec[:, 0] = cat['RA']
-            imRaDec[:, 1] = cat['Dec']
-        except:
-            imRaDec[:, 0] = cat['ra']
-            imRaDec[:, 1] = cat['dec']
-        radius2 = radius/3600.
-        dist, ind = cx.crossmatch_angular(masterRaDec, imRaDec,
-                                          max_distance=radius2/2.)
-        dist_, ind_ = cx.crossmatch_angular(imRaDec, masterRaDec,
-                                            max_distance=radius2/2.)
-    else:
-        masterXY = np.empty((len(master), 2), dtype=np.float64)
-        masterXY[:, 0] = master['x']
-        masterXY[:, 1] = master['y']
-        imXY = np.empty((len(cat), 2), dtype=np.float64)
-        imXY[:, 0] = cat['x']
-        imXY[:, 1] = cat['y']
-        dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
-        dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
-        #imRaDec = imXY
-
-    match = ~np.isinf(dist)
-    match_ = ~np.isinf(dist_)
-
-    IDs = np.zeros_like(ind_) - 13133
-    for i in range(len(ind_)):
-        if dist_[i] != np.inf:
-            dist_o = dist_[i]
-            ind_o = ind_[i]
-            if dist[ind_o] != np.inf:
-                dist_s = dist[ind_o]
-                ind_s = ind[ind_o]
-                if ind_s == i:
-                    try:
-                        IDs[i] = master['SOURCE_ID'][ind_o]
-                    except:
-                        try:
-                            IDs[i] = master['masterindex'][ind_o]
-                        except: raise
-                    #ff = master['SOURCE_ID'] == new_catID
-                    #handshake = i + 1 == master['SOURCE_ID'][ff]
-                    # if handshake is multiple is because multiple
-                    # newsources point to a single
-                    # mastersource and this needs to be iterated
-                    #for h in handshake:
-                    #    if h: IDs.append(new_catID)
-        #if len(IDs) == i:
-        #    IDs.append(-13133)
-    #print len(IDs), len(ind_), len(ind)
-    return(IDs)

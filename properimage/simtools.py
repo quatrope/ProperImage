@@ -362,7 +362,7 @@ def master_frame(N, n, theta, res):  # funcion generadora de Master Frame
     return(IMC)
 
 
-def set_generator(n, air, FWHM, theta, N, Ntot):
+def set_generator(n, air, FWHM, theta, N, Ntot, path='.'):
     """
     funcion que genera el set de imágenes
      necesita de los parametros del
@@ -374,7 +374,7 @@ def set_generator(n, air, FWHM, theta, N, Ntot):
     Ntot   :       Cantidad de epocas
     """
     # generar la master frame de donde salen las demas imagenes
-    Master_F = master_frame(1024, n, theta, air)
+    Master_F = master_frame(N, n, theta, air)
     # bucle de generacion de fits.
     # a=Master_F[round(1024./2.-1),round(1024./2.)]
     print("Master Frame Listo")
@@ -384,8 +384,8 @@ def set_generator(n, air, FWHM, theta, N, Ntot):
     phi_0 = 0.4   # factor que indica luego de que porcentaje
     # de los dias totales de la serie el transitorio tiene el pico
     t_decay = largo*0.05   # tiempo de decaimiento del transitorio
-    x = round(1024./2.+45)  # posicion x del transitorio (a explorar)
-    y = round(1024./2.)  # posicion y del transitorio (a explorar)
+    x = round(N/3.)  # posicion x del transitorio (a explorar)
+    y = round(N/3.)  # posicion y del transitorio (a explorar)
     zero = 23.5  # 12+2.5*np.log10()  #magnitud zero point
     mag_p = 16  # magnitud del pico del transitorio
     for i in range(1, Ntot+1):
@@ -394,16 +394,17 @@ def set_generator(n, air, FWHM, theta, N, Ntot):
         # JD=largo * np.random.random_sample() + d
         JD = (largo/Ntot)*i + d
         # encapsulo las imagenes en fits
-        MF = inyeccion(Master_F, JD, largo, d, phi_0, t_decay, x, y, zero, mag_p, air)
+        MF = inyeccion(Master_F, JD, largo, d, phi_0,
+                       t_decay, x, y, zero, mag_p, air)
         A = image(MF, N, t_exp, FWHM, 10)
-        capsule_corp(A, JD, t_exp, i, zero)
+        capsule_corp(A, JD, t_exp, i, zero, path=path)
 
 
 
 from astropy.io import fits
 from astropy.time import Time
 import os
-def capsule_corp(gal, t, t_exp, i, zero, path, round_int=False):
+def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
     """
     funcion que encapsula las imagenes generadas en fits
     gal        :   Imagen (matriz) a encapsular
