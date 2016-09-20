@@ -214,34 +214,25 @@ def transparency(images, master=None, ensemble=True):
                                   usemask=False,
                                   dtypes=int)
 
-        mastercat = append_fields(mastercat, 'detected',
-                                  np.repeat(True, len(mastercat)),
-                                  usemask=False,
-                                  dtypes=bool)
+        detect = np.repeat(True, len(mastercat))
 
         for img in imglist:
 
             newcat = img._best_srcs['sources']
-            newcat = append_fields(newcat, 'sourceid',
-                                   np.repeat(0, len(newcat)),
-                                   usemask=False,
-                                   dtypes=int)
 
             ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
                                  angular=False, radius=1., masked=True)
 
-            for i in range(len(ids[mask])):
-                print ids[mask][i]
-                newcat[mask]['sourceid'][i] = ids[mask][i]
-                print newcat[mask]['sourceid'][i]
-            # newcat[mask]['sourceid'] = np.array(ids[mask])
+            newcat = append_fields(newcat, 'sourceid', ids,
+                                   usemask=False)
 
-            for row in mastercat:
-                if row['sourceid'] not in ids:
-                    row['detected'] = False
-            import ipdb; ipdb.set_trace()
-            newcat.sort('sourceid')
-
+            for i in xrange(len(mastercat)):
+                if mastercat[i]['sourceid'] not in ids:
+                    detect[i] = False
+            newcat.sort(order='sourceid')
+        mastercat = append_fields(mastercat, 'detected',
+                                  detect,
+                                  usemask=False)
         q = sum(mastercat['detected'])
 
         print mastercat['detected']
