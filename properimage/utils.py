@@ -32,26 +32,26 @@ from . import simtools
 font = {'family'        : 'sans-serif',
         'sans-serif'    : ['Computer Modern Sans serif'],
         'weight'        : 'regular',
-        'size'          : 12}
+        'size'          : 14}
 
 text = {'usetex'        : True,
-        'fontsize'      : 12}
+        'fontsize'      : 14}
 
 plt.rc('font', **font)
 plt.rc('text', **text)
 
 
 
-def plot_psfbasis(psf_basis, path=None):
+def plot_psfbasis(psf_basis, path=None, nbook=False, **kwargs):
     psf_basis.reverse()
     N = len(psf_basis)
     p = primes(N)
     if p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (p, N/float(p))
+        subplots = (N/float(p), p)
 
-    plt.figure(figsize=(3*subplots[0], 3*subplots[1]))
+    plt.figure(figsize=(4*subplots[0], 4*subplots[1]))
     for i in range(len(psf_basis)):
         plt.subplot(subplots[1], subplots[0], i+1)
         plt.imshow(psf_basis[i])
@@ -60,11 +60,12 @@ def plot_psfbasis(psf_basis, path=None):
         plt.colorbar()
     if path is not None:
         plt.savefig(path)
-    plt.close()
+    if not nbook:
+        plt.close()
 
     return
 
-def plot_afields(a_fields, shape, path=None):
+def plot_afields(a_fields, shape, path=None, nbook=False, **kwargs):
     if a_fields is None:
         print 'No a_fields were calculated. Only one Psf Basis'
         return
@@ -74,9 +75,9 @@ def plot_afields(a_fields, shape, path=None):
     if p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (p, N/float(p))
+        subplots = (N/float(p), p)
 
-    plt.figure(figsize=(3*subplots[0], 3*subplots[1]))
+    plt.figure(figsize=(4*subplots[0], 4*subplots[1]), **kwargs)
     x, y = np.mgrid[:shape[0], :shape[1]]
     for i in range(len(a_fields)):
         plt.subplot(subplots[1], subplots[0], i+1)
@@ -86,7 +87,8 @@ def plot_afields(a_fields, shape, path=None):
         plt.colorbar()
     if path is not None:
         plt.savefig(path)
-    plt.close()
+    if not nbook:
+        plt.close()
     return
 
 
@@ -100,7 +102,7 @@ def plot_R():
 def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):
     frames = []
     for theta in thetas:
-        X_FWHM = 5 + 3.5*theta/180.
+        X_FWHM = 5 + 5.*theta/180.
         Y_FWHM = 5
         bias = 100.
         t_exp = 1
@@ -208,21 +210,30 @@ def transparency(images, master=None, ensemble=True):
 
         mastercat = master._best_srcs['sources']
         mastercat = append_fields(mastercat, 'sourceid',
-                                  np.arange(len(mastercat)))
+                                  np.arange(len(mastercat)),
+                                  usemask=False)
 
         mastercat = append_fields(mastercat, 'detected',
-                                  np.repeat(True, len(mastercat)))
+                                  np.repeat(True, len(mastercat)),
+                                  usemask=False)
 
         for img in imglist:
             newcat = img._best_srcs['sources']
             newcat = append_fields(newcat, 'sourceid',
-                                   np.repeat(-1, len(newcat)))
+                                   np.repeat(-1, len(newcat)), usemask=False)
 
             ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
                                  angular=False, radius=1., masked=True)
 
             newcat[mask]['sourceid'] = mastercat[ids[mask]]['sourceid']
 
-            mastercat[mask]['detected'] = False
-            print mask
+            for row in mastercat:
+                if row['sourceid'] not in ids:
+                    row['detected'] = False
+
+            import ipdb; ipdb.set_trace()
+            newcat.sort('sourceid')
+
+        q = sum(mastercat['detected'])
+
         print mastercat['detected']

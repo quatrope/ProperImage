@@ -40,7 +40,7 @@ from properimage import utils
 #     PSF measure test by propercoadd
 # =============================================================================
 N = 512
-test_dir = os.path.abspath('./test/test_images/rebuild_psf')
+test_dir = os.path.abspath('./test/test_images/rebuild_psf2')
 frame = utils.sim_varpsf(400, test_dir, SN=5.)
 
 
@@ -48,9 +48,8 @@ with pc.SingleImage(frame, sim=True, imagefile=False) as sim:
     a_fields, psf_basis = sim.get_variable_psf(pow_th=0.001)
 
 utils.plot_afields(a_fields, frame.shape, os.path.join(test_dir, 'a_fields.png'))
-utils.plot_psfbasis(psf_basis, os.path.join(test_dir, 'psf_basis.png'))
-
-plt.imshow(np.log10(frame), interpolation='none', cmap='gray_r')
+utils.plot_psfbasis(psf_basis, os.path.join(test_dir, 'psf_basis.png'), nbook=False)
+plt.imshow(np.log10(frame), interpolation='none')
 #plt.plot(cat['sources']['x'], cat['sources']['y'], '.k')
 plt.colorbar()
 plt.tight_layout()
@@ -62,7 +61,7 @@ cat = sep.extract(frame - sep.Background(frame),
 
 xy = [(int(row['y']), int(row['x'])) for row in cat]
 weights = 100000. * cat['flux']/max(cat['flux'])
-m = simtools.delta_point(N*2, center=False, xy=xy, weights=weights)
+m = simtools.delta_point(N*2, center=False, xy=xy)#, weights=weights)
 x, y = np.mgrid[:frame.shape[0], :frame.shape[1]]
 
 rebuild = np.zeros_like(frame)
@@ -71,9 +70,9 @@ for i in range(len(psf_basis)):
     a = a_fields[i]
     rebuild += a(x, y) * simtools.convol_gal_psf_fft(m, psf)
 
-rebuild += 100.
+rebuild += 1000.
 
-plt.imshow(np.log10(rebuild), interpolation='none', cmap='gray_r')
+plt.imshow(np.log10(rebuild), interpolation='none')
 plt.colorbar()
 plt.tight_layout()
 plt.savefig(os.path.join(test_dir, 'frame_rebuild.png'))
@@ -91,7 +90,7 @@ scale = scale/np.vdot(rebuild.flatten(), rebuild.flatten())
 
 diff = frame - scale*rebuild
 
-plt.imshow(np.log10(diff), interpolation='none', cmap='gray_r')
+plt.imshow(np.log10(diff), interpolation='none')
 plt.colorbar()
 plt.tight_layout()
 plt.savefig(os.path.join(test_dir, 'diff.png'))
