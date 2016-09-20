@@ -8,3 +8,4 @@ profile*
 *.fits
 ._*.map
 ._*.dat
+*.npy
