@@ -205,8 +205,11 @@ def transparency(images, master=None, ensemble=True):
 
     if ensemble:
         if master is None:
+            p = len(images)
             master = images.atoms[0]
             imglist = images.atoms[1:]
+        else:
+            p = len(images) + 1
 
         mastercat = master._best_srcs['sources']
         mastercat = append_fields(mastercat, 'sourceid',
