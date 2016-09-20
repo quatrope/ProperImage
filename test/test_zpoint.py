@@ -32,6 +32,7 @@ from properimage import simtools as sm
 from properimage import utils
 from properimage import propersubtract as ps
 
+reload(utils)
 
 N = 1024  # side
 

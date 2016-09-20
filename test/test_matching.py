@@ -58,4 +58,4 @@ plt.hist(newcat[mask]['y'] - master[Ids[mask]]['y'])
 plt.show()
 plt.close()
 
-newcat[mask]['sourceid'] = master[Ids[mask]]['masterindex']
+newcat[mask]['sourceid'] = Ids[mask]
