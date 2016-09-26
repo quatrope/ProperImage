@@ -32,32 +32,33 @@ from . import simtools
 font = {'family'        : 'sans-serif',
         'sans-serif'    : ['Computer Modern Sans serif'],
         'weight'        : 'regular',
-        'size'          : 14}
+        'size'          : 32}
 
-text = {'usetex'        : True,
-        'fontsize'      : 14}
+text = {'usetex'        : True}
 
 plt.rc('font', **font)
 plt.rc('text', **text)
 
 
 
-def plot_psfbasis(psf_basis, path=None, nbook=False, **kwargs):
+def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     psf_basis.reverse()
     N = len(psf_basis)
     p = primes(N)
-    if p == N:
+    if N == 2:
+        subplots = (2, 1)
+    elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
         subplots = (N/float(p), p)
 
-    plt.figure(figsize=(4*subplots[0], 4*subplots[1]))
+    plt.figure(figsize=(size*subplots[0], size*subplots[1]))
     for i in range(len(psf_basis)):
         plt.subplot(subplots[1], subplots[0], i+1)
         plt.imshow(psf_basis[i])
-        plt.title(r'$a_i, i = {}$'.format(i+1)) #, interpolation='linear')
+        plt.title(r'$p_i, i = {}$'.format(i+1)) #, interpolation='linear')
         plt.tight_layout()
-        plt.colorbar()
+        #plt.colorbar(shrink=0.85)
     if path is not None:
         plt.savefig(path)
     if not nbook:
@@ -65,26 +66,28 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, **kwargs):
 
     return
 
-def plot_afields(a_fields, shape, path=None, nbook=False, **kwargs):
+def plot_afields(a_fields, shape, path=None, nbook=False, size=4, **kwargs):
     if a_fields is None:
         print 'No a_fields were calculated. Only one Psf Basis'
         return
     a_fields.reverse()
     N = len(a_fields)
     p = primes(N)
-    if p == N:
+    if N == 2:
+        subplots = (2, 1)
+    elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
         subplots = (N/float(p), p)
 
-    plt.figure(figsize=(4*subplots[0], 4*subplots[1]), **kwargs)
+    plt.figure(figsize=(size*subplots[0], size*subplots[1]), **kwargs)
     x, y = np.mgrid[:shape[0], :shape[1]]
     for i in range(len(a_fields)):
         plt.subplot(subplots[1], subplots[0], i+1)
         plt.imshow(a_fields[i](x, y))
         plt.title(r'$a_i, i = {}$'.format(i+1))
         plt.tight_layout()
-        plt.colorbar()
+        #plt.colorbar(shrink=0.85, aspect=30)
     if path is not None:
         plt.savefig(path)
     if not nbook:
@@ -184,7 +187,7 @@ def matching(master, cat, masteridskey=None,
     match_ = ~np.isinf(dist_)
 
     IDs = np.zeros_like(ind_) - 13133
-    for i in range(len(ind_)):
+    for i in xrange(len(ind_)):
         if dist_[i] != np.inf:
             dist_o = dist_[i]
             ind_o = ind_[i]
@@ -237,5 +240,8 @@ def transparency(images, master=None, ensemble=True):
                                   detect,
                                   usemask=False)
         q = sum(mastercat['detected'])
-
+        import ipdb; ipdb.set_trace()
+        #~ for row in mastercat:
+            #~ if row['detected']:
+                #~ for img in imglist
         print mastercat['detected']
