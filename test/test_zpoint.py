@@ -49,26 +49,32 @@ xfwhm = 4
 yfwhm = 3
 weights = np.random.random(100)*20000 + 10
 
-for zero in [5, 10, 25]:
-    filenames = []
-    x = np.random.randint(low=30, high=900, size=100)
-    y = np.random.randint(low=30, high=900, size=100)
+zero = 10  #for zero in [5, 10, 25]:
+filenames = []
+x = np.random.randint(low=30, high=900, size=100)
+y = np.random.randint(low=30, high=900, size=100)
 
-    xy = [(x[i], y[i]) for i in range(100)]
-    m = sm.delta_point(N, center=False, xy=xy, weights=weights)
+xy = [(x[i], y[i]) for i in range(100)]
+m = sm.delta_point(N, center=False, xy=xy, weights=weights)
 
-    img_dir = os.path.join(test_dir, 'zp={}'.format(zero))
-    if not os.path.exists(img_dir):
-        os.makedirs(img_dir)
+img_dir = os.path.join(test_dir, 'zp={}'.format(zero))
+if not os.path.exists(img_dir):
+    os.makedirs(img_dir)
 
-    for i in range(12):
-        im = sm.image(m, N, t_exp=i+1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
-                      theta=theta, SN=SN, bkg_pdf='poisson')
-        filenames.append(sm.capsule_corp(im, t, t_exp=i+1, i=i,
-                        zero=zero+i, path=img_dir))
+for i in range(12):
+    im = sm.image(m, N, t_exp=i+1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
+                  theta=theta, SN=SN, bkg_pdf='poisson')
+    filenames.append(sm.capsule_corp(im, t, t_exp=i+1, i=i,
+                    zero=zero+i, path=img_dir))
 
-    with pc.ImageEnsemble(filenames) as ensemble:
-        zp = utils.transparency(ensemble)
+ensemble = pc.ImageEnsemble(filenames)
+
+zp = utils.transparency(ensemble)
+
+# ensemble._clean()
+
+    #~ with pc.ImageEnsemble(filenames) as ensemble:
+        #~ zp = utils.transparency(ensemble)
         # S = ensemble.calculate_S(n_procs=4)
         #~ R, S = ensemble.calculate_R(n_procs=4, return_S=True)
 

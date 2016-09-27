@@ -22,6 +22,7 @@
 #
 #
 import numpy as np
+from scipy import sparse
 from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
 from astroML import crossmatch as cx
@@ -207,11 +208,16 @@ def transparency(images, master=None, ensemble=True):
     """Transparency calculator, using Ofek method."""
 
     if ensemble:
+# =============================================================================
+#  Using image Ensemble
+# =============================================================================
         if master is None:
+            # master is the first file of ensemble
             p = len(images)
             master = images.atoms[0]
             imglist = images.atoms[1:]
         else:
+            # master is a separated file
             p = len(images) + 1
 
         mastercat = master._best_srcs['sources']
@@ -221,9 +227,8 @@ def transparency(images, master=None, ensemble=True):
                                   dtypes=int)
 
         detect = np.repeat(True, len(mastercat))
-
+        #  Matching the sources
         for img in imglist:
-
             newcat = img._best_srcs['sources']
 
             ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
@@ -236,12 +241,41 @@ def transparency(images, master=None, ensemble=True):
                 if mastercat[i]['sourceid'] not in ids:
                     detect[i] = False
             newcat.sort(order='sourceid')
+            img._best_srcs['sources'] = newcat
         mastercat = append_fields(mastercat, 'detected',
                                   detect,
-                                  usemask=False)
+                                  usemask=False,
+                                  dtypes=bool)
+
+        # Now populating the vector of magnitudes
         q = sum(mastercat['detected'])
-        import ipdb; ipdb.set_trace()
-        #~ for row in mastercat:
-            #~ if row['detected']:
-                #~ for img in imglist
-        print mastercat['detected']
+
+        m = np.zeros(p*q)
+        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux'])
+
+        j = 0
+        for row in mastercat[mastercat['detected']]:
+            for img in imglist:
+                cat = img._best_srcs['sources']
+                imgrow = cat[cat['sourceid'] == row['sourceid']]
+                m[q+j] = -2.5*np.log10(imgrow['flux'])
+                j += 1
+        #print mastercat['detected']
+        master._best_srcs['sources'] = mastercat
+
+
+        print p, q
+        ident = sparse.identity(q)
+        col = np.repeat(1., q)
+        sparses = []
+        for j in xrange(p):
+            ones_col = np.zeros((q, p))
+            ones_col[:, j] = col
+            sparses.append([sparse.csc_matrix(ones_col), ident])
+
+        H = sparse.bmat(sparses)
+
+
+        return H
+
+
