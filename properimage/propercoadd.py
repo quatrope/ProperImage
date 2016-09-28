@@ -544,10 +544,10 @@ class SingleImage(object):
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=4*self.bkg.globalrms)
+                                   thresh=8*self.bkg.globalrms)
             except ValueError:
                 srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
-                                   thresh=4*self.bkg.globalrms)
+                                   thresh=8*self.bkg.globalrms)
 
             if len(srcs) < 20:
                 try:

@@ -11,8 +11,6 @@ import shlex
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.abspath('..'))
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -30,17 +28,12 @@ from properimage import propercoadd as pc
 datapath = os.path.abspath(
            '/home/bruno/Documentos/Data/reduccionTolar/20151212/subset')
 
-S = np.zeros((1365, 1365))
-R = np.zeros((1365, 1365))
-
 for root, dirs, files in os.walk(datapath):
     fs = [os.path.join(root, afile) for afile in files]
     print 'files to process: {}'.format(fs)
-    ensemble = pc.ImageEnsemble(fs)
+    with pc.ImageEnsemble(fs) as ensemble:
     #S = ensemble.calculate_S(n_procs=4)
-    R, S = ensemble.calculate_R(n_procs=4, return_S=True)
-
-ensemble._clean()
+	    R, S = ensemble.calculate_R(n_procs=4, return_S=True)
 
 
 test_dir = os.path.abspath('./test/test_images/real_coadd_test/')

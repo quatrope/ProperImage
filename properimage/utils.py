@@ -263,7 +263,6 @@ def transparency(images, master=None, ensemble=True):
         #print mastercat['detected']
         master._best_srcs['sources'] = mastercat
 
-
         print p, q
         ident = sparse.identity(q)
         col = np.repeat(1., q)
@@ -275,7 +274,8 @@ def transparency(images, master=None, ensemble=True):
 
         H = sparse.bmat(sparses)
 
+        P = sparse.linalg.lsqr(H, m)
 
-        return H
+        return P, q, p
 
 
