@@ -33,7 +33,7 @@ from . import simtools
 font = {'family'        : 'sans-serif',
         'sans-serif'    : ['Computer Modern Sans serif'],
         'weight'        : 'regular',
-        'size'          : 32}
+        'size'          : 14}
 
 text = {'usetex'        : True}
 
@@ -56,7 +56,7 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     plt.figure(figsize=(size*subplots[0], size*subplots[1]))
     for i in range(len(psf_basis)):
         plt.subplot(subplots[1], subplots[0], i+1)
-        plt.imshow(psf_basis[i])
+        plt.imshow(psf_basis[i], interpolation='none', cmap='viridis')
         plt.title(r'$p_i, i = {}$'.format(i+1)) #, interpolation='linear')
         plt.tight_layout()
         #plt.colorbar(shrink=0.85)
@@ -85,7 +85,7 @@ def plot_afields(a_fields, shape, path=None, nbook=False, size=4, **kwargs):
     x, y = np.mgrid[:shape[0], :shape[1]]
     for i in range(len(a_fields)):
         plt.subplot(subplots[1], subplots[0], i+1)
-        plt.imshow(a_fields[i](x, y))
+        plt.imshow(a_fields[i](x, y), cmap='viridis')
         plt.title(r'$a_i, i = {}$'.format(i+1))
         plt.tight_layout()
         #plt.colorbar(shrink=0.85, aspect=30)
@@ -95,12 +95,47 @@ def plot_afields(a_fields, shape, path=None, nbook=False, size=4, **kwargs):
         plt.close()
     return
 
+def encapsule_S(S, path=None):
+    hdu = fits.PrimaryHDU(S)
+    if path is not None:
+        hdu.writeto(path, clobber=True)
+    else:
+        return hdu
 
-def plot_S():
+def encapsule_R(R, path=None):
+    if isinstance(R[0, 0] , np.complex):
+        R = R.real
+    hdu = fits.PrimaryHDU(R)
+    if path is not None:
+        hdu.writeto(path, clobber=True)
+    else:
+        return hdu
+
+def plot_S(S, path=None, nbook=False):
+    if isinstance(S, np.ma.masked_array):
+        S = S.filled()
+    plt.imshow(np.log10(S), interpolation='none', cmap='viridis')
+    plt.tight_layout()
+    plt.colorbar()
+    if path is not None:
+        plt.savefig(path)
+    if not nbook:
+        plt.close()
     return
 
 
-def plot_R():
+def plot_R(R, path=None, nbook=False):
+    if isinstance(R[0, 0] , np.complex):
+        R = R.real
+    if isinstance(R, np.ma.masked_array):
+        R = R.filled()
+    plt.imshow(np.log10(R), interpolation='none', cmap='viridis')
+    plt.tight_layout()
+    plt.colorbar()
+    if path is not None:
+        plt.savefig(path)
+    if not nbook:
+        plt.close()
     return
 
 def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):

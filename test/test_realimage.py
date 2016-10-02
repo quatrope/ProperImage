@@ -10,59 +10,42 @@ import os
 import shlex
 import subprocess
 import sys
-
-sys.path.insert(0, os.path.abspath('..'))
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 from astropy.io import fits
 
-import propercoadd as pc
+from properimage import propercoadd as pc
+from properimage import utils
+
 
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
-datapath = os.path.abspath('/home/bruno/Documentos/reduccionTolar/20151212/Landolt_C53')
+datapath = os.path.abspath('/home/bruno/Documentos/Data/ESO085-030')
 
-frame = os.path.join(datapath, 'preprocessed_Landolt_C53-010.fit')
+frame = os.path.join(datapath, 'eso085-030-030.fit')
 
-sim = pc.SingleImage(frame, imagefile=True)
+d = fits.getdata(frame)
+
+utils.plot_S(d, path='./test/test_images/real_image_test/frame.png')
 
 #fitted_models = sim.fit_psf_sep()
 
 # =============================================================================
 #    PSF spatially variant
 # =============================================================================
-psf_basis = sim._kl_from_stars
-a_fields = sim._kl_a_fields
-
-test_dir = os.path.abspath('./test_images/real_image_test/')
-
-plt.figure(figsize=(16,16))
-plt.imshow(np.log10(fits.getdata(frame)), interpolation='none')
-plt.colorbar(orientation='horizontal')
-plt.savefig(os.path.join(test_dir, 'test_frame.png'))
-plt.close()
-
-subplots = int(np.sqrt(len(psf_basis)) + 1)
-plt.figure(figsize=(16, 16))
-for i in range(len(psf_basis)):
-    plt.subplot(subplots, subplots, i+1);
-    plt.imshow(psf_basis[i], interpolation='none')
-    plt.colorbar(orientation='horizontal')
-plt.savefig(os.path.join(test_dir, 'psf_basis.png'))
-plt.close()
-
-x, y = np.mgrid[:sim.imagedata.shape[0], :sim.imagedata.shape[1]]
-plt.figure(figsize=(16, 16))
-for i in range(len(a_fields)):
-    plt.subplot(subplots, subplots, i+1);
-    plt.imshow(a_fields[i](x, y))
-    plt.colorbar(orientation='horizontal')
-plt.savefig(os.path.join(test_dir, 'a_fields.png'))
-plt.close()
 
 
+with pc.SingleImage(frame, imagefile=True) as sim:
+    a_f, psf_b = sim.get_variable_psf(pow_th=0.001)
+    S = sim.s_component
 
+utils.plot_psfbasis(psf_b,
+                    path='./test/test_images/real_image_test/psf_basis.png')
+
+utils.plot_afields(a_f, S.shape,
+                   path='./test/test_images/real_image_test/a_fields.png')
+
+utils.plot_S(S, path='./test/test_images/real_image_test/S.png')
 

@@ -64,9 +64,10 @@ class ImageEnsemble(MutableSequence):
     An instance of ImageEnsemble
 
     """
-    def __init__(self, imgpaths, *arg, **kwargs):
+    def __init__(self, imgpaths, pow_th=0.9, *arg, **kwargs):
         super(ImageEnsemble, self).__init__(*arg, **kwargs)
         self.imgl = imgpaths
+        self.pow_th = pow_th
         self.global_shape = fits.getdata(imgpaths[0]).shape
         print self.global_shape
 
@@ -110,9 +111,11 @@ class ImageEnsemble(MutableSequence):
 
         """
         if not hasattr(self, '_atoms'):
-            self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
+            self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
+                            for im in self.imgl]
         elif len(self._atoms) is not len(self.imgl):
-            self._atoms = [SingleImage(im, imagefile=True) for im in self.imgl]
+            self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
+                            for im in self.imgl]
         return self._atoms
 
     def transparencies(self):
@@ -367,13 +370,9 @@ class SingleImage(object):
         Default to None, and a guessing attempt will be made.
 
     """
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._clean()
-
-    def __init__(self, img=None, imagefile=True, sim=False, meta={}):
+    def __init__(self, img=None, imagefile=True, sim=False,
+                 meta={}, pow_th=0.9):
+        self.pow_th = pow_th
         if not imagefile:
             self._attached_to = img.__class__.__name__
         else:
@@ -406,6 +405,12 @@ class SingleImage(object):
                                                 self.imagedata < 0.).filled(13)
 
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._clean()
 
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
@@ -686,11 +691,12 @@ class SingleImage(object):
         return [covMat, renders]
 
     @property
-    def _kl_PSF(self, pow_th=0.9):
+    def _kl_PSF(self):
         """Determines the KL psf_basis from PSF gaussian models fitted to
         stars detected in the field.
 
         """
+        pow_th = self.pow_th
         if not hasattr(self, '_psf_KL_basis_model'):
             covMat, renders = self._covMat_psf()
             valh, vech = np.linalg.eigh(covMat)
@@ -719,10 +725,12 @@ class SingleImage(object):
             print 'obtaining KL basis'
         return self._psf_KL_basis_model
 
-    def _kl_from_stars(self, pow_th=0.9):
+    def _kl_from_stars(self, pow_th=None):
         """Determines the KL psf_basis from stars detected in the field.
 
         """
+        if pow_th is None:
+            pow_th = self.pow_th
         if not hasattr(self, '_psf_KL_basis_stars'):
             covMat = self._covMat_from_stars()
             # renders = self._best_srcs['patches']
@@ -755,10 +763,12 @@ class SingleImage(object):
             print 'obtainig KL basis, using k = {}'.format(N_psf_basis)
         return self._psf_KL_basis_stars
 
-    def _kl_a_fields(self, pow_th=0.9, from_stars=True):
+    def _kl_a_fields(self, pow_th=None, from_stars=True):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
+        if pow_th is None:
+            pow_th = self.pow_th
         if not hasattr(self, '_a_fields'):
             if from_stars:
                 psf_basis = self._kl_from_stars(pow_th=pow_th)
@@ -814,7 +824,9 @@ class SingleImage(object):
             print 'obtaining a fields'
         return self._a_fields
 
-    def get_variable_psf(self, from_stars=True, pow_th=0.9): #delete_patches=False,
+    def get_variable_psf(self, from_stars=True, pow_th=None): #delete_patches=False,
+        if pow_th is None:
+            pow_th = self.pow_th
         a_fields = self._kl_a_fields(from_stars=from_stars,
                                      pow_th=pow_th)
         if from_stars:

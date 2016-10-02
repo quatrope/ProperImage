@@ -26,14 +26,14 @@ from properimage import propercoadd as pc
 #ERVACIONES_MACON/20151212/preprocessed/Landolt_C53')
 
 datapath = os.path.abspath(
-           '/home/bruno/Documentos/Data/reduccionTolar/20151212/subset')
+           '/home/bruno/Documentos/Data/ESO085-030')
 
 for root, dirs, files in os.walk(datapath):
     fs = [os.path.join(root, afile) for afile in files]
     print 'files to process: {}'.format(fs)
-    with pc.ImageEnsemble(fs) as ensemble:
+    with pc.ImageEnsemble(fs, pow_th=0.001) as ensemble:
     #S = ensemble.calculate_S(n_procs=4)
-	    R, S = ensemble.calculate_R(n_procs=4, return_S=True)
+        R, S = ensemble.calculate_R(n_procs=4, return_S=True)
 
 
 test_dir = os.path.abspath('./test/test_images/real_coadd_test/')
