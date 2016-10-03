@@ -312,9 +312,7 @@ class Combinator(Process):
             shape = self.list_to_combine[0].imagedata.shape
             S = np.zeros(shape)
             for img in self.list_to_combine:
-                s_comp = np.ma.masked_array(img.s_component,
-                                            np.isnan(img.s_component),
-                                            fill_value=0)
+                s_comp = np.ma.masked_invalid(img.s_component)
                 print 'S component obtained, summing arrays'
                 S = np.ma.add(s_comp, S)
 
@@ -327,9 +325,7 @@ class Combinator(Process):
             for img in self.list_to_combine:
                 if np.any(np.isnan(img.s_component)):
                     import ipdb; ipdb.set_trace()
-                s_comp = np.ma.masked_array(img.s_component,
-                                            np.isnan(img.s_component),
-                                            fill_value=0)
+                s_comp = np.ma.masked_invalid(img.s_component)
                 print 'S component obtained'
                 S_stack.append(s_comp)
 
@@ -337,8 +333,7 @@ class Combinator(Process):
                 S_hat_stack = []
                 for s_c in S_stack:
                     sh = _fftwn(s_c)
-                    S_hat_stack.append(np.ma.masked_array(sh,
-                                       np.isnan(sh), fill_value=0))
+                    S_hat_stack.append(np.ma.masked_invalid(sh))
                 print 'Fourier transformed'
                 print 'chunk processed, now pickling'
                 serialized = pickle.dumps((S_stack, S_hat_stack))
@@ -435,9 +430,8 @@ class SingleImage(object):
             self.bkg_sd = self.bkg.std()
 
     @property
-    def bkg_sub_img(self):
-        """Image background subtracted property of SingleImage.
-        The background is estimated using sep. This also sets an attribute,
+    def masked(self):
+        """This sets an attribute,
         called self._masked that contains a mask for nans.
 
         Returns
@@ -446,11 +440,29 @@ class SingleImage(object):
             a background subtracted image is returned
 
         """
+        if not hasattr(self, '_masked'):
+            self._masked = np.ma.masked_invalid(self.imagedata)
+            self._masked = np.ma.masked_array(self._masked, 100., 45000.)
+
+            print 'background subtracted image obtained'
+        return self._masked
+
+    @property
+    def bkg_sub_img(self):
+        """Image background subtracted property of SingleImage.
+        The background is estimated using sep.
+
+        Returns
+        -------
+        numpy.array 2D
+            a background subtracted image is returned
+
+        """
         if not hasattr(self, '_bkg_sub_img'):
-            self.bkg = sep.Background(self.imagedata)
+            self.bkg = sep.Background(self.masked.data,
+                                      mask=self.masked.mask)
             self._bkg_sub_img = self.imagedata - self.bkg
-            self._masked = np.ma.masked_array(self._bkg_sub_img,
-                                              np.isnan(self._bkg_sub_img))
+
             print 'background subtracted image obtained'
         return self._bkg_sub_img
 
@@ -545,23 +557,28 @@ class SingleImage(object):
         if not hasattr(self, '_best_sources'):
             try:
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=4*self.bkg.globalrms)
+                                   thresh=4*self.bkg.globalrms,
+                                   mask=self.masked.mask)
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=8*self.bkg.globalrms)
+                                   thresh=8*self.bkg.globalrms,
+                                   mask=self.masked.mask)
             except ValueError:
                 srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
-                                   thresh=8*self.bkg.globalrms)
+                                   thresh=8*self.bkg.globalrms,
+                                   mask=self.masked.mask)
 
             if len(srcs) < 20:
                 try:
                     srcs = sep.extract(self.bkg_sub_img,
-                                       thresh=2.5*self.bkg.globalrms)
+                                       thresh=3.5*self.bkg.globalrms,
+                                       mask=self.masked.mask)
                 except Exception:
                     sep.set_extract_pixstack(900000)
                     srcs = sep.extract(self.bkg_sub_img,
-                                       thresh=2.5*self.bkg.globalrms)
+                                       thresh=3.5*self.bkg.globalrms,
+                                       mask=self.masked.mask)
             if len(srcs) < 10:
                 print 'No sources detected'
 
@@ -571,7 +588,7 @@ class SingleImage(object):
 
             best_big = srcs['npix'] >= p_sizes[0]
             best_small = srcs['npix'] <= p_sizes[2]
-            best_flag = srcs['flag'] <= 2
+            best_flag = srcs['flag'] <= 1
             fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
             low_flux = srcs['flux'] > fluxes_quartiles[0]
             hig_flux = srcs['flux'] < fluxes_quartiles[1]

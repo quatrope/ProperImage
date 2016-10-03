@@ -33,7 +33,7 @@ from . import simtools
 font = {'family'        : 'sans-serif',
         'sans-serif'    : ['Computer Modern Sans serif'],
         'weight'        : 'regular',
-        'size'          : 14}
+        'size'          : 12}
 
 text = {'usetex'        : True}
 
@@ -96,7 +96,15 @@ def plot_afields(a_fields, shape, path=None, nbook=False, size=4, **kwargs):
     return
 
 def encapsule_S(S, path=None):
-    hdu = fits.PrimaryHDU(S)
+    if isinstance(S, np.ma.core.MaskedArray):
+        mask = S.mask.astype('uint8')
+        data = S.data
+        hdu_data = fits.PrimaryHDU(data)
+        hdu_mask = fits.ImageHDU(mask, uint='int8')
+        hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
+        hdu = fits.HDUList([hdu_data, hdu_mask])
+    else:
+        hdu = fits.PrimaryHDU(S)
     if path is not None:
         hdu.writeto(path, clobber=True)
     else:
@@ -122,7 +130,6 @@ def plot_S(S, path=None, nbook=False):
     if not nbook:
         plt.close()
     return
-
 
 def plot_R(R, path=None, nbook=False):
     if isinstance(R[0, 0] , np.complex):
@@ -167,7 +174,6 @@ def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):
 def sim_ref_new(x, y, SN=2.):
     pass
 
-
 def primes(n):
     divisors = [ d for d in range(2,n//2+1) if n % d == 0 ]
     prims = [ d for d in divisors if \
@@ -176,7 +182,6 @@ def primes(n):
         return n
     else:
         return max(prims)
-
 
 def matching(master, cat, masteridskey=None,
              angular=False, radius=1.5, masked=False):

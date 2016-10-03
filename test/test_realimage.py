@@ -19,6 +19,8 @@ from properimage import propercoadd as pc
 from properimage import utils
 
 
+reload(utils)
+reload(pc)
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
@@ -38,7 +40,7 @@ utils.plot_S(d, path='./test/test_images/real_image_test/frame.png')
 
 
 with pc.SingleImage(frame, imagefile=True) as sim:
-    a_f, psf_b = sim.get_variable_psf(pow_th=0.001)
+    a_f, psf_b = sim.get_variable_psf(pow_th=0.01)
     S = sim.s_component
 
 utils.plot_psfbasis(psf_b,

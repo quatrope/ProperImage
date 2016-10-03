@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 
 from properimage import propercoadd as pc
+from properimage import utils
 
 
 # =============================================================================
@@ -31,8 +32,8 @@ datapath = os.path.abspath(
 for root, dirs, files in os.walk(datapath):
     fs = [os.path.join(root, afile) for afile in files]
     print 'files to process: {}'.format(fs)
-    with pc.ImageEnsemble(fs, pow_th=0.001) as ensemble:
-    #S = ensemble.calculate_S(n_procs=4)
+
+    with pc.ImageEnsemble(fs, pow_th=0.01) as ensemble:
         R, S = ensemble.calculate_R(n_procs=4, return_S=True)
 
 
@@ -41,51 +42,11 @@ test_dir = os.path.abspath('./test/test_images/real_coadd_test/')
 if not os.path.exists(test_dir):
     os.mkdir(test_dir)
 
-if isinstance(S, np.ma.masked_array):
-    S = S.filled(1.)
 
-if isinstance(R, np.ma.masked_array):
-    R = R.real.filled(1.)
+utils.plot_S(S, path=os.path.join(test_dir,'S.png'))
 
-#~ with file(os.path.join(test_dir,'S.npy'), 'w') as f:
-    #~ np.save(f, S)
+utils.plot_R(R, path=os.path.join(test_dir,'R.png'))
 
-#~ with file(os.path.join(test_dir,'R.npy'), 'w') as f:
-    #~ np.save(f, R)
+utils.encapsule_S(S, path=os.path.join(test_dir,'S.fits'))
 
-plt.figure(figsize=(16,16))
-plt.imshow(np.log10(S), interpolation='none')
-plt.colorbar(orientation='horizontal')
-plt.savefig(os.path.join(test_dir, 'S.png'))
-plt.close()
-
-plt.figure(figsize=(16,16))
-plt.imshow(np.log10(R.real), interpolation='none')
-plt.colorbar(orientation='horizontal')
-plt.savefig(os.path.join(test_dir, 'R.png'))
-plt.close()
-
-shdu = fits.PrimaryHDU(S)
-shdulist = fits.HDUList([shdu])
-shdulist.writeto(os.path.join(test_dir,'S.fits'), clobber=True)
-
-rhdu = fits.PrimaryHDU(R.real)
-rhdulist = fits.HDUList([rhdu])
-rhdulist.writeto(os.path.join(test_dir,'R.fits'), clobber=True)
-
-
-#~ def fftwn(array, nthreads=4):
-    #~ array = array.astype('complex').copy()
-    #~ outarray = array.copy()
-    #~ fft_forward = fftw3.Plan(array, outarray, direction='forward',
-            #~ flags=['estimate'], nthreads=nthreads)
-    #~ fft_forward.execute()
-    #~ return outarray
-
-#~ def ifftwn(array, nthreads=4):
-    #~ array = array.astype('complex').copy()
-    #~ outarray = array.copy()
-    #~ fft_backward = fftw3.Plan(array, outarray, direction='backward',
-            #~ flags=['estimate'], nthreads=nthreads)
-    #~ fft_backward.execute()
-    #~ return outarray / np.size(array)
+utils.encapsule_R(R, path=os.path.join(test_dir,'R.fits'))
