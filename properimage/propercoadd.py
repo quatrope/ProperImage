@@ -442,7 +442,7 @@ class SingleImage(object):
         """
         if not hasattr(self, '_masked'):
             self._masked = np.ma.masked_invalid(self.imagedata)
-            self._masked = np.ma.masked_array(self._masked, 100., 45000.)
+            self._masked = np.ma.masked_outside(self._masked, 100., 45000.)
 
             print 'background subtracted image obtained'
         return self._masked

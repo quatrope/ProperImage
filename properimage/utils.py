@@ -25,6 +25,7 @@ import numpy as np
 from scipy import sparse
 from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
+from astropy.convolution import convolve, convolve_fft
 from astroML import crossmatch as cx
 import matplotlib.pyplot as plt
 
@@ -39,7 +40,6 @@ text = {'usetex'        : True}
 
 plt.rc('font', **font)
 plt.rc('text', **text)
-
 
 
 def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
@@ -318,4 +318,51 @@ def transparency(images, master=None, ensemble=True):
 
         return P, q, p
 
+def convolve_psf_basis(image, psf_basis, a_fields, x, y):
+    imconvolved = np.zeros_like(image)
+    for j in range(len(psf_basis)):
+        a = a_fields[j](x, y) * image
+        psf = psf_basis[j]
 
+        imconvolved += convolve(a, psf, boundary='extend')
+
+    return imconvolved
+
+def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
+    imconvolved = np.zeros_like(image)
+    for j in range(len(psf_basis)):
+        a = a_fields[j](x, y) * image
+        psf = psf_basis[j]
+
+        imconvolved += convolve_fft(a, psf, interpolate_nan=True)
+
+    return imconvolved
+
+def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
+    #~ direct_time = np.prod(image.shape + psf.shape)
+    #~ fft_time =  np.sum([n*np.log(n) for n in image.shape + psf.shape])
+
+    #~ # see whether the fourier transform convolution method or the direct
+    #~ # convolution method is faster (discussed in scikit-image PR #1792)
+    #~ time_ratio = 40.032 * fft_time / direct_time
+
+    if time_ratio <= 1 or len(image.shape) > 2:
+        convolve_method = fftconvolve_psf_basis
+    else:
+        convolve_method = convolve_psf_basis
+
+    image = image.astype(np.float)
+    image = np.ma.masked_invalid(image).filled(np.nan)
+    x, y = np.mgrid[:image.shape[0], :image.shape[1]]
+
+    im_deconv = 0.5 * np.ones(image.shape)
+    psf_mirror = [psf[::-1, ::-1] for psf in psf_basis]
+
+    for _ in range(iterations):
+        rela_blur = image/convolve_method(im_deconv, psf_basis, a_fields, x, y)
+        im_deconv *= convolve_method(rela_blur, psf_mirror, a_fields, x, y)
+
+    if clip:
+        im_deconv = np.ma.masked_invalid(im_deconv).filled(-1.)
+
+    return im_deconv
