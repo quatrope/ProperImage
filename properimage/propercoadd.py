@@ -597,8 +597,10 @@ class SingleImage(object):
             best_srcs = srcs[best_flag & best_small & low_flux]
 
             p_sizes = np.sqrt(np.percentile(best_srcs['npix'], q=[15, 55, 65]))
-            if not p_sizes[1] < 12:
-                fitshape = (int(p_sizes[1]), int(p_sizes[1]))
+            if not p_sizes[1] < 13:
+                dx = int(p_sizes[1])
+                if dx % 2 == 0: dx += 1
+                fitshape = (dx, dx)
             else:
                 fitshape = (13, 13)
 

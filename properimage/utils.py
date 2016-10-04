@@ -334,7 +334,8 @@ def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
         a = a_fields[j](x, y) * image
         psf = psf_basis[j]
 
-        imconvolved += convolve_fft(a, psf, interpolate_nan=True)
+        imconvolved += convolve_fft(a, psf, interpolate_nan=True,
+                                    allow_huge=True)
 
     return imconvolved
 
@@ -346,7 +347,7 @@ def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
     #~ # convolution method is faster (discussed in scikit-image PR #1792)
     #~ time_ratio = 40.032 * fft_time / direct_time
 
-    if time_ratio <= 1 or len(image.shape) > 2:
+    if fft:
         convolve_method = fftconvolve_psf_basis
     else:
         convolve_method = convolve_psf_basis
