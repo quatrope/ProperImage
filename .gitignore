@@ -1,11 +1,62 @@
-*.pyc
-*~
-properimage_proyect
-swarp.xml
-default.swarp
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.eps
+*.dat
+
+# Documents
+*.pdf
+
+# Graphics
 *.png
-profile*
-*.fits
+*.eps
+*.ps
+*.dvi
+*.aux
+*.backup
+*.log
+*.x
+
+# Python pyc
+*.pyc
+
+# Geany project files
+properimage_proyect
+
+# Selected files
+*~
 ._*.map
 ._*.dat
 *.npy
+swarp.xml
+default.swarp
+profile*
+
+# Fits files
+*.fits
