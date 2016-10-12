@@ -31,6 +31,7 @@ from photutils import psf
 
 import sep
 from . import numpydb as npdb
+from . import utils
 
 try:
     import cPickle as pickle
@@ -118,8 +119,12 @@ class ImageEnsemble(MutableSequence):
                             for im in self.imgl]
         return self._atoms
 
+    @property
     def transparencies(self):
-        pass
+        zps, meanmags = utils.transparency(self.atoms)
+        self._zps = zps
+
+        return self._zps
 
     def calculate_S(self, n_procs=2):
         """Method for properly coadding images given by Zackay & Ofek 2015
@@ -152,7 +157,7 @@ class ImageEnsemble(MutableSequence):
 
         print 'all chunks started, and procs appended'
 
-        S = np.zeros(self.global_shape)
+        #S = np.zeros(self.global_shape)
         for q in queues:
             serialized = q.get()
             print 'loading pickles'
@@ -166,11 +171,10 @@ class ImageEnsemble(MutableSequence):
             print 'waiting for procs to finish'
             proc.join()
 
-
         print 'processes finished, now returning S'
         return S
 
-    def calculate_R(self, n_procs=2, return_S=False):
+    def calculate_R(self, n_procs=2, return_S=False, debug=False):
         """Method for properly coadding images given by Zackay & Ofek 2015
         (http://arxiv.org/abs/1512.06872, and http://arxiv.org/abs/1512.06879)
         It uses multiprocessing for parallelization of the processing of each
@@ -213,11 +217,21 @@ class ImageEnsemble(MutableSequence):
             S_hat_stk.extend(s_hat_list)
 
         S_stack = np.stack(S_stk, axis=-1)
+        #S_stack = np.tensordot(S_stack, self.transparencies, axes=(-1, 0))
+
         S_hat_stack = np.stack(S_hat_stk, axis=-1)
+        real_s_hat = S_hat_stack.real
+        imag_s_hat = S_hat_stack.imag
+
+        real_std = np.ma.std(real_s_hat, axis=2)
+        imag_std = np.ma.std(imag_s_hat, axis=2)
+
+        hat_std = real_std + 1j* imag_std
 
         S = np.ma.sum(S_stack, axis=2)
         S_hat = _fftwn(S)
-        hat_std = np.ma.std(S_hat_stack, axis=2)
+
+        #hat_std = np.ma.std(S_hat_stack, axis=2)
         R_hat = np.ma.divide(S_hat, hat_std)
 
         R = _ifftwn(R_hat)
@@ -226,6 +240,8 @@ class ImageEnsemble(MutableSequence):
             print 'waiting for procs to finish'
             proc.join()
 
+        if debug:
+            return [S_hat_stack, S_stack, S_hat, S, R_hat]
         if return_S:
             print 'processes finished, now returning R, S'
             return R, S
@@ -306,6 +322,7 @@ class Combinator(Process):
         self.queue = queue
         self.stack = stack
         self.fourier = fourier
+        #self.zps = ensemble.transparencies
 
     def run(self):
         if self.stack:

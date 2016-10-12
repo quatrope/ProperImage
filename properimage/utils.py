@@ -248,75 +248,87 @@ def transparency(images, master=None, ensemble=True):
     """Transparency calculator, using Ofek method."""
 
     if ensemble:
-# =============================================================================
-#  Using image Ensemble
-# =============================================================================
+        # master is the first file of ensemble
+        p = len(images)
+        master = images.atoms[0]
+        imglist = images.atoms[1:]
+    else:
+        for img in images:
+            if not isinstance(img, pc.SingleImage):
+                img = pc.SingleImage(img)
+
         if master is None:
-            # master is the first file of ensemble
             p = len(images)
-            master = images.atoms[0]
-            imglist = images.atoms[1:]
+            master = images[0]
+            imglist = images[1:]
         else:
             # master is a separated file
             p = len(images) + 1
+            imglist = images
+            if not isinstance(master, pc.SingleImage):
+                master = pc.SingleImage(master)
 
-        mastercat = master._best_srcs['sources']
-        mastercat = append_fields(mastercat, 'sourceid',
-                                  np.arange(len(mastercat)),
-                                  usemask=False,
-                                  dtypes=int)
+    mastercat = master._best_srcs['sources']
+    mastercat = append_fields(mastercat, 'sourceid',
+                              np.arange(len(mastercat)),
+                              usemask=False,
+                              dtypes=int)
 
-        detect = np.repeat(True, len(mastercat))
-        #  Matching the sources
+    detect = np.repeat(True, len(mastercat))
+    #  Matching the sources
+    for img in imglist:
+        newcat = img._best_srcs['sources']
+
+        ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
+                             angular=False, radius=1., masked=True)
+
+        newcat = append_fields(newcat, 'sourceid', ids,
+                               usemask=False)
+
+        for i in xrange(len(mastercat)):
+            if mastercat[i]['sourceid'] not in ids:
+                detect[i] = False
+        newcat.sort(order='sourceid')
+        img._best_srcs['sources'] = newcat
+    mastercat = append_fields(mastercat, 'detected',
+                              detect,
+                              usemask=False,
+                              dtypes=bool)
+
+    # Now populating the vector of magnitudes
+    q = sum(mastercat['detected'])
+
+    m = np.zeros(p*q)
+    # here 20 is a common value for a zp, and is only for weighting
+    m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 20.
+
+    j = 0
+    for row in mastercat[mastercat['detected']]:
         for img in imglist:
-            newcat = img._best_srcs['sources']
+            cat = img._best_srcs['sources']
+            imgrow = cat[cat['sourceid'] == row['sourceid']]
+            m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
+            j += 1
+    #print mastercat['detected']
+    master._best_srcs['sources'] = mastercat
 
-            ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
-                                 angular=False, radius=1., masked=True)
+    print p, q
+    ident = sparse.identity(q)
+    col = np.repeat(1., q)
+    sparses = []
+    for j in xrange(p):
+        ones_col = np.zeros((q, p))
+        ones_col[:, j] = col
+        sparses.append([sparse.csc_matrix(ones_col), ident])
 
-            newcat = append_fields(newcat, 'sourceid', ids,
-                                   usemask=False)
+    H = sparse.bmat(sparses)
 
-            for i in xrange(len(mastercat)):
-                if mastercat[i]['sourceid'] not in ids:
-                    detect[i] = False
-            newcat.sort(order='sourceid')
-            img._best_srcs['sources'] = newcat
-        mastercat = append_fields(mastercat, 'detected',
-                                  detect,
-                                  usemask=False,
-                                  dtypes=bool)
+    P = sparse.linalg.lsqr(H, m)
+    zps = P[0][:p]
 
-        # Now populating the vector of magnitudes
-        q = sum(mastercat['detected'])
+    meanmags = P[0][p:]
 
-        m = np.zeros(p*q)
-        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux'])
-
-        j = 0
-        for row in mastercat[mastercat['detected']]:
-            for img in imglist:
-                cat = img._best_srcs['sources']
-                imgrow = cat[cat['sourceid'] == row['sourceid']]
-                m[q+j] = -2.5*np.log10(imgrow['flux'])
-                j += 1
-        #print mastercat['detected']
-        master._best_srcs['sources'] = mastercat
-
-        print p, q
-        ident = sparse.identity(q)
-        col = np.repeat(1., q)
-        sparses = []
-        for j in xrange(p):
-            ones_col = np.zeros((q, p))
-            ones_col[:, j] = col
-            sparses.append([sparse.csc_matrix(ones_col), ident])
-
-        H = sparse.bmat(sparses)
-
-        P = sparse.linalg.lsqr(H, m)
-
-        return P, q, p
+    return zps, meanmags
 
 def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)

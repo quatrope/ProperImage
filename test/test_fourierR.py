@@ -36,7 +36,7 @@ reload(utils)
 
 N = 1024  # side
 
-test_dir = os.path.abspath('./test/test_images/test_zpoint')
+test_dir = os.path.abspath('./test/test_images/test_fourierR')
 if not os.path.exists(test_dir):
     os.makedirs(test_dir)
 
@@ -61,7 +61,7 @@ img_dir = os.path.join(test_dir, 'zp={}'.format(zero))
 if not os.path.exists(img_dir):
     os.makedirs(img_dir)
 
-for i in range(12):
+for i in range(40):
     im = sm.image(m, N, t_exp=i+1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
                   theta=theta, SN=SN, bkg_pdf='poisson')
     filenames.append(sm.capsule_corp(im, t, t_exp=i+1, i=i,
@@ -69,25 +69,37 @@ for i in range(12):
 
 ensemble = pc.ImageEnsemble(filenames)
 
-zps, meanmags = utils.transparency(ensemble)
+S_hat_stack, S_stack, S_hat, S, R_hat = ensemble.calculate_R(n_procs=4,
+                                                             debug=True)
 
-# ensemble._clean()
+S_inv = pc._ifftwn(S_hat)
 
-    #~ with pc.ImageEnsemble(filenames) as ensemble:
-        #~ zp = utils.transparency(ensemble)
-        # S = ensemble.calculate_S(n_procs=4)
-        #~ R, S = ensemble.calculate_R(n_procs=4, return_S=True)
+d = S - S_inv
 
-        #~ if isinstance(S, np.ma.masked_array):
-            #~ S = S.filled(1.)
+plt.hist(d.real.flatten(), log=True)
+plt.title('Histograma diferencia pixeles fourier inverso')
+plt.show()
 
-        #~ if isinstance(R, np.ma.masked_array):
-            #~ R = R.real.filled(1.)
+plt.hist(d.imag.flatten(), log=True)
+plt.title('Histograma diferencia pixeles fourier inverso')
+plt.show()
 
-        #~ shdu = fits.PrimaryHDU(S)
-        #~ shdulist = fits.HDUList([shdu])
-        #~ shdulist.writeto(os.path.join(img_dir,'S.fits'), clobber=True)
 
-        #~ rhdu = fits.PrimaryHDU(R.real)
-        #~ rhdulist = fits.HDUList([rhdu])
-        #~ rhdulist.writeto(os.path.join(img_dir,'R.fits'), clobber=True)
+comp1 = S_hat_stack[:, :, 0]
+comp2 = S_hat_stack[:, :, 1]
+comp3 = S_hat_stack[:, :, 2]
+comp4 = S_hat_stack[:, :, 3]
+
+
+s_hat_summed = np.ma.sum(S_hat_stack, axis=2)
+
+d_hat = S_hat - s_hat_summed
+plt.hist(d_hat.real.flatten(), log=True)
+plt.show()
+
+R = pc._ifftwn(R_hat)
+
+fits.PrimaryHDU(R.real).writeto('R_.fits', clobber=True)
+
+
+ensemble._clean()
