@@ -220,18 +220,21 @@ class ImageEnsemble(MutableSequence):
         #S_stack = np.tensordot(S_stack, self.transparencies, axes=(-1, 0))
 
         S_hat_stack = np.stack(S_hat_stk, axis=-1)
-        real_s_hat = S_hat_stack.real
-        imag_s_hat = S_hat_stack.imag
 
-        real_std = np.ma.std(real_s_hat, axis=2)
-        imag_std = np.ma.std(imag_s_hat, axis=2)
+        #real_s_hat = S_hat_stack.real
+        #imag_s_hat = S_hat_stack.imag
 
-        hat_std = real_std + 1j* imag_std
+        #real_std = np.ma.std(real_s_hat, axis=2)
+        #imag_std = np.ma.std(imag_s_hat, axis=2)
+
+        #hat_std = real_std + 1j* imag_std
 
         S = np.ma.sum(S_stack, axis=2)
-        S_hat = _fftwn(S)
 
-        #hat_std = np.ma.std(S_hat_stack, axis=2)
+        #S_hat = _fftwn(S)
+        S_hat = np.ma.sum(S_hat_stack, axis=2)
+
+        hat_std = np.ma.std(S_hat_stack, axis=2)
         R_hat = np.ma.divide(S_hat, hat_std)
 
         R = _ifftwn(R_hat)

@@ -47,14 +47,14 @@ SN = 5.
 theta = 0
 xfwhm = 4
 yfwhm = 3
-weights = np.random.random(100)*20000 + 10
+weights = np.random.random(25)*20000 + 10
 
 zero = 10  #for zero in [5, 10, 25]:
 filenames = []
-x = np.random.randint(low=30, high=900, size=100)
-y = np.random.randint(low=30, high=900, size=100)
+x = np.random.randint(low=30, high=900, size=25)
+y = np.random.randint(low=30, high=900, size=25)
 
-xy = [(x[i], y[i]) for i in range(100)]
+xy = [(x[i], y[i]) for i in range(25)]
 m = sm.delta_point(N, center=False, xy=xy, weights=weights)
 
 img_dir = os.path.join(test_dir, 'zp={}'.format(zero))
@@ -96,10 +96,25 @@ s_hat_summed = np.ma.sum(S_hat_stack, axis=2)
 d_hat = S_hat - s_hat_summed
 plt.hist(d_hat.real.flatten(), log=True)
 plt.show()
+plt.hist(d_hat.imag.flatten(), log=True)
+plt.show()
 
 R = pc._ifftwn(R_hat)
 
 fits.PrimaryHDU(R.real).writeto('R_.fits', clobber=True)
+
+hat_std = np.ma.std(S_hat_stack, axis=2)
+r_hat = np.ma.divide(S_hat, hat_std)
+
+r = pc._ifftwn(r_hat)
+
+fits.PrimaryHDU(r.real).writeto('r_.fits', clobber=True)
+
+dr = R - r
+plt.hist(dr.real.flatten(), log=True)
+plt.show()
+plt.hist(dr.imag.flatten(), log=True)
+plt.show()
 
 
 ensemble._clean()
