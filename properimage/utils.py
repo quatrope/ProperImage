@@ -127,6 +127,8 @@ def plot_S(S, path=None, nbook=False):
     plt.colorbar()
     if path is not None:
         plt.savefig(path)
+    else:
+        plt.show()
     if not nbook:
         plt.close()
     return
@@ -141,6 +143,8 @@ def plot_R(R, path=None, nbook=False):
     plt.colorbar()
     if path is not None:
         plt.savefig(path)
+    else:
+        plt.show()
     if not nbook:
         plt.close()
     return
