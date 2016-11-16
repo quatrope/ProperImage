@@ -159,7 +159,7 @@ class ImageEnsemble(MutableSequence):
 
         print 'all chunks started, and procs appended'
 
-        #S = np.zeros(self.global_shape)
+        S = np.zeros(self.global_shape)
         for q in queues:
             serialized = q.get()
             print 'loading pickles'

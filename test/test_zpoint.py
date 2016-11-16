@@ -70,7 +70,8 @@ for i in range(50):
 ensemble = pc.ImageEnsemble(filenames)
 
 zps, meanmags = utils.transparency(ensemble)
-S_hat_stack, S_stack, S_hat, S, R_hat = ensemble.calculate_R(n_procs=8, debug=True)
+S_hat_stack, S_stack, S_hat, S, R_hat = ensemble.calculate_R(n_procs=6, debug=True)
+
 ensemble._clean()
 
     #~ with pc.ImageEnsemble(filenames) as ensemble:

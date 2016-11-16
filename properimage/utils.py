@@ -29,6 +29,7 @@ from astropy.convolution import convolve, convolve_fft
 from astroML import crossmatch as cx
 import matplotlib.pyplot as plt
 
+import astroalign as aa
 from . import simtools
 
 font = {'family'        : 'sans-serif',
@@ -383,3 +384,20 @@ def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
         im_deconv = np.ma.masked_invalid(im_deconv).filled(-1.)
 
     return im_deconv
+
+def align_for_diff(refpath, newpath):
+    """Function to align two images using their paths,
+    and returning newpaths for differencing.
+    We will allways rotate and align the new image to the reference,
+    so it is easier to compare differences along time series.
+    """
+    ref = fits.getdata(refpath)
+    new = fits.getdata(newpath)
+    hdr = fits.getheader(newpath)
+
+    new2 = aa.align_image(ref, new)
+    hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
+    fits.writeto('aligned_'+newpath, new2, hdr)
+
+    return 'aligned_'+newpath
+
