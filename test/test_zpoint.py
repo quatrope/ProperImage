@@ -61,7 +61,7 @@ img_dir = os.path.join(test_dir, 'zp={}'.format(zero))
 if not os.path.exists(img_dir):
     os.makedirs(img_dir)
 
-for i in range(12):
+for i in range(50):
     im = sm.image(m, N, t_exp=i+1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
                   theta=theta, SN=SN, bkg_pdf='poisson')
     filenames.append(sm.capsule_corp(im, t, t_exp=i+1, i=i,
@@ -70,8 +70,9 @@ for i in range(12):
 ensemble = pc.ImageEnsemble(filenames)
 
 zps, meanmags = utils.transparency(ensemble)
+S_hat_stack, S_stack, S_hat, S, R_hat = ensemble.calculate_R(n_procs=6, debug=True)
 
-# ensemble._clean()
+ensemble._clean()
 
     #~ with pc.ImageEnsemble(filenames) as ensemble:
         #~ zp = utils.transparency(ensemble)

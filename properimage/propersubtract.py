@@ -28,9 +28,20 @@ from . import utils as u
 
 
 def ImageSubtractor(object):
-    def __init__(ref, new):
-        self.ref = pc.SingleImage(img=ref)
-        self.new = pc.SingleImage(img=new)
+    def __init__(refpath, newpath):
+
+        new = u.align_for_diff(refpath, newpath)
+
+        self.ens = pc.ImageEnsemble([refpath, new])
+
+
+    def subtract():
+        ref = self.ens.atoms[0]
+        new = self.ens.atoms[1]
+
+
+
+
 
 
 

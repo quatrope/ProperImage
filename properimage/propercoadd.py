@@ -48,7 +48,6 @@ except:
 
 
 
-
 class ImageEnsemble(MutableSequence):
     """Processor for several images that uses SingleImage as an atomic processing
     unit. It deploys the utilities provided in the mentioned class and combines
@@ -123,7 +122,10 @@ class ImageEnsemble(MutableSequence):
     def transparencies(self):
         zps, meanmags = utils.transparency(self.atoms)
         self._zps = zps
-
+        j = 0
+        for anatom in self.atoms:
+            anatom.zp = zps[j]
+            j += 1
         return self._zps
 
     def calculate_S(self, n_procs=2):
@@ -420,6 +422,7 @@ class SingleImage(object):
                                                 self.imagedata < 0.).filled(13)
 
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
+        self.zp = 1.0  # in case is not setled.
 
     def __enter__(self):
         return self
@@ -577,7 +580,7 @@ class SingleImage(object):
         if not hasattr(self, '_best_sources'):
             try:
                 srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=4*self.bkg.globalrms,
+                                   thresh=6*self.bkg.globalrms,
                                    mask=self.masked.mask)
             except Exception:
                 sep.set_extract_pixstack(700000)
@@ -592,12 +595,12 @@ class SingleImage(object):
             if len(srcs) < 20:
                 try:
                     srcs = sep.extract(self.bkg_sub_img,
-                                       thresh=3.5*self.bkg.globalrms,
+                                       thresh=5*self.bkg.globalrms,
                                        mask=self.masked.mask)
                 except Exception:
                     sep.set_extract_pixstack(900000)
                     srcs = sep.extract(self.bkg_sub_img,
-                                       thresh=3.5*self.bkg.globalrms,
+                                       thresh=5*self.bkg.globalrms,
                                        mask=self.masked.mask)
             if len(srcs) < 10:
                 print 'No sources detected'
@@ -937,7 +940,7 @@ class SingleImage(object):
 
             print 'matched filter succesful'
             mfilter = mfilter/nrm
-            self._s_component = mfilter/var**2
+            self._s_component = self.zp * mfilter/var**2
             print 'getting s component'
         return self._s_component
 

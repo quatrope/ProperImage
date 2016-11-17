@@ -11,8 +11,6 @@ import shlex
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.abspath('..'))
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import stats
@@ -32,8 +30,8 @@ from astropy.nddata.utils import extract_array
 from photutils import psf
 from photutils import daofind
 
-from imsim import simtools
-import propercoadd as pc
+from properimage import simtools
+from properimage import propercoadd as pc
 
 # =============================================================================
 #     PSF measure test by propercoadd
@@ -54,10 +52,10 @@ xy = simtools.cartesian_product([x, y])
 SN =  1000. # SN para poder medir psf
 weights = list(np.linspace(10, 100, len(xy)))
 m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
-im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
-                    SN=SN, bkg_pdf='poisson')
+im = simtools.image(m, N, t_exp, X_FWHM, SN,
+                    Y_FWHM=Y_FWHM, theta=theta, bkg_pdf='poisson')
 
-sim = pc.SingleImage(im)
+sim = pc.SingleImage(im, imagefile=False, sim=True)
 
 fitted_models = sim.fit_psf_sep()
 
@@ -91,6 +89,7 @@ for i in range(len(fitted_models)):
 
             covMat[i, j] = inner
             covMat[j, i] = inner
+import ipdb; ipdb.set_trace()
 
 valh, vech = np.linalg.eigh(covMat)
 
