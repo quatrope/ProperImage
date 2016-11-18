@@ -26,6 +26,15 @@ import os
 from . import propercoadd as pc
 from . import utils as u
 
+try:
+    import pyfftw
+    _fftwn = pyfftw.interfaces.numpy_fft.fftn
+    _ifftwn = pyfftw.interfaces.numpy_fft.ifftn
+except:
+    _fftwn = np.fft.fft2
+    _ifftwn = np.fft.ifft2
+
+
 
 def ImageSubtractor(object):
     def __init__(refpath, newpath):
@@ -39,7 +48,22 @@ def ImageSubtractor(object):
         ref = self.ens.atoms[0]
         new = self.ens.atoms[1]
 
+        s_r = _fftwn(ref.s_component)
+        s_n = _fftwn(new.s_component)
 
+        r_zp = ref.zp
+        n_zp = new.zp
+
+        r_var = ref.bkg.globalrms
+        n_var = new.bkg.globalrms
+
+        psf_rate = 1.  # this is a wrong value, but we cant calculate it now
+        lam = 1. + ((n_zp/n_var)/(r_zp/r_var))**2
+
+        D = _ifftwn(s_n/lam - (1. - 1./lam)*s_r)
+
+        print lam
+        return D
 
 
 

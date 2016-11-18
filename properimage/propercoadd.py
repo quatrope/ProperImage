@@ -915,7 +915,8 @@ class SingleImage(object):
 
         """
         if not hasattr(self, '_s_component'):
-            var = self.meta['std']
+            # var = self.meta['std']
+            var = self.bkg.globalrms
             nrm = self.normal_image
             a_fields, psf_basis = self.get_variable_psf() #delete_patches=True)
             mfilter = np.zeros_like(self.bkg_sub_img)
