@@ -23,6 +23,7 @@
 #
 
 import os
+import numpy as np
 from . import propercoadd as pc
 from . import utils as u
 
@@ -36,15 +37,15 @@ except:
 
 
 
-def ImageSubtractor(object):
-    def __init__(refpath, newpath):
+class ImageSubtractor(object):
+    def __init__(self, refpath, newpath):
 
         new = u.align_for_diff(refpath, newpath)
 
         self.ens = pc.ImageEnsemble([refpath, new])
 
 
-    def subtract():
+    def subtract(self):
         ref = self.ens.atoms[0]
         new = self.ens.atoms[1]
 
@@ -57,13 +58,14 @@ def ImageSubtractor(object):
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
 
-        psf_rate = 1.  # this is a wrong value, but we cant calculate it now
+        psf_rate = 1.  # this is a wrong value, but we can't calculate it now
         lam = 1. + ((n_zp/n_var)/(r_zp/r_var))**2
 
-        D = _ifftwn(s_n/lam - (1. - 1./lam)*s_r)
+        D_hat = s_n/lam - (1. - 1./lam)*s_r
+        D = _ifftwn(D_hat)
 
         print lam
-        return D
+        return D, D_hat
 
 
 
