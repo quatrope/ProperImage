@@ -21,6 +21,7 @@
 #  MA 02110-1301, USA.
 #
 #
+import os
 import numpy as np
 from scipy import sparse
 from numpy.lib.recfunctions import append_fields
@@ -395,9 +396,12 @@ def align_for_diff(refpath, newpath):
     new = fits.getdata(newpath)
     hdr = fits.getheader(newpath)
 
+    dest_file = 'aligned_'+os.path.basename(newpath)
+    dest_file = os.path.join(os.path.dirname(newpath), dest_file)
+
     new2 = aa.align_image(ref, new)
+
     hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
-    fits.writeto('aligned_'+newpath, new2, hdr)
+    fits.writeto(dest_file, new2, hdr, clobber=True)
 
-    return 'aligned_'+newpath
-
+    return dest_file
