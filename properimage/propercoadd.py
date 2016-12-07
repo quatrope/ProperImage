@@ -112,10 +112,10 @@ class ImageEnsemble(MutableSequence):
         """
         if not hasattr(self, '_atoms'):
             self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
-                            for im in self.imgl]
+                           for im in self.imgl]
         elif len(self._atoms) is not len(self.imgl):
             self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
-                            for im in self.imgl]
+                           for im in self.imgl]
         return self._atoms
 
     @property
@@ -927,8 +927,8 @@ class SingleImage(object):
             if a_fields is None:
                 print 'starting matched filter'
                 mfilter = sg.correlate2d(self._masked,
-                                      psf_basis[0],
-                                      mode='same')
+                                         psf_basis[0],
+                                         mode='same')
             else:
                 for i in range(len(a_fields)):
                     a = a_fields[i]
