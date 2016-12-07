@@ -44,6 +44,14 @@ class ImageSubtractor(object):
 
         self.ens = pc.ImageEnsemble([refpath, newpath])
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._clean()
+
+    def _clean(self):
+        self.ens._clean()
 
     def subtract(self):
         ref = self.ens.atoms[0]
