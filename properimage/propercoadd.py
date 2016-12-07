@@ -620,12 +620,12 @@ class SingleImage(object):
             best_srcs = srcs[best_flag & best_small & low_flux]
 
             p_sizes = np.sqrt(np.percentile(best_srcs['npix'], q=[15, 55, 65]))
-            if not p_sizes[1] < 13:
+            if not p_sizes[1] < 16:
                 dx = int(p_sizes[1])
-                if dx % 2 == 0: dx += 1
+                if dx % 2 != 0: dx += 1
                 fitshape = (dx, dx)
             else:
-                fitshape = (13, 13)
+                fitshape = (16, 16)
 
             # if len(best_srcs) > 130:
             #     jj = np.random.choice(len(best_srcs), 130, replace=False)
@@ -908,8 +908,7 @@ class SingleImage(object):
             print 'getting normal image'
         return self._normal_image
 
-    @property
-    def s_component(self):
+    def s_component(self, fourier=False):
         """Calculates the matched filter S (from propercoadd) component
         from the image.
 
@@ -926,9 +925,12 @@ class SingleImage(object):
 
             if a_fields is None:
                 print 'starting matched filter'
-                mfilter = sg.correlate2d(self._masked,
-                                      psf_basis[0],
-                                      mode='same')
+                mfilter = np.multiply(_fftwn(self._masked),
+                                      _fftwn(psf_basis[0],
+                                          s=self.imagedata.shape).conjugate())
+                if not fourier:
+                    mfilter = _ifftwn(mfilter).real
+
             else:
                 for i in range(len(a_fields)):
                     a = a_fields[i]
@@ -937,11 +939,15 @@ class SingleImage(object):
                     cross = np.multiply(a(x, y), self._masked)
                     # cross = convolve_fft(self.bkg_sub_img, psf)
                     print 'starting matched filter'
-                    conv = sg.correlate2d(cross, psf, mode='same')
+                    mfilter += np.multiply(_fftwn(cross),
+                                       _fftwn(psf, s=cross.shape).conjugate())
                     print 'stacking matched filter'
-                    mfilter += conv
+
+                if not fourier:
+                    mfilter = _ifftwn(mfilter).real
 
             print 'matched filter succesful'
+
             mfilter = mfilter/nrm
             self._s_component = self.zp * mfilter/var**2
             print 'getting s component'
