@@ -40,9 +40,9 @@ except:
 class ImageSubtractor(object):
     def __init__(self, refpath, newpath):
 
-        #~ newpath = u.align_for_diff(refpath, newpath)
+        new = u.align_for_diff(refpath, newpath)
 
-        self.ens = pc.ImageEnsemble([refpath, newpath])
+        self.ens = pc.ImageEnsemble([refpath, new])
 
     def __enter__(self):
         return self
