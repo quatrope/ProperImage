@@ -38,11 +38,13 @@ except:
 
 
 class ImageSubtractor(object):
-    def __init__(self, refpath, newpath):
+    def __init__(self, refpath, newpath, align=True):
 
-        new = u.align_for_diff(refpath, newpath)
-
-        self.ens = pc.ImageEnsemble([refpath, new])
+        if align:
+            new = u.align_for_diff(refpath, newpath)
+            self.ens = pc.ImageEnsemble([refpath, new])
+        else:
+            self.ens = pc.ImageEnsemble([refpath, newpath])
 
     def __enter__(self):
         return self
@@ -62,11 +64,16 @@ class ImageSubtractor(object):
         _, psf_ref = ref.get_variable_psf()
         _, psf_new = new.get_variable_psf()
 
-        psf_ref_hat = _fftwn(psf_ref[0], s=shape)
-        psf_new_hat = _fftwn(psf_new[0], s=shape)
+        psf_ref = psf_ref[0]/np.sum(psf_ref[0])
+        psf_new = psf_new[0]/np.sum(psf_new[0])
+
+        psf_ref_hat = _fftwn(psf_ref, s=shape)
+        psf_new_hat = _fftwn(psf_new, s=shape)
 
         r_zp = ref.zp
         n_zp = new.zp
+
+        print 'Ref_zp = {}, New_zp = {}'.format(r_zp, n_zp)
 
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
@@ -79,14 +86,13 @@ class ImageSubtractor(object):
 
         D_hat = (D_hat_n - D_hat_r)/np.sqrt(norm)
 
-        #~ psf_rate = 1.  # this is a wrong value, but we can't calculate it now
-        #~ lam = 1. + ((n_zp/n_var)/(r_zp/r_var))**2
-
-        #~ D_hat = s_n/lam - (1. - 1./lam)*s_r
         D = _ifftwn(D_hat)
 
-        #~ print lam
-        return D, D_hat
+        d_zp = np.sqrt(r_var*r_var*r_zp*r_zp + n_var*n_var*n_zp*n_zp)
+        P_hat =(psf_ref_hat * psf_new_hat)/(np.sqrt(norm)*d_zp)
+        P = _ifftwn(P_hat)
+
+        return D, P
 
 
 

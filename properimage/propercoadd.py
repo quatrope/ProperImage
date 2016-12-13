@@ -620,16 +620,16 @@ class SingleImage(object):
             best_srcs = srcs[best_flag & best_small & low_flux]
 
             p_sizes = np.sqrt(np.percentile(best_srcs['npix'], q=[15, 55, 65]))
-            if not p_sizes[1] < 17:
+            if not p_sizes[1] < 14:
                 dx = int(p_sizes[1])
-                if dx % 2 == 0: dx += 1
+                if dx % 2 != 0: dx += 1
                 fitshape = (dx, dx)
             else:
-                fitshape = (17, 17)
+                fitshape = (14, 14)
 
-            # if len(best_srcs) > 130:
-            #     jj = np.random.choice(len(best_srcs), 130, replace=False)
-            #     best_srcs = best_srcs[jj]
+            if len(best_srcs) > 1800:
+                jj = np.random.choice(len(best_srcs), 1800, replace=False)
+                best_srcs = best_srcs[jj]
 
             print 'Sources good to calculate = {}'.format(len(best_srcs))
             self._best_sources = {'sources': best_srcs, 'fitshape': fitshape}
