@@ -70,8 +70,9 @@ class ImageSubtractor(object):
         psf_ref_hat = _fftwn(psf_ref, s=shape)
         psf_new_hat = _fftwn(psf_new, s=shape)
 
-        r_zp = ref.zp
-        n_zp = new.zp
+        zps = self.ens.transparencies
+        r_zp = zps[0]
+        n_zp = zps[1]
 
         print 'Ref_zp = {}, New_zp = {}'.format(r_zp, n_zp)
 
