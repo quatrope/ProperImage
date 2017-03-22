@@ -38,9 +38,14 @@ except:
 
 
 class ImageSubtractor(object):
-    def __init__(self, refpath, newpath, align=True):
+    def __init__(self, refpath, newpath, align=True, crop=True, border=50):
 
         if align:
+            if crop:
+                new, refpath = u.align_for_diff_crop(refpath, newpath, border)
+            else:
+                new = u.align_for_diff(refpath, newpath)
+
             new = u.align_for_diff(refpath, newpath)
             self.ens = pc.ImageEnsemble([refpath, new])
         else:

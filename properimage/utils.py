@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 
 import astroalign as aa
 from . import simtools
+#from . import propercoadd as pc
 
 font = {'family'        : 'sans-serif',
         'sans-serif'    : ['Computer Modern Sans serif'],
@@ -245,6 +246,7 @@ def matching(master, cat, masteridskey=None,
                     IDs[i] = master[idkey][ind_o]
 
     print len(IDs), len(ind_), len(ind)
+    print "Matching result::  IDs > 0. => {}".format(sum(IDs>0))
     if masked:
         mask = IDs > 0
         return(IDs, mask)
@@ -256,8 +258,8 @@ def transparency(images, master=None, ensemble=True):
     if ensemble:
         # master is the first file of ensemble
         p = len(images)
-        master = images.atoms[0]
-        imglist = images.atoms[1:]
+        master = images[0]
+        imglist = images[1:]
     else:
         for img in images:
             if not isinstance(img, pc.SingleImage):
@@ -304,37 +306,40 @@ def transparency(images, master=None, ensemble=True):
     # Now populating the vector of magnitudes
     q = sum(mastercat['detected'])
 
-    m = np.zeros(p*q)
-    # here 20 is a common value for a zp, and is only for weighting
-    m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 20.
+    if q != 0:
+        m = np.zeros(p*q)
+        # here 20 is a common value for a zp, and is only for weighting
+        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 20.
 
-    j = 0
-    for row in mastercat[mastercat['detected']]:
-        for img in imglist:
-            cat = img._best_srcs['sources']
-            imgrow = cat[cat['sourceid'] == row['sourceid']]
-            m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
-            j += 1
-    #print mastercat['detected']
-    master._best_srcs['sources'] = mastercat
+        j = 0
+        for row in mastercat[mastercat['detected']]:
+            for img in imglist:
+                cat = img._best_srcs['sources']
+                imgrow = cat[cat['sourceid'] == row['sourceid']]
+                m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
+                j += 1
+        #print mastercat['detected']
+        master._best_srcs['sources'] = mastercat
 
-    print p, q
-    ident = sparse.identity(q)
-    col = np.repeat(1., q)
-    sparses = []
-    for j in xrange(p):
-        ones_col = np.zeros((q, p))
-        ones_col[:, j] = col
-        sparses.append([sparse.csc_matrix(ones_col), ident])
+        print "p={}, q={}".format(p, q)
+        ident = sparse.identity(q)
+        col = np.repeat(1., q)
+        sparses = []
+        for j in xrange(p):
+            ones_col = np.zeros((q, p))
+            ones_col[:, j] = col
+            sparses.append([sparse.csc_matrix(ones_col), ident])
 
-    H = sparse.bmat(sparses)
+        H = sparse.bmat(sparses)
 
-    P = sparse.linalg.lsqr(H, m)
-    zps = P[0][:p]
+        P = sparse.linalg.lsqr(H, m)
+        zps = P[0][:p]
 
-    meanmags = P[0][p:]
+        meanmags = P[0][p:]
 
-    return zps, meanmags
+        return zps, meanmags
+    else:
+        return np.ones(p), np.nan
 
 def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
@@ -405,3 +410,38 @@ def align_for_diff(refpath, newpath):
     fits.writeto(dest_file, new2, hdr, clobber=True)
 
     return dest_file
+
+def align_for_diff_crop(refpath, newpath, bordersize=50):
+    """Function to align two images using their paths,
+    and returning newpaths for differencing.
+    We will allways rotate and align the new image to the reference,
+    so it is easier to compare differences along time series.
+
+    This special function differs from aligh_for_diff since it
+    crops the images, so they do not have borders with problems.
+    """
+    ref = fits.getdata(refpath)
+    hdr_ref = fits.getheader(refpath)
+
+    dest_file_ref = 'cropped_'+os.path.basename(refpath)
+    dest_file_ref = os.path.join(os.path.dirname(refpath), dest_file_ref)
+
+    hdr_ref.set('comment', 'cropped img '+refpath+' to '+newpath)
+    ref2 = ref[bordersize:-bordersize, bordersize:-bordersize]
+    fits.writeto(dest_file_ref, ref2, hdr_ref, overwrite=True)
+
+    new = fits.getdata(newpath)
+    hdr_new = fits.getheader(newpath)
+
+    dest_file_new = 'aligned_'+os.path.basename(newpath)
+    dest_file_new = os.path.join(os.path.dirname(newpath), dest_file_new)
+
+    new2 = aa.align_image(ref, new)
+
+    hdr_new.set('comment', 'aligned img '+newpath+' to '+refpath)
+    new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
+    fits.writeto(dest_file_new, new2, hdr_new, clobber=True)
+
+    return [dest_file_new, dest_file_ref]
+
+
