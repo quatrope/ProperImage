@@ -619,13 +619,14 @@ class SingleImage(object):
             # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
             best_srcs = srcs[best_flag & best_small & low_flux]
 
-            p_sizes = np.sqrt(np.percentile(best_srcs['npix'], q=[15, 55, 65]))
-            if not p_sizes[1] < 13:
+            p_sizes = np.sqrt(np.percentile(best_srcs['npix'], q=[45, 60, 65]))
+
+            if p_sizes[1] >= 15:
                 dx = int(p_sizes[1])
                 if dx % 2 != 1: dx += 1
                 fitshape = (dx, dx)
             else:
-                fitshape = (13, 13)
+                fitshape = (15, 15)
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
