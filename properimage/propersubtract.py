@@ -97,17 +97,16 @@ class ImageSubtractor(object):
                    _ifftwn(D_hat_r/np.sqrt(norm)) * beta
 
             #return np.sqrt(np.average(np.square(cost[50:-50, 50:-50])))
-            return cost[30:-30, 30:-30].reshape(-1)
+            return cost[10:-10, 10:-10].reshape(-1)
 
         t0 = time.time()
         solv_beta = optimize.least_squares(cost_beta, n_zp/r_zp, bounds=(0.1, 5.))
         t1 = time.time()
 
         if solv_beta.success:
-            print 'Found that beta = {}'.format(beta)
+            print 'Found that beta = {}'.format(solv_beta.x)
             print 'Took only {} awesome seconds'.format(t1-t0)
-            print 'The solution was with cost {}'.format(beta.optimality)
-
+            print 'The solution was with cost {}'.format(solv_beta.cost)
             beta = solv_beta.x
         else:
             print 'Least squares could not find our beta  :('
