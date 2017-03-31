@@ -24,6 +24,8 @@
 
 import os
 import numpy as np
+from scipy import optimize
+import time
 from . import propercoadd as pc
 from . import utils as u
 
@@ -84,14 +86,37 @@ class ImageSubtractor(object):
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
 
-        D_hat_r = n_zp * psf_new_hat.conjugate() * _fftwn(ref.imagedata)
-        D_hat_n = r_zp * psf_ref_hat.conjugate() * _fftwn(new.imagedata)
+        D_hat_r = psf_new_hat * _fftwn(ref.bkg_sub_img)
+        D_hat_n = psf_ref_hat * _fftwn(new.bkg_sub_img)
 
-        norm  = r_var*r_var * r_zp*r_zp * psf_ref_hat*psf_ref_hat.conjugate()
-        norm += n_var*n_var * n_zp*n_zp * psf_new_hat*psf_new_hat.conjugate()
+        def cost_beta(beta):
+            norm  = beta*beta*(r_var*r_var*psf_ref_hat*psf_ref_hat.conjugate())
+            norm += n_var*n_var * psf_new_hat*psf_new_hat.conjugate()
 
-        D_hat = (D_hat_n - D_hat_r)/np.sqrt(norm)
+            cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
+                   _ifftwn(D_hat_r/np.sqrt(norm)) * beta
 
+            #return np.sqrt(np.average(np.square(cost[50:-50, 50:-50])))
+            return cost[30:-30, 30:-30].reshape(-1)
+
+        t0 = time.time()
+        solv_beta = optimize.least_squares(cost_beta, n_zp/r_zp, bounds=(0.1, 5.))
+        t1 = time.time()
+
+        if solv_beta.success:
+            print 'Found that beta = {}'.format(beta)
+            print 'Took only {} awesome seconds'.format(t1-t0)
+            print 'The solution was with cost {}'.format(beta.optimality)
+
+            beta = solv_beta.x
+        else:
+            print 'Least squares could not find our beta  :('
+            print 'Beta is overriden to be the zp ratio again'
+            beta =  n_zp/r_zp
+        norm  = beta*beta*(r_var*r_var*psf_ref_hat*psf_ref_hat.conjugate())
+        norm += n_var*n_var * psf_new_hat*psf_new_hat.conjugate()
+
+        D_hat = (D_hat_n - beta * D_hat_r)/np.sqrt(norm)
         D = _ifftwn(D_hat)
 
         d_zp = np.sqrt(r_var*r_var*r_zp*r_zp + n_var*n_var*n_zp*n_zp)
