@@ -40,7 +40,7 @@ except:
 
 
 class ImageSubtractor(object):
-    def __init__(self, refpath, newpath, align=True, crop=True, border=50):
+    def __init__(self, refpath, newpath, align=True, crop=False, border=50):
 
         if align:
             if crop:
