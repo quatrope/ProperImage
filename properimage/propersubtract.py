@@ -40,7 +40,8 @@ except:
 
 
 class ImageSubtractor(object):
-    def __init__(self, refpath, newpath, align=True, crop=False, border=50):
+    def __init__(self, refpath, newpath, align=True, crop=False,
+                 solve_beta=False, border=50):
 
         if align:
             if crop:
@@ -53,6 +54,7 @@ class ImageSubtractor(object):
         else:
             self.ens = pc.ImageEnsemble([refpath, newpath])
 
+        self.sb = solve_beta
     def __enter__(self):
         return self
 
@@ -89,29 +91,32 @@ class ImageSubtractor(object):
         D_hat_r = psf_new_hat * _fftwn(ref.bkg_sub_img)
         D_hat_n = psf_ref_hat * _fftwn(new.bkg_sub_img)
 
-        def cost_beta(beta):
-            norm  = beta*beta*(r_var*r_var*psf_ref_hat*psf_ref_hat.conjugate())
-            norm += n_var*n_var * psf_new_hat*psf_new_hat.conjugate()
+        if (self.sb or (r_zp==1.0 and n_zp==1.0)):
+            def cost_beta(beta):
+                norm  = beta*beta*(r_var*r_var*psf_ref_hat*psf_ref_hat.conjugate())
+                norm += n_var*n_var * psf_new_hat*psf_new_hat.conjugate()
 
-            cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
-                   _ifftwn(D_hat_r/np.sqrt(norm)) * beta
+                cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
+                       _ifftwn(D_hat_r/np.sqrt(norm)) * beta
 
-            #return np.sqrt(np.average(np.square(cost[50:-50, 50:-50])))
-            return cost[10:-10, 10:-10].reshape(-1)
+                #return np.sqrt(np.average(np.square(cost[50:-50, 50:-50])))
+                return cost[10:-10, 10:-10].reshape(-1)
 
-        t0 = time.time()
-        solv_beta = optimize.least_squares(cost_beta, n_zp/r_zp, bounds=(0.1, 5.))
-        t1 = time.time()
+            t0 = time.time()
+            solv_beta = optimize.least_squares(cost_beta, n_zp/r_zp, bounds=(0.1, 5.))
+            t1 = time.time()
 
-        if solv_beta.success:
-            print 'Found that beta = {}'.format(solv_beta.x)
-            print 'Took only {} awesome seconds'.format(t1-t0)
-            print 'The solution was with cost {}'.format(solv_beta.cost)
-            beta = solv_beta.x
+            if solv_beta.success:
+                print 'Found that beta = {}'.format(solv_beta.x)
+                print 'Took only {} awesome seconds'.format(t1-t0)
+                print 'The solution was with cost {}'.format(solv_beta.cost)
+                beta = solv_beta.x
+            else:
+                print 'Least squares could not find our beta  :('
+                print 'Beta is overriden to be the zp ratio again'
+                beta =  n_zp/r_zp
         else:
-            print 'Least squares could not find our beta  :('
-            print 'Beta is overriden to be the zp ratio again'
-            beta =  n_zp/r_zp
+            beta = n_zp/r_zp
         norm  = beta*beta*(r_var*r_var*psf_ref_hat*psf_ref_hat.conjugate())
         norm += n_var*n_var * psf_new_hat*psf_new_hat.conjugate()
 
