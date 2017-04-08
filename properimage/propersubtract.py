@@ -125,7 +125,8 @@ class ImageSubtractor(object):
 
         d_zp = np.sqrt(r_var*r_var*r_zp*r_zp + n_var*n_var*n_zp*n_zp)
         P_hat =(psf_ref_hat * psf_new_hat)/(np.sqrt(norm)*d_zp)
-        P = _ifftwn(P_hat)
+
+        P = _ifftwn(P_hat).real
 
         return D, P
 

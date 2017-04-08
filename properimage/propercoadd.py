@@ -657,7 +657,7 @@ class SingleImage(object):
             # self._best_sources['detected'] = srcs
             # self.db = npdb.NumPyDB_cPickle(self._dbname, mode='store')
 
-            print 'returning best sources'
+            print 'returning best sources\n'
         return self._best_sources
 
     def _covMat_from_stars(self):
@@ -686,7 +686,7 @@ class SingleImage(object):
 
                     covMat[i, j] = inner
                     covMat[j, i] = inner
-        print 'returning Covariance Matrix'
+        # print 'returning Covariance Matrix'
         return covMat
 
     def _covMat_psf(self):
@@ -730,7 +730,7 @@ class SingleImage(object):
 
                     renders[i] = psfi_render
                     renders[j] = psfj_render
-        print 'returning Covariance Matrix'
+        # print 'returning Covariance Matrix'
         return [covMat, renders]
 
     @property
@@ -765,7 +765,7 @@ class SingleImage(object):
 
             self._psf_KL_basis_model = psf_basis
 
-            print 'obtaining KL basis'
+            # print 'obtaining KL basis'
         return self._psf_KL_basis_model
 
     def _kl_from_stars(self, pow_th=None):
@@ -864,7 +864,7 @@ class SingleImage(object):
                 a_fields.append(fitter(a_field_model, x, y, z))
 
             self._a_fields = a_fields
-            print 'obtaining a fields'
+            # print 'obtaining a fields'
         return self._a_fields
 
     def get_variable_psf(self, from_stars=True, pow_th=None): #delete_patches=False,
