@@ -41,7 +41,7 @@ except:
 
 class ImageSubtractor(object):
     def __init__(self, refpath, newpath, align=True, crop=False,
-                 solve_beta=False, border=50):
+                 solve_beta=False, calc_zps=True, border=50):
 
         if align:
             if crop:
@@ -55,6 +55,7 @@ class ImageSubtractor(object):
             self.ens = pc.ImageEnsemble([refpath, newpath])
 
         self.sb = solve_beta
+        self.zp = calc_zps
     def __enter__(self):
         return self
 
@@ -79,11 +80,15 @@ class ImageSubtractor(object):
         psf_ref_hat = _fftwn(psf_ref, s=shape)
         psf_new_hat = _fftwn(psf_new, s=shape)
 
-        zps = self.ens.transparencies
-        r_zp = zps[0]
-        n_zp = zps[1]
+        if self.zp:
+            zps = self.ens.transparencies
+            r_zp = zps[0]
+            n_zp = zps[1]
 
-        print 'Ref_zp = {}, New_zp = {}'.format(r_zp, n_zp)
+            print 'Ref_zp = {}, New_zp = {}'.format(r_zp, n_zp)
+        else:
+            r_zp = 1.
+            n_zp = 1.
 
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
