@@ -400,7 +400,8 @@ class SingleImage(object):
             self.imagedata = fits.getdata(img)
             if not self.imagedata.dtype == 'uint16':
                 self.imagedata = self.imagedata.byteswap().newbyteorder()
-
+            elif self.imagedata.dtype == 'int32':
+                self.imagedata = self.imagedata.byteswap().newbyteorder()
             else:
                 self.imagedata = self.imagedata.astype('float')
         else:
