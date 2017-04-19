@@ -14,6 +14,7 @@ Cordoba - Argentina
 
 Of 301
 """
+
 import os
 from multiprocessing import Process
 from multiprocessing import Queue
@@ -219,7 +220,7 @@ class ImageEnsemble(MutableSequence):
             S_hat_stk.extend(s_hat_list)
 
         S_stack = np.stack(S_stk, axis=-1)
-        #S_stack = np.tensordot(S_stack, self.transparencies, axes=(-1, 0))
+        # S_stack = np.tensordot(S_stack, self.transparencies, axes=(-1, 0))
 
         S_hat_stack = np.stack(S_hat_stk, axis=-1)
 
@@ -415,7 +416,7 @@ class SingleImage(object):
 
         if np.any(np.isnan(self.imagedata)):
             self.imagedata = np.ma.masked_array(self.imagedata,
-                                    np.isnan(self.imagedata)).filled(35000.)
+                                                np.isnan(self.imagedata)).filled(35000.)
 
         if np.any(self.imagedata < 0.):
             self.imagedata = np.ma.masked_array(self.imagedata,
@@ -609,12 +610,12 @@ class SingleImage(object):
 
             p_sizes = np.percentile(srcs['npix'], q=[15, 55, 65])
 
-            best_big = srcs['npix'] >= p_sizes[0]
+            # best_big = srcs['npix'] >= p_sizes[0]
             best_small = srcs['npix'] <= p_sizes[2]
             best_flag = srcs['flag'] <= 1
             fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
             low_flux = srcs['flux'] > fluxes_quartiles[0]
-            hig_flux = srcs['flux'] < fluxes_quartiles[1]
+            # hig_flux = srcs['flux'] < fluxes_quartiles[1]
 
             # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
             best_srcs = srcs[best_flag & best_small & low_flux]
