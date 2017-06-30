@@ -80,6 +80,14 @@ class ImageSubtractor(object):
         psf_ref_hat = _fftwn(psf_ref, s=shape)
         psf_new_hat = _fftwn(psf_new, s=shape)
 
+        ref_shift = np.zeros_like(psf_ref)
+        ref_shift[np.where(psf_ref==np.max(psf_ref))] == 1.
+        ref_shift = _fftwn(ref_shift, s=shape)
+
+        new_shift = np.zeros_like(psf_new)
+        new_shift[np.where(psf_new==np.max(psf_new))] == 1.
+        new_shift = _fftwn(new_shift, s=shape)
+
         if self.zp:
             zps = self.ens.transparencies
             r_zp = zps[0]
@@ -93,8 +101,8 @@ class ImageSubtractor(object):
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
 
-        D_hat_r = psf_new_hat * _fftwn(ref.bkg_sub_img)
-        D_hat_n = psf_ref_hat * _fftwn(new.bkg_sub_img)
+        D_hat_r = psf_new_hat * _fftwn(ref.bkg_sub_img) * ref_shift
+        D_hat_n = psf_ref_hat * _fftwn(new.bkg_sub_img) * new_shift
 
         if (self.sb or (r_zp==1.0 and n_zp==1.0)):
             def cost_beta(beta):

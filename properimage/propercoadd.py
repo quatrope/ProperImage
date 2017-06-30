@@ -621,7 +621,8 @@ class SingleImage(object):
             # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
             best_srcs = srcs[best_flag & best_small & low_flux]
 
-            p_sizes = np.sqrt(np.percentile(best_srcs['npix'], q=[45, 60, 65]))
+            p_sizes = np.sqrt(np.percentile(best_srcs['npix'],
+                                            q=[55, 75, 95]))
 
             if p_sizes[1] >= 15:
                 dx = int(p_sizes[1])
@@ -801,7 +802,7 @@ class SingleImage(object):
                     except: import ipdb; ipdb.set_trace()
                     base += xs[j, i] * pj
                     norm = np.sqrt(np.sum(base**2.))
-                psf_basis.append(base)
+                psf_basis.append(base/norm)
             del(base)
             self._psf_KL_basis_stars = psf_basis
             self._valh = valh
@@ -844,18 +845,19 @@ class SingleImage(object):
             measures = np.zeros((N_fields, self._best_srcs['n_sources']))
             for i in range(N_fields):
                 p_i = psf_basis[i].flatten()
-                p_i_sq = np.sum(np.dot(p_i, p_i))
+                # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
                 x = positions[:, 0]
                 y = positions[:, 1]
                 for j in range(self._best_srcs['n_sources']):
                     if mask[j]:
                         Pval = self.db.load(j)[0].flatten()
-                        #redefinir Pval
+                        # redefinir Pval
                         for ii in range(i):
                             Pval -= measures[ii, j] * psf_basis[ii].flatten()
 
-                        measures[i, j] = np.dot(Pval, p_i)/p_i_sq
+                        Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
+                        measures[i, j] = np.dot(Pval, p_i)/Pval_sq
                     else:
                         measures[i, j] = None
 
