@@ -81,11 +81,11 @@ class ImageSubtractor(object):
         psf_new_hat = _fftwn(psf_new, s=shape)
 
         ref_shift = np.zeros_like(psf_ref)
-        ref_shift[np.where(psf_ref==np.max(psf_ref))] == 1.
+        ref_shift[np.where(psf_ref==np.max(psf_ref))] = 1.
         ref_shift = _fftwn(ref_shift, s=shape)
 
         new_shift = np.zeros_like(psf_new)
-        new_shift[np.where(psf_new==np.max(psf_new))] == 1.
+        new_shift[np.where(psf_new==np.max(psf_new))] = 1.
         new_shift = _fftwn(new_shift, s=shape)
 
         if self.zp:
@@ -147,15 +147,16 @@ class ImageSubtractor(object):
         #~ kn_hat = n_zp*r_zp*r_zp*psf_new_hat.conjugate()*psf_ref_hat**2.
 
         S = _ifftwn(S_hat).real
-
+        #import ipdb; ipdb.set_trace()
         return D, P, S
 
     def get_transients(self, threshold=2.5, neighborhood_size=5.):
         S = self.subtract()[2]
+        threshold = np.std(S) * threshold
         cat = u.find_S_local_maxima(S, threshold=threshold,
                                     neighborhood_size=neighborhood_size)
 
-       return cat
+        return cat
 
 
 
