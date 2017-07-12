@@ -152,14 +152,10 @@ class ImageSubtractor(object):
 
     def get_transients(self, threshold=2.5, neighborhood_size=5.):
         S = self.subtract()[2]
-        xy = find_S_local_maxima(S, threshold=threshold,
-                                 neighborhood_size=neighborhood_size)
+        cat = u.find_S_local_maxima(S, threshold=threshold,
+                                    neighborhood_size=neighborhood_size)
 
-        cat = []
-        for x, y in xy:
-            cat.append(int(x), int(y), S[int(x), int(y)])
-
-        return cat
+       return cat
 
 
 

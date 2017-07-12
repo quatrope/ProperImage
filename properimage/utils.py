@@ -462,5 +462,8 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
                                          range(1, num_objects+1)))
     #~ x = xy[:, 0]
     #~ y = xy[:, 1]
+    cat = []
+    for x, y in xy:
+        cat.append(int(x), int(y), S[int(x), int(y)])
 
-    return xy
+    return cat
