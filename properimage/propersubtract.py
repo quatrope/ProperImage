@@ -101,8 +101,8 @@ class ImageSubtractor(object):
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
 
-        D_hat_r = psf_new_hat * _fftwn(ref.bkg_sub_img) * ref_shift
-        D_hat_n = psf_ref_hat * _fftwn(new.bkg_sub_img) * new_shift
+        D_hat_r = psf_new_hat * _fftwn(ref.bkg_sub_img) * ref_shift.conjugate()
+        D_hat_n = psf_ref_hat * _fftwn(new.bkg_sub_img) * new_shift.conjugate()
 
         if (self.sb or (r_zp==1.0 and n_zp==1.0)):
             def cost_beta(beta):
@@ -140,8 +140,11 @@ class ImageSubtractor(object):
         P_hat =(psf_ref_hat * psf_new_hat)/(np.sqrt(norm)*d_zp)
 
         P = _ifftwn(P_hat).real
+        shift = np.zeros_like(P)
+        shift[np.where(P==np.max(P))] = 1.
+        shift = _fftwn(shift, s=shape)
 
-        S_hat = d_zp * D_hat * P_hat.conjugate()
+        S_hat = d_zp * D_hat * P_hat.conjugate() * shift
 
         #~ kr_hat = r_zp*n_zp*n_zp*psf_ref_hat.conjugate()*psf_new_hat**2.
         #~ kn_hat = n_zp*r_zp*r_zp*psf_new_hat.conjugate()*psf_ref_hat**2.
