@@ -141,7 +141,25 @@ class ImageSubtractor(object):
 
         P = _ifftwn(P_hat).real
 
-        return D, P
+        S_hat = d_zp * D_hat * P_hat.conjugate()
+
+        #~ kr_hat = r_zp*n_zp*n_zp*psf_ref_hat.conjugate()*psf_new_hat**2.
+        #~ kn_hat = n_zp*r_zp*r_zp*psf_new_hat.conjugate()*psf_ref_hat**2.
+
+        S = _ifftwn(S_hat).real
+
+        return D, P, S
+
+    def get_transients(self, threshold=2.5, neighborhood_size=5.):
+        S = self.subtract()[2]
+        xy = find_S_local_maxima(S, threshold=threshold,
+                                 neighborhood_size=neighborhood_size)
+
+        cat = []
+        for x, y in xy:
+            cat.append(int(x), int(y), S[int(x), int(y)])
+
+        return cat
 
 
 

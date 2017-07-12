@@ -24,6 +24,8 @@
 import os
 import numpy as np
 from scipy import sparse
+import scipy.ndimage as ndimage
+import scipy.ndimage.filters as filters
 from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
 from astropy.convolution import convolve, convolve_fft
@@ -32,7 +34,7 @@ import matplotlib.pyplot as plt
 
 import astroalign as aa
 from . import simtools
-#from . import propercoadd as pc
+# from . import propercoadd as pc
 
 font = {'family'        : 'sans-serif',
         'sans-serif'    : ['Computer Modern Sans serif'],
@@ -109,16 +111,18 @@ def encapsule_S(S, path=None):
     else:
         hdu = fits.PrimaryHDU(S)
     if path is not None:
-        hdu.writeto(path, clobber=True)
+        hdu.writeto(path, overwrite=True)
     else:
         return hdu
 
-def encapsule_R(R, path=None):
+def encapsule_R(R, path=None, header=None):
     if isinstance(R[0, 0] , np.complex):
         R = R.real
     hdu = fits.PrimaryHDU(R)
+    if header is not None:
+        pass
     if path is not None:
-        hdu.writeto(path, clobber=True)
+        hdu.writeto(path, overwrite=True)
     else:
         return hdu
 
@@ -407,7 +411,7 @@ def align_for_diff(refpath, newpath):
     new2 = aa.align_image(ref, new)
 
     hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
-    fits.writeto(dest_file, new2, hdr, clobber=True)
+    fits.writeto(dest_file, new2, hdr, overwrite=True)
 
     return dest_file
 
@@ -440,8 +444,23 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
 
     hdr_new.set('comment', 'aligned img '+newpath+' to '+refpath)
     new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
-    fits.writeto(dest_file_new, new2, hdr_new, clobber=True)
+    fits.writeto(dest_file_new, new2, hdr_new, overwrite=True)
 
     return [dest_file_new, dest_file_ref]
 
 
+def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
+    data_max = filters.maximum_filter(S_image, neighborhood_size)
+    maxima = (S_image == data_max)
+    data_min = filters.minimum_filter(S_image, neighborhood_size)
+    diff = ((data_max - data_min) > threshold)
+    maxima[diff == 0] = 0
+
+    labeled, num_objects = ndimage.label(maxima)
+    xy = np.array(ndimage.center_of_mass(S_image,
+                                         labeled,
+                                         range(1, num_objects+1)))
+    #~ x = xy[:, 0]
+    #~ y = xy[:, 1]
+
+    return xy
