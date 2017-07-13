@@ -66,6 +66,7 @@ class ImageSubtractor(object):
         self.ens._clean()
 
     def subtract(self):
+        t0 = time.time()
         ref = self.ens.atoms[0]
         new = self.ens.atoms[1]
 
@@ -106,8 +107,8 @@ class ImageSubtractor(object):
 
         if (self.sb or (r_zp==1.0 and n_zp==1.0)):
             def cost_beta(beta):
-                norm  = beta*beta*(r_var*r_var*psf_ref_hat*psf_ref_hat.conjugate())
-                norm += n_var*n_var * psf_new_hat*psf_new_hat.conjugate()
+                norm  = beta*beta*(r_var*r_var*np.absolute(psf_new_hat)**2)
+                norm += n_var*n_var * np.absolute(psf_ref_hat)**2
 
                 cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
                        _ifftwn(D_hat_r/np.sqrt(norm)) * beta
@@ -115,13 +116,15 @@ class ImageSubtractor(object):
                 #return np.sqrt(np.average(np.square(cost[50:-50, 50:-50])))
                 return cost[10:-10, 10:-10].reshape(-1)
 
-            t0 = time.time()
-            solv_beta = optimize.least_squares(cost_beta, n_zp/r_zp, bounds=(0.1, 5.))
-            t1 = time.time()
+            tbeta0 = time.time()
+            solv_beta = optimize.least_squares(cost_beta,
+                                               n_zp/r_zp,
+                                               bounds=(0.1, 5.))
+            tbeta1 = time.time()
 
             if solv_beta.success:
                 print 'Found that beta = {}'.format(solv_beta.x)
-                print 'Took only {} awesome seconds'.format(t1-t0)
+                print 'Took only {} awesome seconds'.format(tbeta1-tbeta0)
                 print 'The solution was with cost {}'.format(solv_beta.cost)
                 beta = solv_beta.x
             else:
@@ -130,14 +133,14 @@ class ImageSubtractor(object):
                 beta =  n_zp/r_zp
         else:
             beta = n_zp/r_zp
-        norm  = beta*beta*(r_var*r_var*psf_ref_hat*psf_ref_hat.conjugate())
-        norm += n_var*n_var * psf_new_hat*psf_new_hat.conjugate()
+        norm  = beta*beta*(r_var*r_var*np.absolute(psf_new_hat)**2)
+        norm += n_var*n_var * np.absolute(psf_ref_hat)**2
 
         D_hat = (D_hat_n - beta * D_hat_r)/np.sqrt(norm)
         D = _ifftwn(D_hat)
 
-        d_zp = np.sqrt(r_var*r_var*r_zp*r_zp + n_var*n_var*n_zp*n_zp)
-        P_hat =(psf_ref_hat * psf_new_hat)/(np.sqrt(norm)*d_zp)
+        d_zp = beta/np.sqrt(r_var*r_var*beta*beta + n_var*n_var)
+        P_hat =(psf_ref_hat * psf_new_hat * beta)/(np.sqrt(norm)*d_zp)
 
         P = _ifftwn(P_hat).real
         shift = np.zeros_like(P)
@@ -146,12 +149,18 @@ class ImageSubtractor(object):
 
         S_hat = d_zp * D_hat * P_hat.conjugate() * shift
 
-        #~ kr_hat = r_zp*n_zp*n_zp*psf_ref_hat.conjugate()*psf_new_hat**2.
-        #~ kn_hat = n_zp*r_zp*r_zp*psf_new_hat.conjugate()*psf_ref_hat**2.
+        kr=_ifftwn(beta*n_zp*psf_ref_hat.conjugate()*np.absolute(psf_new_hat)**2/norm)
+        kn=_ifftwn(beta*n_zp*psf_new_hat.conjugate()*np.absolute(psf_ref_hat)**2/norm)
 
-        S = _ifftwn(S_hat).real
+        V_en = _ifftwn(_fftwn(new.imagedata+1.)*_fftwn(kn*kn, s=shape))
+        V_er = _ifftwn(_fftwn(ref.imagedata+1.)*_fftwn(kr*kr, s=shape))
+
+        S = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
+
+        print 'Subtraction performed in {} seconds'.format(time.time()-t0)
+
         #import ipdb; ipdb.set_trace()
-        return D, P, S
+        return D, P, S.real
 
     def get_transients(self, threshold=2.5, neighborhood_size=5.):
         S = self.subtract()[2]

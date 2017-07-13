@@ -453,6 +453,7 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
     std = np.std(S_image)
     mean = np.mean(S_image)
     threshold = threshold * std
+
     data_max = filters.maximum_filter(S_image, neighborhood_size)
     maxima = (S_image == data_max)
     data_min = filters.minimum_filter(S_image, neighborhood_size)
