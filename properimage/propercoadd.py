@@ -469,7 +469,7 @@ class SingleImage(object):
             self._masked = np.ma.masked_invalid(self.imagedata)
             self._masked = np.ma.masked_outside(self._masked, 100., 45000.)
 
-            print 'background subtracted image obtained'
+            #~ print 'background subtracted image obtained'
         return self._masked
 
     @property
@@ -488,7 +488,7 @@ class SingleImage(object):
                                       mask=self.masked.mask)
             self._bkg_sub_img = self.imagedata - self.bkg
 
-            print 'background subtracted image obtained'
+            #~ print 'background subtracted image obtained'
         return self._bkg_sub_img
 
     def _fit_models_psf(self, best_srcs, indices, fitshape, prf_model, fitter):
@@ -532,7 +532,7 @@ class SingleImage(object):
             resid = sub_array_data - fit(x, y)
             if np.sum(np.square(resid)) < 5*self.bkg.globalrms*fitshape[0]**2:
                 model_fits.append(fit)
-        print 'succesful fits = {}'.format(len(model_fits))
+        #~ print 'succesful fits = {}'.format(len(model_fits))
         return model_fits
 
     def fit_psf_sep(self, model='astropy-Gaussian2D'):
@@ -571,7 +571,7 @@ class SingleImage(object):
 
         model_fits = self._fit_models_psf(best_srcs, indices, fitshape,
                                           prf_model, fitter)
-        print 'returning model fits'
+        #~ print 'returning model fits'
         return model_fits
 
     @property
@@ -607,7 +607,7 @@ class SingleImage(object):
             if len(srcs) < 10:
                 print 'No sources detected'
 
-            print 'raw sources = {}'.format(len(srcs))
+            #~ print 'raw sources = {}'.format(len(srcs))
 
             p_sizes = np.percentile(srcs['npix'], q=[15, 55, 65])
 
@@ -624,12 +624,12 @@ class SingleImage(object):
             p_sizes = np.sqrt(np.percentile(best_srcs['npix'],
                                             q=[55, 75, 95]))
 
-            if p_sizes[1] >= 15:
+            if p_sizes[1] >= 23:
                 dx = int(p_sizes[1])
                 if dx % 2 != 1: dx += 1
                 fitshape = (dx, dx)
             else:
-                fitshape = (15, 15)
+                fitshape = (23, 23)
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
@@ -660,7 +660,7 @@ class SingleImage(object):
             # self._best_sources['detected'] = srcs
             # self.db = npdb.NumPyDB_cPickle(self._dbname, mode='store')
 
-            print 'returning best sources\n'
+            #~ print 'returning best sources\n'
         return self._best_sources
 
     def _covMat_from_stars(self):
@@ -806,7 +806,7 @@ class SingleImage(object):
             del(base)
             self._psf_KL_basis_stars = psf_basis
             self._valh = valh
-            print 'obtainig KL basis, using k = {}'.format(N_psf_basis)
+            #~ print 'obtainig KL basis, using k = {}'.format(N_psf_basis)
         return self._psf_KL_basis_stars
 
     def _kl_a_fields(self, pow_th=None, from_stars=True):
@@ -881,7 +881,7 @@ class SingleImage(object):
         else:
             psf_basis = self._kl_PSF
 
-        print 'returning variable psf'
+        #~ print 'returning variable psf'
         return [a_fields, psf_basis]
 
     @property
@@ -910,7 +910,7 @@ class SingleImage(object):
                     # conv += sg.fftconvolve(a, psf_i, mode='same')
 
                 self._normal_image = conv
-            print 'getting normal image'
+            #~ print 'getting normal image'
         return self._normal_image
 
     @property
@@ -930,7 +930,7 @@ class SingleImage(object):
             nrm = self.normal_image
 
             if a_fields is None:
-                print 'starting matched filter'
+                #~ print 'starting matched filter'
                 mfilter = sg.correlate2d(self._masked,
                                          psf_basis[0],
                                          mode='same')
@@ -938,18 +938,18 @@ class SingleImage(object):
                 for i in range(len(a_fields)):
                     a = a_fields[i]
                     psf = psf_basis[i]
-                    print 'calculating Im . a_field({})'.format(i)
+                    #~ print 'calculating Im . a_field({})'.format(i)
                     cross = np.multiply(a(x, y), self._masked)
                     # cross = convolve_fft(self.bkg_sub_img, psf)
-                    print 'starting matched filter'
+                    #~ print 'starting matched filter'
                     conv = sg.correlate2d(cross, psf, mode='same')
-                    print 'stacking matched filter'
+                    #~ print 'stacking matched filter'
                     mfilter += conv
 
-            print 'matched filter succesful'
+            #~ print 'matched filter succesful'
             mfilter = mfilter/nrm
             self._s_component = self.zp * mfilter/var**2
-            print 'getting s component'
+            #~ print 'getting s component'
         return self._s_component
 
     def _clean(self):

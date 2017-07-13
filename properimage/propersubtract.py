@@ -139,7 +139,7 @@ class ImageSubtractor(object):
         D_hat = (D_hat_n - beta * D_hat_r)/np.sqrt(norm)
         D = _ifftwn(D_hat)
 
-        d_zp = beta/np.sqrt(r_var*r_var*beta*beta + n_var*n_var)
+        d_zp = n_zp/np.sqrt(r_var*r_var*beta*beta + n_var*n_var)
         P_hat =(psf_ref_hat * psf_new_hat * beta)/(np.sqrt(norm)*d_zp)
 
         P = _ifftwn(P_hat).real
@@ -155,12 +155,12 @@ class ImageSubtractor(object):
         V_en = _ifftwn(_fftwn(new.imagedata+1.)*_fftwn(kn*kn, s=shape))
         V_er = _ifftwn(_fftwn(ref.imagedata+1.)*_fftwn(kr*kr, s=shape))
 
-        S = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
-
+        S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
+        print 'S std = {}'.format(np.std(S_corr))
         print 'Subtraction performed in {} seconds'.format(time.time()-t0)
 
         #import ipdb; ipdb.set_trace()
-        return D, P, S.real
+        return D, P, S_corr.real
 
     def get_transients(self, threshold=2.5, neighborhood_size=5.):
         S = self.subtract()[2]
