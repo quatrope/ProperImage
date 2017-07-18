@@ -397,6 +397,7 @@ class SingleImage(object):
             self._attached_to = img
 
         if imagefile:
+            self.header = fits.getheader(img)
             self.imagedata = fits.getdata(img)
             if not self.imagedata.dtype == 'uint16':
                 self.imagedata = self.imagedata.byteswap().newbyteorder()
@@ -404,6 +405,11 @@ class SingleImage(object):
                 self.imagedata = self.imagedata.byteswap().newbyteorder()
             else:
                 self.imagedata = self.imagedata.astype('float')
+
+            try:
+                self.imagedata /= self.header['EXPTIME']
+            except:
+                pass
         else:
             self.imagedata = img
 
@@ -624,12 +630,12 @@ class SingleImage(object):
             p_sizes = np.sqrt(np.percentile(best_srcs['npix'],
                                             q=[55, 75, 95]))
 
-            if p_sizes[1] >= 23:
+            if p_sizes[1] >= 17:
                 dx = int(p_sizes[1])
                 if dx % 2 != 1: dx += 1
                 fitshape = (dx, dx)
             else:
-                fitshape = (23, 23)
+                fitshape = (17, 17)
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
