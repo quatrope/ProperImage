@@ -28,6 +28,7 @@ import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
 from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
+from astropy.stats import sigma_clipped_stats
 from astropy.convolution import convolve, convolve_fft
 from astroML import crossmatch as cx
 import matplotlib.pyplot as plt
@@ -451,10 +452,10 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
 
 
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
-    std = np.std(S_image)
-    mean = np.mean(S_image)
+    #std = np.std(S_image)
+    #mean = np.mean(S_image)
     #threshold = threshold * std
-
+    mean, median, std = sigma_clipped_stats(S_image, iters=3)
     #~ data_max = filters.maximum_filter(S_image, neighborhood_size)
     #~ maxima = (S_image == data_max)
     #~ data_min = filters.minimum_filter(S_image, neighborhood_size)
