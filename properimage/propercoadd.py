@@ -406,10 +406,10 @@ class SingleImage(object):
             else:
                 self.imagedata = self.imagedata.astype('float')
 
-            try:
-                self.imagedata /= self.header['EXPTIME']
-            except:
-                pass
+            #~ try:
+                #~ self.imagedata /= self.header['EXPTIME']
+            #~ except:
+                #~ pass
         else:
             self.imagedata = img
 
@@ -615,9 +615,9 @@ class SingleImage(object):
 
             #~ print 'raw sources = {}'.format(len(srcs))
 
-            p_sizes = np.percentile(srcs['npix'], q=[15, 55, 65])
+            p_sizes = np.percentile(srcs['npix'], q=[35, 55, 65])
 
-            # best_big = srcs['npix'] >= p_sizes[0]
+            best_big = srcs['npix'] >= p_sizes[0]
             best_small = srcs['npix'] <= p_sizes[2]
             best_flag = srcs['flag'] <= 1
             fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
@@ -625,17 +625,17 @@ class SingleImage(object):
             # hig_flux = srcs['flux'] < fluxes_quartiles[1]
 
             # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
-            best_srcs = srcs[best_flag & best_small & low_flux]
+            best_srcs = srcs[best_flag & best_small & low_flux & best_big]
 
-            p_sizes = np.sqrt(np.percentile(best_srcs['npix'],
-                                            q=[55, 75, 95]))
+            p_sizes = 3.*np.sqrt(np.percentile(best_srcs['npix'],
+                                            q=[35, 55, 95]))
 
-            if p_sizes[1] >= 17:
+            if p_sizes[1] >= 21:
                 dx = int(p_sizes[1])
                 if dx % 2 != 1: dx += 1
                 fitshape = (dx, dx)
             else:
-                fitshape = (17, 17)
+                fitshape = (21, 21)
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)

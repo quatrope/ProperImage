@@ -348,7 +348,8 @@ def transparency(images, master=None, ensemble=True):
 def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
-        a = a_fields[j](x, y) * image
+        #a = a_fields[j](x, y) * image
+        a = a_fields[j] * image
         psf = psf_basis[j]
 
         imconvolved += convolve(a, psf, boundary='extend')
@@ -452,7 +453,7 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
     std = np.std(S_image)
     mean = np.mean(S_image)
-    threshold = threshold * std
+    #threshold = threshold * std
 
     #~ data_max = filters.maximum_filter(S_image, neighborhood_size)
     #~ maxima = (S_image == data_max)
@@ -460,7 +461,7 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
     #~ diff = ((data_max - data_min) > threshold)
     #~ maxima[diff == 0] = 0
 
-    labeled, num_objects = ndimage.label(S_image > threshold)
+    labeled, num_objects = ndimage.label((S_image-mean)/std > threshold)
     xy = np.array(ndimage.center_of_mass(S_image,
                                          labeled,
                                          range(1, num_objects+1)))
