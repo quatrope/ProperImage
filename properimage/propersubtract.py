@@ -25,6 +25,7 @@
 import os
 import numpy as np
 from scipy import optimize
+from astropy.stats import sigma_clipped_stats
 import time
 from . import propercoadd as pc
 from . import utils as u
@@ -172,7 +173,8 @@ class ImageSubtractor(object):
         V_er = _ifftwn(_fftwn(ref.imagedata+1.)*_fftwn(kr*kr, s=shape))
 
         S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
-        print 'S std = {}'.format(np.std(S_corr))
+        print 'S_corr sigma_clipped_stats '
+        print 'mean = {}, median = {}, std = {}\n'.format(sigma_clipped_stats(S_corr))
         print 'Subtraction performed in {} seconds'.format(time.time()-t0)
 
         #import ipdb; ipdb.set_trace()
