@@ -25,7 +25,7 @@
 import os
 import numpy as np
 from scipy import optimize
-from astropy.stats import sigma_clipped_stats
+from astropy.stats import sigma_clipped_stats, sigma_clip
 import time
 from . import propercoadd as pc
 from . import utils as u
@@ -42,7 +42,7 @@ except:
 
 class ImageSubtractor(object):
     def __init__(self, refpath, newpath, align=True, crop=False,
-                 solve_beta=False, calc_zps=True, border=50):
+                 solve_beta=False, calc_zps=True, border=50, shape=None):
 
         if align:
             if crop:
@@ -57,6 +57,7 @@ class ImageSubtractor(object):
 
         self.sb = solve_beta
         self.zp = calc_zps
+        self.psfshape = shape
     def __enter__(self):
         return self
 
@@ -72,9 +73,13 @@ class ImageSubtractor(object):
         new = self.ens.atoms[1]
 
         shape = ref.imagedata.shape
+        if self.psfshape is not None:
+            _, psf_ref = ref.get_variable_psf(shape=self.psfshape)
+            _, psf_new = new.get_variable_psf(shape=self.psfshape)
+        else:
+            _, psf_ref = ref.get_variable_psf(shape=self.psfshape)
+            _, psf_new = new.get_variable_psf(shape=self.psfshape)
 
-        _, psf_ref = ref.get_variable_psf()
-        _, psf_new = new.get_variable_psf()
 
         psf_ref = psf_ref[0]/np.sum(psf_ref[0])
         psf_new = psf_new[0]/np.sum(psf_new[0])
@@ -122,7 +127,10 @@ class ImageSubtractor(object):
                        _ifftwn(fourier_shift((D_hat_r/np.sqrt(norm))*beta, (dx,dy)))
 
                 #return np.sqrt(np.average(np.square(cost[50:-50, 50:-50])))
-                return cost.real[10:-10, 10:-10].reshape(-1)
+                clipped = sigma_clip(cost.real[50:-50, 50:-50], 8)
+                return clipped.filled(0).reshape(-1)
+                #return cost.real[50:-50, 50:-50].reshape(-1)
+
 
             tbeta0 = time.time()
             vec0 = [n_zp/r_zp, 0., 0.]
@@ -174,7 +182,7 @@ class ImageSubtractor(object):
 
         S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
         print 'S_corr sigma_clipped_stats '
-        print 'mean = {}, median = {}, std = {}\n'.format(sigma_clipped_stats(S_corr))
+        print 'mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real))
         print 'Subtraction performed in {} seconds'.format(time.time()-t0)
 
         #import ipdb; ipdb.set_trace()

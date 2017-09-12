@@ -472,9 +472,10 @@ class SingleImage(object):
 
         """
         if not hasattr(self, '_masked'):
-            self._masked = np.ma.masked_invalid(self.imagedata)
-            self._masked = np.ma.masked_outside(self._masked, 100., 45000.)
-
+            mask1 = np.ma.masked_invalid(self.imagedata)
+            mask2 = np.ma.masked_outside(self.imagedata, -50., 25000.)
+            mask3 = sigma_clip(self.imagedata, sigma_upper=50)
+            self._masked = np.ma.masked_array(self.imagedata, mask= mask1.mask & mask2.mask & mask3.mask)
             #~ print 'background subtracted image obtained'
         return self._masked
 
@@ -615,7 +616,7 @@ class SingleImage(object):
 
             #~ print 'raw sources = {}'.format(len(srcs))
 
-            p_sizes = np.percentile(srcs['npix'], q=[35, 55, 65])
+            p_sizes = np.percentile(srcs['npix'], q=[25, 55, 75])
 
             best_big = srcs['npix'] >= p_sizes[0]
             best_small = srcs['npix'] <= p_sizes[2]
@@ -627,15 +628,18 @@ class SingleImage(object):
             # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
             best_srcs = srcs[best_flag & best_small & low_flux & best_big]
 
-            p_sizes = 3.*np.sqrt(np.percentile(best_srcs['npix'],
-                                            q=[35, 55, 95]))
-
-            if p_sizes[1] >= 21:
-                dx = int(p_sizes[1])
-                if dx % 2 != 1: dx += 1
-                fitshape = (dx, dx)
+            if self._shape is not None:
+                fitshape = self._shape
             else:
-                fitshape = (21, 21)
+                p_sizes = 3.*np.sqrt(np.percentile(best_srcs['npix'],
+                                                q=[35, 65, 95]))
+
+                if p_sizes[1] >= 21:
+                    dx = int(p_sizes[1])
+                    if dx % 2 != 1: dx += 1
+                    fitshape = (dx, dx)
+                else:
+                    fitshape = (21, 21)
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
@@ -877,7 +881,8 @@ class SingleImage(object):
             # print 'obtaining a fields'
         return self._a_fields
 
-    def get_variable_psf(self, from_stars=True, pow_th=None): #delete_patches=False,
+    def get_variable_psf(self, from_stars=True, pow_th=None, shape=None): #delete_patches=False,
+        self._shape = shape
         if pow_th is None:
             pow_th = self.pow_th
         a_fields = self._kl_a_fields(from_stars=from_stars,

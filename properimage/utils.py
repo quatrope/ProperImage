@@ -410,7 +410,12 @@ def align_for_diff(refpath, newpath):
     dest_file = 'aligned_'+os.path.basename(newpath)
     dest_file = os.path.join(os.path.dirname(newpath), dest_file)
 
-    new2 = aa.align_image(ref, new)
+    try:
+        new2 = aa.align_image(ref, new)
+    except ValueError:
+        ref = ref.astype(float)
+        new = new.astype(float)
+        new2 = aa.align_image(ref, new)
 
     hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
     fits.writeto(dest_file, new2, hdr, overwrite=True)
@@ -442,7 +447,12 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
     dest_file_new = 'aligned_'+os.path.basename(newpath)
     dest_file_new = os.path.join(os.path.dirname(newpath), dest_file_new)
 
-    new2 = aa.align_image(ref, new)
+    try:
+        new2 = aa.align_image(ref, new)
+    except ValueError:
+        ref = ref.astype(float)
+        new = new.astype(float)
+        new2 = aa.align_image(ref, new)
 
     hdr_new.set('comment', 'aligned img '+newpath+' to '+refpath)
     new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
