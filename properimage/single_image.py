@@ -327,41 +327,6 @@ class SingleImage(object):
         # print 'returning Covariance Matrix'
         return covMat
 
-    @property
-    def _kl_PSF(self):
-        """Determines the KL psf_basis from PSF gaussian models fitted to
-        stars detected in the field.
-
-        """
-        pow_th = self.pow_th
-        if not hasattr(self, '_psf_KL_basis_model'):
-            covMat, renders = self._covMat_psf()
-            valh, vech = np.linalg.eigh(covMat)
-
-            power = abs(valh)/np.sum(abs(valh))
-            cum = 0
-            cut = 0
-            if not pow_th == 1:
-                while cum <= pow_th:
-                    cut -= 1
-                    cum += power[cut]
-            else:
-                cut = -len(valh)
-
-            #  Build psf basis
-            N_psf_basis = abs(cut)
-            # lambdas = valh[cut:]  # unused variable
-            xs = vech[:, cut:]
-            # print cut, lambdas
-            psf_basis = []
-            for i in range(N_psf_basis):
-                psf_basis.append(np.tensordot(xs[:, i], renders, axes=[0, 0]))
-
-            self._psf_KL_basis_model = psf_basis
-
-            # print 'obtaining KL basis'
-        return self._psf_KL_basis_model
-
     def _kl_from_stars(self, pow_th=None):
         """Determines the KL psf_basis from stars detected in the field.
 
