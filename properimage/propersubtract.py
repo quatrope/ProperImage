@@ -22,6 +22,20 @@
 #
 #
 
+"""propersubtract module from ProperImage,
+for coadding astronomical images.
+
+Written by Bruno SANCHEZ
+
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
+
 import os
 import numpy as np
 from scipy import optimize
@@ -42,7 +56,8 @@ except:
 
 class ImageSubtractor(object):
     def __init__(self, refpath, newpath, align=True, crop=False,
-                 solve_beta=False, calc_zps=True, border=50, shape=None):
+                 solve_beta=False, calc_zps=True, border=50, shape=None,
+                 shift_beta=False):
 
         if align:
             if crop:
@@ -58,6 +73,7 @@ class ImageSubtractor(object):
         self.sb = solve_beta
         self.zp = calc_zps
         self.psfshape = shape
+        self.shift_beta = shift_beta
     def __enter__(self):
         return self
 
@@ -125,32 +141,69 @@ class ImageSubtractor(object):
 
                 cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
                        _ifftwn(fourier_shift((D_hat_r/np.sqrt(norm))*beta, (dx,dy)))
+                cost = np.sqrt(cost*cost.conjugate()).real
 
                 #return np.sqrt(np.average(np.square(cost[50:-50, 50:-50])))
-                clipped = sigma_clip(cost.real[50:-50, 50:-50], 8)
+                clipped = sigma_clip(cost.real[50:-50, 50:-50], 25)
                 return clipped.filled(0).reshape(-1)
                 #return cost.real[50:-50, 50:-50].reshape(-1)
 
+            def cost_beta_no_shift(vec):
+                beta = vec[0]
 
-            tbeta0 = time.time()
-            vec0 = [n_zp/r_zp, 0., 0.]
-            bounds = ([0.1, -0.5, -0.5], [3., 0.5, 0.5])
-            solv_beta = optimize.least_squares(cost_beta,
-                                               vec0,
-                                               bounds=bounds)
-            tbeta1 = time.time()
+                norm  = beta*beta*(r_var*r_var*np.absolute(psf_new_hat)**2)
+                norm += n_var*n_var * np.absolute(psf_ref_hat)**2
 
-            if solv_beta.success:
-                print 'Found that beta = {}'.format(solv_beta.x)
-                print 'Took only {} awesome seconds'.format(tbeta1-tbeta0)
-                print 'The solution was with cost {}'.format(solv_beta.cost)
-                beta, dx, dy = solv_beta.x
+                cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
+                       _ifftwn((D_hat_r/np.sqrt(norm))*beta)
+                cost = np.sqrt(cost*cost.conjugate()).real
+
+                clipped = sigma_clip(cost[50:-50, 50:-50], 25)
+                return clipped.filled(0).reshape(-1)
+
+            if self.shift_beta:
+                tbeta0 = time.time()
+                vec0 = [n_zp/r_zp, 0., 0.]
+                bounds = ([0.5, -2.9, -2.9], [2., 2.9, 2.9])
+                solv_beta = optimize.least_squares(cost_beta,
+                                                   vec0, ftol=1e-10,
+                                                   jac='3-point',
+                                                   bounds=bounds)
+                tbeta1 = time.time()
+
+                if solv_beta.success:
+                    print 'Found that beta = {}'.format(solv_beta.x)
+                    print 'Took only {} awesome seconds'.format(tbeta1-tbeta0)
+                    print 'The solution was with cost {}'.format(solv_beta.cost)
+                    beta, dx, dy = solv_beta.x
+                else:
+                    print 'Least squares could not find our beta  :('
+                    print 'Beta is overriden to be the zp ratio again'
+                    beta =  n_zp/r_zp
+                    dx = 0.
+                    dy = 0.
+
             else:
-                print 'Least squares could not find our beta  :('
-                print 'Beta is overriden to be the zp ratio again'
-                beta =  n_zp/r_zp
-                dx = 0.
-                dy = 0.
+                dx = 0
+                dy = 0
+                tbeta0 = time.time()
+                vec0 = [n_zp/r_zp]
+                bounds = ([0.01], [20.])
+                solv_beta = optimize.least_squares(cost_beta_no_shift,
+                                                   vec0, ftol=1e-9,
+                                                   jac='3-point',
+                                                   bounds=bounds)
+                tbeta1 = time.time()
+                if solv_beta.success:
+                    print 'Found that beta = {}'.format(solv_beta.x)
+                    print 'Took only {} awesome seconds'.format(tbeta1-tbeta0)
+                    print 'The solution was with cost {}'.format(solv_beta.cost)
+                    beta = solv_beta.x
+                else:
+                    print 'Least squares could not find our beta  :('
+                    print 'Beta is overriden to be the zp ratio again'
+                    beta =  n_zp/r_zp
+
         else:
             beta = n_zp/r_zp
             dx = 0.
@@ -182,7 +235,7 @@ class ImageSubtractor(object):
 
         S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
         print 'S_corr sigma_clipped_stats '
-        print 'mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real))
+        print 'mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real.flatten()))
         print 'Subtraction performed in {} seconds'.format(time.time()-t0)
 
         #import ipdb; ipdb.set_trace()

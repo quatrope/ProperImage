@@ -1,7 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-"""Propercoadd module from ProperImage,
+#
+#  image_stats.py
+#
+#  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#
+#
+"""single_image module from ProperImage,
 for coadding astronomical images.
 
 Written by Bruno SANCHEZ
@@ -16,18 +36,23 @@ Of 301
 """
 
 import os
-from multiprocessing import Process
-from multiprocessing import Queue
+from multiprocessing import Process, Queue
 from collections import MutableSequence
+
+from six.moves import range
+
 import numpy as np
+
 from scipy.stats import stats
 from scipy import signal as sg
+
 from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.modeling import fitting
 from astropy.modeling import models
 from astropy.convolution import convolve  # _fft, convolve
 from astropy.nddata.utils import extract_array
+
 from photutils import psf
 
 import sep
@@ -47,324 +72,7 @@ except:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
 
-
-
-class ImageEnsemble(MutableSequence):
-    """Processor for several images that uses SingleImage as an atomic processing
-    unit. It deploys the utilities provided in the mentioned class and combines
-    the results, making possible to coadd and subtract astronomical images with
-    optimal techniques.
-
-    Parameters
-    ----------
-    imgpaths: List or tuple of path of images. At this moment it should be a
-    fits file for each image.
-
-    Returns
-    -------
-    An instance of ImageEnsemble
-
-    """
-    def __init__(self, imgpaths, pow_th=0.9, *arg, **kwargs):
-        super(ImageEnsemble, self).__init__(*arg, **kwargs)
-        self.imgl = imgpaths
-        self.pow_th = pow_th
-        self.global_shape = fits.getdata(imgpaths[0]).shape
-        print self.global_shape
-
-    def __setitem__(self, i, v):
-        self.imgl[i] = v
-
-    def __getitem__(self, i):
-        return self.imgl[i]
-
-    def __delitem__(self, i):
-        del self.imgl[i]
-
-    def __len__(self):
-        return len(self.imgl)
-
-    def insert(self, i, v):
-        self.imgl.insert(i, v)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._clean()
-
-    @property
-    def atoms(self):
-        """Property method.
-        Transforms the list of images into a list of 'atoms'
-        that are instances of the SingleImage class.
-        This atoms are capable of compute statistics of Psf on every image,
-        and are the main unit of image processing.
-
-        Parameters
-        ----------
-        None parameters are passed, it is a property.
-
-        Returns
-        -------
-        A list of instances of SingleImage class, one per each image in the
-        list of images passed to ImageEnsemble.
-
-        """
-        if not hasattr(self, '_atoms'):
-            self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
-                           for im in self.imgl]
-        elif len(self._atoms) is not len(self.imgl):
-            self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
-                           for im in self.imgl]
-        return self._atoms
-
-    @property
-    def transparencies(self):
-        zps, meanmags = utils.transparency(self.atoms)
-        self._zps = zps
-        j = 0
-        for anatom in self.atoms:
-            anatom.zp = zps[j]
-            j += 1
-        return self._zps
-
-    def calculate_S(self, n_procs=2):
-        """Method for properly coadding images given by Zackay & Ofek 2015
-        (http://arxiv.org/abs/1512.06872, and http://arxiv.org/abs/1512.06879)
-        It uses multiprocessing for parallelization of the processing of each
-        image.
-
-        Parameters
-        ----------
-        n_procs: int
-            number of processes for computational parallelization. Should not
-            be greater than the number of cores of the machine.
-
-        Returns
-        -------
-        S: np.array 2D of floats
-            S image, calculated by the SingleImage method s_component.
-
-        """
-        queues = []
-        procs = []
-        for chunk in chunk_it(self.atoms, n_procs):
-            queue = Queue()
-            proc = Combinator(chunk, queue, stack=True, fourier=False)
-            print 'starting new process'
-            proc.start()
-
-            queues.append(queue)
-            procs.append(proc)
-
-        print 'all chunks started, and procs appended'
-
-        S = np.zeros(self.global_shape)
-        for q in queues:
-            serialized = q.get()
-            print 'loading pickles'
-            s_comp = pickle.loads(serialized)
-
-            S = np.ma.add(s_comp, S)
-
-        print 'S calculated, now starting to join processes'
-
-        for proc in procs:
-            print 'waiting for procs to finish'
-            proc.join()
-
-        print 'processes finished, now returning S'
-        return S
-
-    def calculate_R(self, n_procs=2, return_S=False, debug=False):
-        """Method for properly coadding images given by Zackay & Ofek 2015
-        (http://arxiv.org/abs/1512.06872, and http://arxiv.org/abs/1512.06879)
-        It uses multiprocessing for parallelization of the processing of each
-        image.
-
-        Parameters
-        ----------
-        n_procs: int
-            number of processes for computational parallelization. Should not
-            be greater than the number of cores of the machine.
-
-        Returns
-        -------
-        R: np.array 2D of floats
-            R image, calculated by the ImageEnsemble method.
-
-        """
-        queues = []
-        procs = []
-        for chunk in chunk_it(self.atoms, n_procs):
-            queue = Queue()
-            proc = Combinator(chunk, queue, fourier=True, stack=False)
-            print 'starting new process'
-            proc.start()
-
-            queues.append(queue)
-            procs.append(proc)
-
-        print 'all chunks started, and procs appended'
-
-        S_stk = []
-        S_hat_stk = []
-
-        for q in queues:
-            serialized = q.get()
-            print 'loading pickles'
-            s_list, s_hat_list = pickle.loads(serialized)
-
-            S_stk.extend(s_list)
-            S_hat_stk.extend(s_hat_list)
-
-        S_stack = np.stack(S_stk, axis=-1)
-        # S_stack = np.tensordot(S_stack, self.transparencies, axes=(-1, 0))
-
-        S_hat_stack = np.stack(S_hat_stk, axis=-1)
-
-        #real_s_hat = S_hat_stack.real
-        #imag_s_hat = S_hat_stack.imag
-
-        #real_std = np.ma.std(real_s_hat, axis=2)
-        #imag_std = np.ma.std(imag_s_hat, axis=2)
-
-        #hat_std = real_std + 1j* imag_std
-
-        S = np.ma.sum(S_stack, axis=2)
-
-        #S_hat = _fftwn(S)
-        S_hat = np.ma.sum(S_hat_stack, axis=2)
-
-        hat_std = np.ma.std(S_hat_stack, axis=2)
-        R_hat = np.ma.divide(S_hat, hat_std)
-
-        R = _ifftwn(R_hat)
-
-        for proc in procs:
-            print 'waiting for procs to finish'
-            proc.join()
-
-        if debug:
-            return [S_hat_stack, S_stack, S_hat, S, R_hat]
-        if return_S:
-            print 'processes finished, now returning R, S'
-            return R, S
-        else:
-            print 'processes finished, now returning R'
-            return R
-
-    def _clean(self):
-        """Method to end the sequence processing stage. This is the end
-        of the ensemble's life. It empties the memory and cleans the numpydbs
-        created for each atom.
-
-        """
-        for anatom in self.atoms:
-            anatom._clean()
-
-
-class Combinator(Process):
-    """Combination engine.
-    An engine for image combination in parallel, using multiprocessing.Process
-    class.
-    Uses an ensemble of images and a queue to calculate the propercoadd of
-    the list of images.
-
-    Parameters
-    ----------
-    ensemble: list or tuple
-        list of SingleImage instances used in the combination process
-
-    queue: multiprocessing.Queue instance
-        an instance of multiprocessing.Queue class where to pickle the
-        intermediate results.
-
-    stack: boolean, default True
-        Whether to stack the results for coadd or just obtain individual
-        image calculations.
-        If True it will pickle in queue a coadded image of the chunk's images.
-        If False it will pickle in queue a list of individual matched filtered
-        images.
-
-    fourier: boolean, default False.
-        Whether to calculate individual fourier transform of each s_component
-        image.
-        If stack is True this parameter will be ignored.
-        If stack is False, and fourier is True, the pickled object will be a
-        tuple of two values, with the first one containing the list of
-        s_components, and the second one containing the list of fourier
-        transformed s_components.
-
-    Returns
-    -------
-    Combinator process
-        An instance of Combinator.
-        This can be launched like a multiprocessing.Process
-
-    Example
-    -------
-    queue1 = multiprocessing.Queue()
-    queue2 = multiprocessing.Queue()
-    p1 = Combinator(list1, queue1)
-    p2 = Combinator(list2, queue2)
-
-    p1.start()
-    p2.start()
-
-    #results are in queues
-    result1 = queue1.get()
-    result2 = queue2.get()
-
-    p1.join()
-    p2.join()
-
-    """
-    def __init__(self, ensemble, queue, stack=True, fourier=False,
-                 *args, **kwargs):
-        super(Combinator, self).__init__(*args, **kwargs)
-        self.list_to_combine = ensemble
-        self.queue = queue
-        self.stack = stack
-        self.fourier = fourier
-        #self.zps = ensemble.transparencies
-
-    def run(self):
-        if self.stack:
-            shape = self.list_to_combine[0].imagedata.shape
-            S = np.zeros(shape)
-            for img in self.list_to_combine:
-                s_comp = np.ma.masked_invalid(img.s_component)
-                print 'S component obtained, summing arrays'
-                S = np.ma.add(s_comp, S)
-
-            print 'chunk processed, now pickling'
-            serialized = pickle.dumps(S)
-            self.queue.put(serialized)
-            return
-        else:
-            S_stack = []
-            for img in self.list_to_combine:
-                if np.any(np.isnan(img.s_component)):
-                    import ipdb; ipdb.set_trace()
-                s_comp = np.ma.masked_invalid(img.s_component)
-                print 'S component obtained'
-                S_stack.append(s_comp)
-
-            if self.fourier:
-                S_hat_stack = []
-                for s_c in S_stack:
-                    sh = _fftwn(s_c)
-                    S_hat_stack.append(np.ma.masked_invalid(sh))
-                print 'Fourier transformed'
-                print 'chunk processed, now pickling'
-                serialized = pickle.dumps((S_stack, S_hat_stack))
-            else:
-                print 'chunk processed, now pickling'
-                serialized = pickle.dumps(S_stack)
-            self.queue.put(serialized)
-            return
+chunk_it = utils.chunk_it
 
 
 class SingleImage(object):
@@ -971,118 +679,4 @@ class SingleImage(object):
         except:
             print 'Nothing to clean. (Or something has failed)'
 
-
-class ImageStats(object):
-    """
-    A class with methods for calculating statistics for an astronomical image.
-
-    It includes the pixel matrix data, as long as some descriptions.
-    For statistical values of the pixel matrix the class' methods need to be
-    called.
-    Parameters
-    ----------
-    image_obj : `~numpy.ndarray` or :class:`~ccdproc.CCDData`,
-                `~astropy.io.fits.HDUList`  or a `str` naming the filename.
-        The image object to work with
-
-    dataformat : `str`
-        optional dataformat of the image_object.
-        Default to None, and a guessing attempt will be made.
-    """
-    def __init__(self, image_obj, dataformat=None):
-        self._attached_to = repr(image_obj)
-        self.full_description = {}
-
-        if dataformat is None:
-            try:
-                dataformat = image_obj.__class__.__name__
-            except:
-                raise InputError('Dataformat not set nor guessable')
-
-        if dataformat not in ('CCDData', 'fits_file', 'numpy_array', 'hdu',
-                            'ndarray', 'str', 'HDUList'):
-            raise InputError('Dataformat not recognized, try one of these \
-            \n CCDData, fits_file, numpy_array, hdu')
-
-        if dataformat == 'CCDData':
-            self.pixmatrix = image_obj.data
-            assert isinstance(self.pixmatrix, np.array)
-        elif dataformat == 'fits_file' or dataformat == 'str':
-            self.pixmatrix = fits.open(image_obj)[0].data
-        elif dataformat == 'numpy_array' or dataformat == 'ndarray':
-            self.pixmatrix = image_obj
-            self.pixmatrix = np.ma.masked_array(self.pixmatrix,
-                                                np.isnan(self.pixmatrix))
-        elif dataformat == 'HDUList':
-            self.pixmatrix = image_obj[0].data
-        else:
-            self.pixmatrix = image_obj[0].data
-
-    def __repr__(self):
-        return 'ImageStats instance for {}'.format(self._attached_to)
-
-    def pix_sd(self):
-        sd = self.pixmatrix.std()
-        self.full_description['std'] = sd
-        return sd
-
-    def pix_median(self):
-        m = np.median(self.pixmatrix)
-        self.full_description['median'] = m
-        return m
-
-    def count_hist(self):
-        h = stats.histogram(self.pixmatrix.flatten(), numbins=30)
-        self.full_description['histogram'] = h
-        return h
-
-    def pix_mean(self):
-        m = np.mean(self.pixmatrix)
-        self.full_description['mean'] = m
-        return m
-
-    def to1d(self):
-        self._oneDdata = self.pixmatrix.flatten()
-        return
-
-    def calc_stats(self):
-        self.sd = self.pix_sd()
-        self.median = self.pix_median()
-        # self.hist = self.count_hist()
-        self.mean = self.pix_mean()
-        # self.to1d()
-        return
-
-    def summary(self):
-        self.to1d()
-        self.summ = stats.describe(self._oneDdata)
-        # print self.summ
-        return
-
-
-def chunk_it(seq, num):
-    """Creates chunks of a sequence suitable for data parallelism using
-    multiprocessing.
-
-    Parameters
-    ----------
-    seq: list, array or sequence like object. (indexable)
-        data to separate in chunks
-
-    num: int
-        number of chunks required
-
-    Returns
-    -------
-    Sorted list.
-    List of chunks containing the data splited in num parts.
-
-    """
-    avg = len(seq) / float(num)
-    out = []
-    last = 0.0
-    while last < len(seq):
-        out.append(seq[int(last):int(last + avg)])
-        last += avg
-    return sorted(out, reverse=True)
 
