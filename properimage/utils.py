@@ -197,8 +197,8 @@ def matching(master, cat, masteridskey=None,
                 if ind_s == i:
                     IDs[i] = master[idkey][ind_o]
 
-    print len(IDs), len(ind_), len(ind)
-    print "Matching result::  IDs > 0. => {}".format(sum(IDs>0))
+    print(len(IDs), len(ind_), len(ind))
+    print("Matching result::  IDs > 0. => {}".format(sum(IDs>0)))
     if masked:
         mask = IDs > 0
         return(IDs, mask)

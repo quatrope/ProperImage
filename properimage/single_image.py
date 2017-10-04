@@ -36,14 +36,11 @@ Of 301
 """
 
 import os
-from multiprocessing import Process, Queue
-from collections import MutableSequence
 
 from six.moves import range
 
 import numpy as np
 
-from scipy.stats import stats
 from scipy import signal as sg
 
 from astropy.io import fits
@@ -53,16 +50,10 @@ from astropy.modeling import models
 from astropy.convolution import convolve  # _fft, convolve
 from astropy.nddata.utils import extract_array
 
-from photutils import psf
-
 import sep
 from . import numpydb as npdb
 from . import utils
-
-try:
-    import cPickle as pickle
-except:
-    import pickle
+from .image_stats import ImageStats
 
 try:
     import pyfftw
@@ -149,7 +140,16 @@ class SingleImage(object):
     def __repr__(self):
         return 'SingleImage instance for {}'.format(self._attached_to)
 
-    def sigma_clip_bkg(self):
+    def _clean(self):
+        print 'cleaning... '
+        try:
+            os.remove(self.dbname+'.dat')
+            os.remove(self.dbname+'.map')
+        except:
+            print 'Nothing to clean. (Or something has failed)'
+
+    @property
+    def sigma_bkg(self):
         """Determine background using sigma clipping stats.
         Sets the bkg, bkg_mean, and bkg_std attributes of the
         SingleImage instance.
@@ -163,10 +163,11 @@ class SingleImage(object):
         None
 
         """
-        if not hasattr(self, 'bkg'):
-            self.bkg = sigma_clip(self.imagedata, iters=10)
-            self.bkg_mean = self.bkg.mean()
-            self.bkg_sd = self.bkg.std()
+        if not hasattr(self, '_sigma_bkg'):
+            self._sigma_bkg = sigma_clip(self.imagedata, iters=10)
+            self.sigma_bkg_mean = self._sigma_bkg.mean()
+            self.sigma_bkg_sd = self._sigma_bkg.std()
+        return self._sigma_bkg
 
     @property
     def masked(self):
@@ -508,13 +509,4 @@ class SingleImage(object):
             self._s_component = self.zp * mfilter/var**2
             #~ print 'getting s component'
         return self._s_component
-
-    def _clean(self):
-        print 'cleaning... '
-        try:
-            os.remove(self.dbname+'.dat')
-            os.remove(self.dbname+'.map')
-        except:
-            print 'Nothing to clean. (Or something has failed)'
-
 

@@ -116,7 +116,7 @@ class ImageSubtractor(object):
             r_zp = zps[0]
             n_zp = zps[1]
 
-            print 'Ref_zp = {}, New_zp = {}'.format(r_zp, n_zp)
+            print('Ref_zp = {}, New_zp = {}'.format(r_zp, n_zp))
         else:
             r_zp = 1.
             n_zp = 1.
@@ -172,13 +172,13 @@ class ImageSubtractor(object):
                 tbeta1 = time.time()
 
                 if solv_beta.success:
-                    print 'Found that beta = {}'.format(solv_beta.x)
-                    print 'Took only {} awesome seconds'.format(tbeta1-tbeta0)
-                    print 'The solution was with cost {}'.format(solv_beta.cost)
+                    print('Found that beta = {}'.format(solv_beta.x))
+                    print('Took only {} awesome seconds'.format(tbeta1-tbeta0))
+                    print('The solution was with cost {}'.format(solv_beta.cost))
                     beta, dx, dy = solv_beta.x
                 else:
-                    print 'Least squares could not find our beta  :('
-                    print 'Beta is overriden to be the zp ratio again'
+                    print('Least squares could not find our beta  :(')
+                    print('Beta is overriden to be the zp ratio again')
                     beta =  n_zp/r_zp
                     dx = 0.
                     dy = 0.
@@ -195,13 +195,13 @@ class ImageSubtractor(object):
                                                    bounds=bounds)
                 tbeta1 = time.time()
                 if solv_beta.success:
-                    print 'Found that beta = {}'.format(solv_beta.x)
-                    print 'Took only {} awesome seconds'.format(tbeta1-tbeta0)
-                    print 'The solution was with cost {}'.format(solv_beta.cost)
+                    print('Found that beta = {}'.format(solv_beta.x))
+                    print('Took only {} awesome seconds'.format(tbeta1-tbeta0))
+                    print('The solution was with cost {}'.format(solv_beta.cost))
                     beta = solv_beta.x
                 else:
-                    print 'Least squares could not find our beta  :('
-                    print 'Beta is overriden to be the zp ratio again'
+                    print('Least squares could not find our beta  :(')
+                    print('Beta is overriden to be the zp ratio again')
                     beta =  n_zp/r_zp
 
         else:
@@ -234,9 +234,9 @@ class ImageSubtractor(object):
         V_er = _ifftwn(_fftwn(ref.imagedata+1.)*_fftwn(kr*kr, s=shape))
 
         S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
-        print 'S_corr sigma_clipped_stats '
-        print 'mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real.flatten()))
-        print 'Subtraction performed in {} seconds'.format(time.time()-t0)
+        print('S_corr sigma_clipped_stats ')
+        print('mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real.flatten())))
+        print('Subtraction performed in {} seconds'.format(time.time()-t0))
 
         #import ipdb; ipdb.set_trace()
         return D, P, S_corr.real
