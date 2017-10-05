@@ -209,8 +209,12 @@ class SingleImage(object):
 
     @property
     def _best_srcs(self):
-        """Property, a table of best sources detected in the image.
-
+        """Property, a dictionary of best sources detected in the image.
+        Keys are:
+            fitshape: tuple, the size of the stamps on each source detected
+            sources: a table of sources, with the imformation from sep
+            positions: an array, with the position of each source stamp
+            n_sources: the total number of sources extracted
         """
         if not hasattr(self, '_best_sources'):
             try:
@@ -299,34 +303,38 @@ class SingleImage(object):
             #~ print 'returning best sources\n'
         return self._best_sources
 
+    @property
     def _covMat_from_stars(self):
         """Determines the covariance matrix of the psf measured directly from
-        the detected stars in the image.
+        the stamps of the detected stars in the image.
 
         """
-        # calculate x, y, flux of stars
-        # best_srcs = self._best_srcs['sources']
-        fitshape = self._best_srcs['fitshape']
-        print 'Fitshape = {}'.format(fitshape)
 
-        # best_srcs = best_srcs[best_srcs['flag']<=1]
-        # renders = self._best_srcs['patches']
-        nsources = self._best_srcs['n_sources']
-        covMat = np.zeros(shape=(nsources, nsources))
+        if not hasattr(self, '_covMat'):
+            # calculate x, y, flux of stars
+            # best_srcs = self._best_srcs['sources']
+            fitshape = self._best_srcs['fitshape']
+            print 'Fitshape = {}'.format(fitshape)
 
-        for i in range(nsources):
-            for j in range(nsources):
-                if i <= j:
-                    psfi_render = self.db.load(i)[0]
-                    psfj_render = self.db.load(j)[0]
+            # best_srcs = best_srcs[best_srcs['flag']<=1]
+            # renders = self._best_srcs['patches']
+            nsources = self._best_srcs['n_sources']
+            covMat = np.zeros(shape=(nsources, nsources))
 
-                    inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
-                                    psfj_render.flatten()/np.sum(psfj_render))
+            for i in range(nsources):
+                for j in range(nsources):
+                    if i <= j:
+                        psfi_render = self.db.load(i)[0]
+                        psfj_render = self.db.load(j)[0]
 
-                    covMat[i, j] = inner
-                    covMat[j, i] = inner
-        # print 'returning Covariance Matrix'
-        return covMat
+                        inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
+                                        psfj_render.flatten()/np.sum(psfj_render))
+
+                        covMat[i, j] = inner
+                        covMat[j, i] = inner
+            # print 'returning Covariance Matrix'
+            self._covMat = covMat
+        return self._covMat
 
     def _kl_from_stars(self, pow_th=None):
         """Determines the KL psf_basis from stars detected in the field.
@@ -335,7 +343,7 @@ class SingleImage(object):
         if pow_th is None:
             pow_th = self.pow_th
         if not hasattr(self, '_psf_KL_basis_stars'):
-            covMat = self._covMat_from_stars()
+            covMat = self._covMat_from_stars
             # renders = self._best_srcs['patches']
             valh, vech = np.linalg.eigh(covMat)
 
@@ -366,7 +374,7 @@ class SingleImage(object):
             #~ print 'obtainig KL basis, using k = {}'.format(N_psf_basis)
         return self._psf_KL_basis_stars
 
-    def _kl_a_fields(self, pow_th=None, from_stars=True):
+    def _kl_a_fields(self, pow_th=None):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
@@ -375,8 +383,6 @@ class SingleImage(object):
         if not hasattr(self, '_a_fields'):
             if from_stars:
                 psf_basis = self._kl_from_stars(pow_th=pow_th)
-            else:
-                psf_basis = self._kl_PSF
 
             N_fields = len(psf_basis)
 
@@ -428,23 +434,54 @@ class SingleImage(object):
             # print 'obtaining a fields'
         return self._a_fields
 
-    def get_variable_psf(self, from_stars=True, pow_th=None, shape=None): #delete_patches=False,
+    def get_variable_psf(self, pow_th=None, shape=None):
+        """Method to obtain the space variant PSF determination,
+        according to Lauer 2002 method with Karhunen Loeve transform.
+
+        Parameters
+        ----------
+        pow_th: float, between 0 and 1. It sets the minimum amount of
+        information that a PSF-basis of the Karhunen Loeve transformation
+        should have in order to be taken into account. A high value will return
+        only the most significant components. Default is 0.9
+
+        shape: tuple, the size of the stamps for source extraction.
+        This value affects the _best_srcs property, and should be settled in
+        the SingleImage instancing step. At this stage it will override the
+        value settled in the instancing step only if _best_srcs hasn't been
+        called yet, which is the case if you are performing context managed
+        image subtraction. (See propersubtract module)
+
+        Returns
+        -------
+        [a_fields, psf_basis]: a list of two lists.
+        Basically it returns a sequence of psf-basis elements with its
+        associated coefficient.
+
+        The psf_basis elements are numpy arrays of the given fitshape (or shape)
+        size.
+
+        The a_fields are astropy.fitting fitted model functions, which need
+        arguments to return numpy array fields (for example a_fields[0](x, y)).
+        These can be generated using
+        x, y = np.mgrid[:self.imagedata.shape[0],
+                        :self.imagedata.shape[1]]
+
+        """
         self._shape = shape
         if pow_th is None:
             pow_th = self.pow_th
-        a_fields = self._kl_a_fields(from_stars=from_stars,
-                                     pow_th=pow_th)
-        if from_stars:
-            psf_basis = self._kl_from_stars(pow_th=pow_th)
-        else:
-            psf_basis = self._kl_PSF
+
+        a_fields = self._kl_a_fields(pow_th=pow_th)
+        psf_basis = self._kl_from_stars(pow_th=pow_th)
 
         #~ print 'returning variable psf'
         return [a_fields, psf_basis]
 
     @property
     def normal_image(self):
-        """Calculates the normalization image from kl
+        """Calculates the PSF normalization image given in Lauer 2002,
+        for this image using the psf-basis elements and coefficients.
 
         """
         if not hasattr(self, '_normal_image'):
@@ -474,7 +511,7 @@ class SingleImage(object):
     @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
-        from the image.
+        from the image. Uses the measured psf, and is space variant capable.
 
         """
         if not hasattr(self, '_s_component'):

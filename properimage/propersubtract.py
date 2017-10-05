@@ -55,6 +55,10 @@ except:
 
 
 class ImageSubtractor(object):
+    """Class for subtracting a pair of images.
+    It features a context handler so it is possible to work with many stars
+    in the image. This allows a buffer in disk space, and a better PSF measure.
+    """
     def __init__(self, refpath, newpath, align=True, crop=False,
                  solve_beta=False, calc_zps=True, border=50, shape=None,
                  shift_beta=False):
