@@ -20,86 +20,68 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 #
-#
+
+"""utils module from ProperImage,
+for coadding astronomical images.
+
+Written by Bruno SANCHEZ
+
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
+
 import os
+
 import numpy as np
+
 from scipy import sparse
 import scipy.ndimage as ndimage
-import scipy.ndimage.filters as filters
+
 from numpy.lib.recfunctions import append_fields
+
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
 from astropy.convolution import convolve, convolve_fft
+
 from astroML import crossmatch as cx
-import matplotlib.pyplot as plt
 
 import astroalign as aa
+
 from . import simtools
-# from . import propercoadd as pc
-
-font = {'family'        : 'sans-serif',
-        'sans-serif'    : ['Computer Modern Sans serif'],
-        'weight'        : 'regular',
-        'size'          : 12}
-
-text = {'usetex'        : True}
-
-plt.rc('font', **font)
-plt.rc('text', **text)
+from . import single_image as simg
 
 
-def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
-    psf_basis.reverse()
-    N = len(psf_basis)
-    p = primes(N)
-    if N == 2:
-        subplots = (2, 1)
-    elif p == N:
-        subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
-    else:
-        subplots = (N/float(p), p)
+def chunk_it(seq, num):
+    """Creates chunks of a sequence suitable for data parallelism using
+    multiprocessing.
 
-    plt.figure(figsize=(size*subplots[0], size*subplots[1]))
-    for i in range(len(psf_basis)):
-        plt.subplot(subplots[1], subplots[0], i+1)
-        plt.imshow(psf_basis[i], interpolation='none', cmap='viridis')
-        plt.title(r'$p_i, i = {}$'.format(i+1)) #, interpolation='linear')
-        plt.tight_layout()
-        #plt.colorbar(shrink=0.85)
-    if path is not None:
-        plt.savefig(path)
-    if not nbook:
-        plt.close()
+    Parameters
+    ----------
+    seq: list, array or sequence like object. (indexable)
+        data to separate in chunks
 
-    return
+    num: int
+        number of chunks required
 
-def plot_afields(a_fields, shape, path=None, nbook=False, size=4, **kwargs):
-    if a_fields is None:
-        print 'No a_fields were calculated. Only one Psf Basis'
-        return
-    a_fields.reverse()
-    N = len(a_fields)
-    p = primes(N)
-    if N == 2:
-        subplots = (2, 1)
-    elif p == N:
-        subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
-    else:
-        subplots = (N/float(p), p)
+    Returns
+    -------
+    Sorted list.
+    List of chunks containing the data splited in num parts.
 
-    plt.figure(figsize=(size*subplots[0], size*subplots[1]), **kwargs)
-    x, y = np.mgrid[:shape[0], :shape[1]]
-    for i in range(len(a_fields)):
-        plt.subplot(subplots[1], subplots[0], i+1)
-        plt.imshow(a_fields[i](x, y), cmap='viridis')
-        plt.title(r'$a_i, i = {}$'.format(i+1))
-        plt.tight_layout()
-        #plt.colorbar(shrink=0.85, aspect=30)
-    if path is not None:
-        plt.savefig(path)
-    if not nbook:
-        plt.close()
-    return
+    """
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+    while last < len(seq):
+        out.append(seq[int(last):int(last + avg)])
+        last += avg
+    return sorted(out, reverse=True)
+
 
 def encapsule_S(S, path=None):
     if isinstance(S, np.ma.core.MaskedArray):
@@ -116,6 +98,7 @@ def encapsule_S(S, path=None):
     else:
         return hdu
 
+
 def encapsule_R(R, path=None, header=None):
     if isinstance(R[0, 0] , np.complex):
         R = R.real
@@ -127,35 +110,6 @@ def encapsule_R(R, path=None, header=None):
     else:
         return hdu
 
-def plot_S(S, path=None, nbook=False):
-    if isinstance(S, np.ma.masked_array):
-        S = S.filled()
-    plt.imshow(np.log10(S), interpolation='none', cmap='viridis')
-    plt.tight_layout()
-    plt.colorbar()
-    if path is not None:
-        plt.savefig(path)
-    else:
-        plt.show()
-    if not nbook:
-        plt.close()
-    return
-
-def plot_R(R, path=None, nbook=False):
-    if isinstance(R[0, 0] , np.complex):
-        R = R.real
-    if isinstance(R, np.ma.masked_array):
-        R = R.filled()
-    plt.imshow(np.log10(R), interpolation='none', cmap='viridis')
-    plt.tight_layout()
-    plt.colorbar()
-    if path is not None:
-        plt.savefig(path)
-    else:
-        plt.show()
-    if not nbook:
-        plt.close()
-    return
 
 def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):
     frames = []
@@ -183,17 +137,10 @@ def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):
 
     return frame
 
+
 def sim_ref_new(x, y, SN=2.):
     pass
 
-def primes(n):
-    divisors = [ d for d in range(2,n//2+1) if n % d == 0 ]
-    prims = [ d for d in divisors if \
-             all( d % od != 0 for od in divisors if od != d ) ]
-    if len(prims) is 0:
-        return n
-    else:
-        return max(prims)
 
 def matching(master, cat, masteridskey=None,
              angular=False, radius=1.5, masked=False):
@@ -236,26 +183,27 @@ def matching(master, cat, masteridskey=None,
         dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
         dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
 
-    match = ~np.isinf(dist)
-    match_ = ~np.isinf(dist_)
+    # match = ~np.isinf(dist)
+    # match_ = ~np.isinf(dist_)
 
     IDs = np.zeros_like(ind_) - 13133
     for i in xrange(len(ind_)):
         if dist_[i] != np.inf:
-            dist_o = dist_[i]
+            # dist_o = dist_[i]
             ind_o = ind_[i]
             if dist[ind_o] != np.inf:
-                dist_s = dist[ind_o]
+                # dist_s = dist[ind_o]
                 ind_s = ind[ind_o]
                 if ind_s == i:
                     IDs[i] = master[idkey][ind_o]
 
-    print len(IDs), len(ind_), len(ind)
-    print "Matching result::  IDs > 0. => {}".format(sum(IDs>0))
+    print(len(IDs), len(ind_), len(ind))
+    print("Matching result::  IDs > 0. => {}".format(sum(IDs>0)))
     if masked:
         mask = IDs > 0
         return(IDs, mask)
     return(IDs)
+
 
 def transparency(images, master=None, ensemble=True):
     """Transparency calculator, using Ofek method."""
@@ -267,8 +215,8 @@ def transparency(images, master=None, ensemble=True):
         imglist = images[1:]
     else:
         for img in images:
-            if not isinstance(img, pc.SingleImage):
-                img = pc.SingleImage(img)
+            if not isinstance(img, simg.SingleImage):
+                img = simg.SingleImage(img)
 
         if master is None:
             p = len(images)
@@ -278,8 +226,8 @@ def transparency(images, master=None, ensemble=True):
             # master is a separated file
             p = len(images) + 1
             imglist = images
-            if not isinstance(master, pc.SingleImage):
-                master = pc.SingleImage(master)
+            if not isinstance(master, simg.SingleImage):
+                master = simg.SingleImage(master)
 
     mastercat = master._best_srcs['sources']
     mastercat = append_fields(mastercat, 'sourceid',
@@ -323,7 +271,7 @@ def transparency(images, master=None, ensemble=True):
                 imgrow = cat[cat['sourceid'] == row['sourceid']]
                 m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
                 j += 1
-        #print mastercat['detected']
+        # print mastercat['detected']
         master._best_srcs['sources'] = mastercat
 
         print "p={}, q={}".format(p, q)
@@ -346,6 +294,7 @@ def transparency(images, master=None, ensemble=True):
     else:
         return np.ones(p), np.nan
 
+
 def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
@@ -357,6 +306,7 @@ def convolve_psf_basis(image, psf_basis, a_fields, x, y):
 
     return imconvolved
 
+
 def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
@@ -367,6 +317,7 @@ def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
                                     allow_huge=True)
 
     return imconvolved
+
 
 def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
     #~ direct_time = np.prod(image.shape + psf.shape)
@@ -397,6 +348,7 @@ def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
 
     return im_deconv
 
+
 def align_for_diff(refpath, newpath):
     """Function to align two images using their paths,
     and returning newpaths for differencing.
@@ -410,12 +362,18 @@ def align_for_diff(refpath, newpath):
     dest_file = 'aligned_'+os.path.basename(newpath)
     dest_file = os.path.join(os.path.dirname(newpath), dest_file)
 
-    new2 = aa.align_image(ref, new)
+    try:
+        new2 = aa.align_image(ref, new)
+    except ValueError:
+        ref = ref.astype(float)
+        new = new.astype(float)
+        new2 = aa.align_image(ref, new)
 
     hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
     fits.writeto(dest_file, new2, hdr, overwrite=True)
 
     return dest_file
+
 
 def align_for_diff_crop(refpath, newpath, bordersize=50):
     """Function to align two images using their paths,
@@ -442,7 +400,12 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
     dest_file_new = 'aligned_'+os.path.basename(newpath)
     dest_file_new = os.path.join(os.path.dirname(newpath), dest_file_new)
 
-    new2 = aa.align_image(ref, new)
+    try:
+        new2 = aa.align_image(ref, new)
+    except ValueError:
+        ref = ref.astype(float)
+        new = new.astype(float)
+        new2 = aa.align_image(ref, new)
 
     hdr_new.set('comment', 'aligned img '+newpath+' to '+refpath)
     new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
