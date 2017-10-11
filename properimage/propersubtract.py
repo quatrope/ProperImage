@@ -174,7 +174,7 @@ class ImageSubtractor(object):
 
         S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
         print 'S_corr sigma_clipped_stats '
-        print 'mean = {}, median = {}, std = {}\n'.format(sigma_clipped_stats(S_corr))
+        print 'mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real))
         print 'Subtraction performed in {} seconds'.format(time.time()-t0)
 
         #import ipdb; ipdb.set_trace()
