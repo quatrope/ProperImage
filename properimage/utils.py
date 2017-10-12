@@ -47,7 +47,7 @@ from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
 from astropy.convolution import convolve, convolve_fft
-
+from astropy.convolution import interpolate_replace_nans
 from astroML import crossmatch as cx
 
 import astroalign as aa

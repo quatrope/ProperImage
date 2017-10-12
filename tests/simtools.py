@@ -1,18 +1,46 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+#  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#
+#
+
+"""Utilities for mocking images, simulating data"""
+
+
+import os
+
 import numpy as np
+
 import scipy as sp
 from scipy import signal as sg
 from scipy.ndimage.interpolation import rotate
 from scipy import stats
+
 from astropy.convolution import convolve_fft
 from astropy.modeling import models
+from astropy.io import fits
+from astropy.time import Time
+
 
 def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
-    """Psf es una funcion que proporciona una matriz 2D con una gaussiana
-    simétrica en ambos ejes. con N se especifica el tamaño en pixeles que
-    necesitamos y con FWHM el ancho sigma de la gaussiana en pixeles
-
+    """Psf mocks a point spread function, of size NxN, with a symmetric
+    gaussian in both axis.
     theta is in degrees
 
     FASTER
@@ -399,11 +427,6 @@ def set_generator(n, air, FWHM, theta, N, Ntot, path='.'):
         A = image(MF, N, t_exp, FWHM, 10)
         capsule_corp(A, JD, t_exp, i, zero, path=path)
 
-
-
-from astropy.io import fits
-from astropy.time import Time
-import os
 def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
     """
     funcion que encapsula las imagenes generadas en fits

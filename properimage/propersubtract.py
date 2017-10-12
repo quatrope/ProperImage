@@ -128,8 +128,12 @@ class ImageSubtractor(object):
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
 
-        D_hat_r = psf_new_hat * _fftwn(ref.bkg_sub_img) * ref_shift.conjugate()
-        D_hat_n = psf_ref_hat * _fftwn(new.bkg_sub_img) * new_shift.conjugate()
+        kernel = Gaussian2DKernel(stddev=1.)
+        ref_interp = u.interpolate_replace_nans(ref.bkg_sub_img.filled(np.nan), kernel)
+        new_interp = u.interpolate_replace_nans(new.bkg_sub_img.filled(np.nan), kernel)
+
+        D_hat_r = psf_new_hat * _fftwn(ref_interp) * ref_shift.conjugate()
+        D_hat_n = psf_ref_hat * _fftwn(new_interp) * new_shift.conjugate()
 
         if (self.sb or (r_zp==1.0 and n_zp==1.0)):
             from scipy.ndimage.fourier import fourier_shift
