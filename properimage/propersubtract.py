@@ -38,6 +38,7 @@ Of 301
 
 import os
 import numpy as np
+
 from scipy import optimize
 from astropy.stats import sigma_clipped_stats, sigma_clip
 import time
@@ -128,9 +129,15 @@ class ImageSubtractor(object):
         r_var = ref.bkg.globalrms
         n_var = new.bkg.globalrms
 
-        kernel = Gaussian2DKernel(stddev=1.)
-        ref_interp = u.interpolate_replace_nans(ref.bkg_sub_img.filled(np.nan), kernel)
-        new_interp = u.interpolate_replace_nans(new.bkg_sub_img.filled(np.nan), kernel)
+        kernel = u.Gaussian2DKernel(stddev=1.)
+
+        ref_interp = ref.bkg_sub_img
+        ref_interp[ref.masked.mask] = np.nan
+        ref_interp = u.interpolate_replace_nans(ref_interp, kernel)
+
+        new_interp = new.bkg_sub_img
+        new_interp[new.masked.mask] = np.nan
+        new_interp = u.interpolate_replace_nans(new_interp, kernel)
 
         D_hat_r = psf_new_hat * _fftwn(ref_interp) * ref_shift.conjugate()
         D_hat_n = psf_ref_hat * _fftwn(new_interp) * new_shift.conjugate()
