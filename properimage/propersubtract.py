@@ -62,7 +62,7 @@ class ImageSubtractor(object):
     """
     def __init__(self, refpath, newpath, align=True, crop=False,
                  solve_beta=False, calc_zps=True, border=50, shape=None,
-                 shift_beta=False):
+                 shift_beta=False, refmask=None, newmask=None):
 
         if align:
             if crop:
@@ -74,6 +74,13 @@ class ImageSubtractor(object):
             self.ens = pc.ImageEnsemble([refpath, new])
         else:
             self.ens = pc.ImageEnsemble([refpath, newpath])
+
+        #~ if refmask is not None:
+            #~ self.ens.atoms[0]._masked = np.ma.masked_array(self.ens.atoms[0].imagedata,
+                                                           #~ mask=refmask)
+        #~ if newmask is not None:
+            #~ self.ens.atoms[1]._masked = np.ma.masked_array(self.ens.atoms[1].imagedata,
+                                                           #~ mask=newmask)
 
         self.sb = solve_beta
         self.zp = calc_zps
@@ -108,6 +115,7 @@ class ImageSubtractor(object):
         psf_ref_hat = _fftwn(psf_ref, s=shape)
         psf_new_hat = _fftwn(psf_new, s=shape)
 
+        # this shifting strategy is faster for many shiftings
         ref_shift = np.zeros_like(psf_ref)
         ref_shift[np.where(psf_ref==np.max(psf_ref))] = 1.
         ref_shift = _fftwn(ref_shift, s=shape)

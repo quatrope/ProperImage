@@ -323,7 +323,7 @@ def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
     return im_deconv
 
 
-def align_for_diff(refpath, newpath):
+def align_for_diff(refpath, newpath, newmask=None):
     """Function to align two images using their paths,
     and returning newpaths for differencing.
     We will allways rotate and align the new image to the reference,
@@ -332,6 +332,8 @@ def align_for_diff(refpath, newpath):
     ref = fits.getdata(refpath)
     new = fits.getdata(newpath)
     hdr = fits.getheader(newpath)
+    if newmask is not None:
+        new = np.ma.masked_array(new, mask=fits.getdata(newmask))
 
     dest_file = 'aligned_'+os.path.basename(newpath)
     dest_file = os.path.join(os.path.dirname(newpath), dest_file)
@@ -344,7 +346,12 @@ def align_for_diff(refpath, newpath):
         new2 = aa.align_image(ref, new)
 
     hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
-    fits.writeto(dest_file, new2, hdr, overwrite=True)
+    if isinstance(new2, np.ma.masked_array):
+        hdu = fits.HDUList([fits.PrimaryHDU(new2.data, header=hdr),
+                            fits.ImageHDU(new2.mask.astype('uint8'))])
+        hdu.writeto(dest_file, new2, hdr, overwrite=True)
+    else:
+        fits.writeto(dest_file, new2, hdr, overwrite=True)
 
     return dest_file
 
