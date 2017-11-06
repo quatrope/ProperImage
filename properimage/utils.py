@@ -53,7 +53,7 @@ from astroML import crossmatch as cx
 
 import astroalign as aa
 
-from . import simtools
+#from .tests import simtools
 #from . import single_image as simg
 
 
@@ -76,40 +76,21 @@ def encapsule_S(S, path=None):
 def encapsule_R(R, path=None, header=None):
     if isinstance(R[0, 0] , np.complex):
         R = R.real
-    hdu = fits.PrimaryHDU(R)
+    if isinstance(R, np.ma.core.MaskedArray):
+        mask = R.mask.astype('uint8')
+        data = R.data
+        hdu_data = fits.PrimaryHDU(data)
+        hdu_mask = fits.ImageHDU(mask, uint='int8')
+        hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
+        hdu = fits.HDUList([hdu_data, hdu_mask])
+    else:
+        hdu = fits.PrimaryHDU(R)
     if header is not None:
         pass
     if path is not None:
         hdu.writeto(path, overwrite=True)
     else:
         return hdu
-
-
-def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):
-    frames = []
-    for theta in thetas:
-        X_FWHM = 5 + 5.*theta/180.
-        Y_FWHM = 5
-        bias = 100.
-        t_exp = 1
-        max_fw = max(X_FWHM, Y_FWHM)
-
-        x = np.random.randint(low=6*max_fw, high=N-6*max_fw, size=nstars/4)
-        y = np.random.randint(low=6*max_fw, high=N-6*max_fw, size=nstars/4)
-        xy = [(x[i], y[i]) for i in range(nstars/4)]
-
-        weights = list(np.linspace(1000., 100000., len(xy)))
-        m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
-        im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
-                            SN=SN, bkg_pdf='poisson')
-        frames.append(im+bias)
-
-    frame = np.zeros((2*N, 2*N))
-    for j in range(2):
-        for i in range(2):
-            frame[i*N:(i+1)*N, j*N:(j+1)*N] = frames[i+2*j]
-
-    return frame
 
 
 def sim_ref_new(x, y, SN=2.):

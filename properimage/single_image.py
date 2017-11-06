@@ -87,7 +87,7 @@ class SingleImage(object):
 
     """
     def __init__(self, img=None, imagefile=True, sim=False,
-                 meta={}, pow_th=0.9):
+                 meta={}, pow_th=0.9, shape=None):
         self.pow_th = pow_th
         if not imagefile:
             self._attached_to = img.__class__.__name__
@@ -127,6 +127,7 @@ class SingleImage(object):
             self.imagedata = np.ma.masked_array(self.imagedata,
                                                 self.imagedata < 0.).filled(13)
 
+        self._shape = shape
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
         self.zp = 1.0  # in case is not setled.
 
@@ -380,8 +381,7 @@ class SingleImage(object):
         if pow_th is None:
             pow_th = self.pow_th
         if not hasattr(self, '_a_fields'):
-            if from_stars:
-                psf_basis = self._kl_from_stars(pow_th=pow_th)
+            psf_basis = self._kl_from_stars(pow_th=pow_th)
 
             N_fields = len(psf_basis)
 

@@ -105,8 +105,8 @@ class ImageSubtractor(object):
             _, psf_ref = ref.get_variable_psf(shape=self.psfshape)
             _, psf_new = new.get_variable_psf(shape=self.psfshape)
         else:
-            _, psf_ref = ref.get_variable_psf(shape=self.psfshape)
-            _, psf_new = new.get_variable_psf(shape=self.psfshape)
+            _, psf_ref = ref.get_variable_psf()
+            _, psf_new = new.get_variable_psf()
 
 
         psf_ref = psf_ref[0]/np.sum(psf_ref[0])
