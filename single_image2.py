@@ -66,6 +66,18 @@ except:
     _ifftwn = np.fft.rifft2
 
 
+class Bunch(dict):
+
+    def __dir__(self):
+        return self.keys()
+
+    def __getattr__(self, attr):
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError(attr)
+
+
 class SingleImage(object):
     """Atomic processor class for a single image.
     Contains several tools for PSF measures, and different coadding
@@ -92,7 +104,6 @@ class SingleImage(object):
         self.imagedata = img
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
         self.mask = mask
-
 
     def __enter__(self):
         return self
@@ -129,7 +140,7 @@ class SingleImage(object):
         if isinstance(img, str):
             pixeldata = fits.getdata(img)
             header = fits.getheader(img)
-            self.__imagedata = {'pixeldata': ma.asarray(pixeldata)}
+            self.__imagedata = Bunch({'pixeldata': ma.asarray(pixeldata)})
             self.__imagedata['header'] = header
         elif isinstance(img, np.ndarray):
             self.__imagedata = {'pixeldata': img}
