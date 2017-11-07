@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  image_stats.py
+#  single_image.py
 #
 #  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
 #
@@ -87,8 +87,10 @@ class SingleImage(object):
 
     """
     def __init__(self, img=None, imagefile=True, sim=False,
-                 meta={}, pow_th=0.9, shape=None):
+                 meta={}, shape=None):
+
         self.pow_th = pow_th
+
         if not imagefile:
             self._attached_to = img.__class__.__name__
         else:
@@ -103,11 +105,6 @@ class SingleImage(object):
                 self.imagedata = self.imagedata.byteswap().newbyteorder()
             else:
                 self.imagedata = self.imagedata.astype('float')
-
-            #~ try:
-                #~ self.imagedata /= self.header['EXPTIME']
-            #~ except:
-                #~ pass
         else:
             self.imagedata = img
 
@@ -335,6 +332,7 @@ class SingleImage(object):
             # print 'returning Covariance Matrix'
             self._covMat = covMat
         return self._covMat
+
 
     def _kl_from_stars(self, pow_th=None):
         """Determines the KL psf_basis from stars detected in the field.
