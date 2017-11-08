@@ -52,24 +52,62 @@ mock_masked_hdu.writeto('/tmp/mockmasked.fits', overwrite=True)
 
 class TestNpArray(unittest.TestCase):
 
-    def set  # widget setup
+    def setUp(self):
+        self.si = s.SingleImage(mock_image_data)
 
-    def test_attachedto_fits
-    def test_attachedto_fits(self):
-        self.assertEqual(s.SingleImage('/tmp/mockfits.fits').attached_to,
-                         '/tmp/mockfits.fits')
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, 'ndarray')
 
-    def test_attachedto_nparray(self):
-        self.assertEqual(s.SingleImage(mock_image_data).attached_to,
-                         'ndarray')
-    def test_attachedto_nparraymask(self):
-        self.assertEqual(s.SingleImage(mock_image_data).attached_to,
-                         'ndarray')
+class TestNpArrayMask(unittest.TestCase):
 
-    def test_attachedto_hdu(self):
-        self.assertEqual(s.SingleImage(mock_masked_hdu).attached_to, 'HDUList')
+    def setUp(self):
+        self.si = s.SingleImage(mock_image_data, mock_image_mask)
 
-    def test_attachedto_maskedfits
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, 'ndarray')
+
+class TestFitsFile(unittest.TestCase):
+
+    def setUp(self):
+        self.si = s.SingleImage('/tmp/mockfits.fits')
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, '/tmp/mockfits.fits')
+
+
+class TestFitsMask(unittest.TestCase):
+
+    def setUp(self):
+        self.si = s.SingleImage('/tmp/mockfits.fits', '/tmp/mockmask.fits')
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, '/tmp/mockfits.fits')
+
+
+class TestHDU(unittest.TestCase):
+
+    def setUp(self):
+        self.si = s.SingleImage(mockimageHdu)
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, 'PrimaryHDU')
+
+class TestHDUList(unittest.TestCase):
+
+    def setUp(self):
+        self.si = s.SingleImage(mock_masked_hdu)
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, 'HDUList')
+
+
+class TestFitsExtension(unittest.TestCase):
+
+    def setUp(self):
+        self.si = s.SingleImage('/tmp/mockmasked.fits')
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, '/tmp/mockmasked.fits')
 
 
 

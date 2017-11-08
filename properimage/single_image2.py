@@ -176,6 +176,8 @@ class SingleImage(object):
             if self.attached_to=='HDUList':
                 if self.header['EXTEND']:
                     self.__pixeldata.mask = self.__img[1].data
+            elif self.attached_to=='PrimaryHDU':
+                self.__pixeldata = ma.masked_invalid(self.__img.data)
             elif isinstance(self.__img, str):
                 ff = fits.open(self.attached_to)
                 if ff[0].header['EXTEND']:
