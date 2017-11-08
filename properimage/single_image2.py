@@ -99,13 +99,13 @@ class SingleImage(object):
     """
 
     def __init__(self, img=None, mask=None):
+        self.__img = img
         self.attached_to = img
         self.zp = 1.
         self.pixeldata = img
-        #print(img)
-        #self.header = img
+        self.header = img
+        self.mask = mask
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
-        #self.mask = mask
 
     def __enter__(self):
         return self
@@ -130,7 +130,7 @@ class SingleImage(object):
 
     @attached_to.setter
     def attached_to(self, img):
-        if type(img) is str:
+        if isinstance(img, str):
             self.__attached_to = img
         else:
             self.__attached_to = img.__class__.__name__
@@ -147,23 +147,23 @@ class SingleImage(object):
             self.__pixeldata = ma.asarray(img)
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
-                self.__pixeldata = img[0].data
+                self.__pixeldata = ma.asarray(img[0].data)
 
     @property
     def header(self):
-        return self._header
+        return self.__header
     @header.setter
     def header(self, img):
         if isinstance(img, str):
-            self.header = fits.getheader(img)
+            self.__header = fits.getheader(img)
         elif isinstance(img, np.ndarray):
-            self.header = {}
+            self.__header = {}
         elif isinstance(img, fits.HDUList):
-            self.header = img[0].header
+            self.__header = img[0].header
 
     @property
     def mask(self):
-        return self.pixeldata.mask
+        return self.__pixeldata.mask
 
     @mask.setter
     def mask(self, mask):
@@ -172,7 +172,19 @@ class SingleImage(object):
         elif isinstance(mask, np.ndarray):
             self.__pixeldata.mask = mask
         elif mask is None:
-            self.__pixeldata = ma.masked_invalid(self.pixeldata)
+            # check the fits file
+            if self.attached_to=='HDUList':
+                if self.header['EXTEND']:
+                    self.__pixeldata.mask = self.__img[1].data
+            elif isinstance(self.__img, str):
+                ff = fits.open(self.attached_to)
+                if ff[0].header['EXTEND']:
+                    try:
+                        self.__pixeldata.mask = ff[1].data
+                    except IndexError:
+                        self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+            else:
+                self.__pixeldata = ma.masked_invalid(self.__pixeldata)
 
     @property
     def background(self):

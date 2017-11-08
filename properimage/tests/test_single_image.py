@@ -38,6 +38,7 @@ fits.writeto('/tmp/mockmask.fits', mock_image_mask,
 mockimageHdu = fits.PrimaryHDU(mock_image_data)
 mockmaskHdu = fits.ImageHDU(mock_image_mask.astype('uint8'))
 mock_masked_hdu = fits.HDUList([mockimageHdu, mockmaskHdu])
+
 mock_masked_hdu.writeto('/tmp/mockmasked.fits', overwrite=True)
 
 
@@ -46,11 +47,16 @@ class TestSingleImage(unittest.TestCase):
     def test_attachedto_fits(self):
         self.assertEqual(s.SingleImage('/tmp/mockfits.fits').attached_to,
                          '/tmp/mockfits.fits')
+
     def test_attachedto_array(self):
         self.assertEqual(s.SingleImage(mock_image_data).attached_to,
                          'ndarray')
+
     def test_attachedto_hdu(self):
-        self.assertEqual(s.SingleImage(mock_image_hdu, 'HDUList'))
+        self.assertEqual(s.SingleImage(mock_masked_hdu).attached_to, 'HDUList')
+
+    #~ def test_
+
 
 
 if __name__=='__main__':
