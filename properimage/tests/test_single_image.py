@@ -28,34 +28,48 @@ from astropy.io import fits
 
 from properimage import single_image2 as s
 
+### mock data
+# a numpy array
 mock_image_data = np.random.random((256, 256))
+# a numpy array mask
 mock_image_mask = np.random.randint(0, 2, size=(256, 256))
+# a fits file
 fits.writeto('/tmp/mockfits.fits', mock_image_data,
                                overwrite=True)
+# a fits file mask
 fits.writeto('/tmp/mockmask.fits', mock_image_mask,
                                overwrite=True)
 
+# a hdu
 mockimageHdu = fits.PrimaryHDU(mock_image_data)
+# a hdulist
 mockmaskHdu = fits.ImageHDU(mock_image_mask.astype('uint8'))
 mock_masked_hdu = fits.HDUList([mockimageHdu, mockmaskHdu])
 
+# a fits file with hdulist
 mock_masked_hdu.writeto('/tmp/mockmasked.fits', overwrite=True)
 
 
-class TestSingleImage(unittest.TestCase):
+class TestNpArray(unittest.TestCase):
 
+    def set  # widget setup
+
+    def test_attachedto_fits
     def test_attachedto_fits(self):
         self.assertEqual(s.SingleImage('/tmp/mockfits.fits').attached_to,
                          '/tmp/mockfits.fits')
 
-    def test_attachedto_array(self):
+    def test_attachedto_nparray(self):
+        self.assertEqual(s.SingleImage(mock_image_data).attached_to,
+                         'ndarray')
+    def test_attachedto_nparraymask(self):
         self.assertEqual(s.SingleImage(mock_image_data).attached_to,
                          'ndarray')
 
     def test_attachedto_hdu(self):
         self.assertEqual(s.SingleImage(mock_masked_hdu).attached_to, 'HDUList')
 
-    #~ def test_
+    def test_attachedto_maskedfits
 
 
 
