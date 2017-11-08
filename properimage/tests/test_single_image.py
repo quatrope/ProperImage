@@ -126,6 +126,10 @@ class TestFitsMask(unittest.TestCase):
     def testMask(self):
         np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
 
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), h_fitsfile)
+
+
 class TestHDU(unittest.TestCase):
 
     def setUp(self):
@@ -159,6 +163,9 @@ class TestHDUList(unittest.TestCase):
     def testMask(self):
         np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
 
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), h_fitsfile)
+
 
 class TestFitsExtension(unittest.TestCase):
 
@@ -173,6 +180,9 @@ class TestFitsExtension(unittest.TestCase):
 
     def testMask(self):
         np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
+
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), h_fitsfile)
 
 
 

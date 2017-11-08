@@ -198,10 +198,10 @@ class SingleImage(object):
         Returns
         -------
         numpy.array 2D
-            a background subtracted image is returned
-
+            a background estimation image is returned
         """
-        return self.imagedata['background']
+        return self.__background()
+
 
     @background.setter
     def background(self, maskthresh=None):
@@ -209,11 +209,10 @@ class SingleImage(object):
             back = sep.Background(self.pixeldata,
                                   mask=self.mask,
                                   maskthresh=maskthresh)
-            self.__imagedata['background'] = back
+            self.__background = back
         else:
             back = sep.Background(self.pixeldata,
                                   mask=self.mask)
-            self.__imagedata['background'] = back
-        return self._bkg_sub_img
+            self.__background = back
 
 
