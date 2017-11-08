@@ -98,13 +98,14 @@ class SingleImage(object):
         The mask image
     """
 
-    def __init__(self, img=None, mask=None):
+    def __init__(self, img=None, mask=None, maskthresh=None):
         self.__img = img
         self.attached_to = img
         self.zp = 1.
         self.pixeldata = img
         self.header = img
         self.mask = mask
+        self.background = maskthresh
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
 
     def __enter__(self):
@@ -142,12 +143,12 @@ class SingleImage(object):
     @pixeldata.setter
     def pixeldata(self, img):
         if isinstance(img, str):
-            self.__pixeldata = ma.asarray(fits.getdata(img))
+            self.__pixeldata = ma.asarray(fits.getdata(img)).astype('<f8')
         elif isinstance(img, np.ndarray):
-            self.__pixeldata = ma.asarray(img)
+            self.__pixeldata = ma.asarray(img).astype('<f8')
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
-                self.__pixeldata = ma.asarray(img[0].data)
+                self.__pixeldata = ma.asarray(img[0].data).astype('<f8')
 
     @property
     def header(self):
@@ -200,18 +201,17 @@ class SingleImage(object):
         numpy.array 2D
             a background estimation image is returned
         """
-        return self.__background()
-
+        return self.__background.back()
 
     @background.setter
     def background(self, maskthresh=None):
         if maskthresh is not None:
-            back = sep.Background(self.pixeldata,
+            back = sep.Background(self.pixeldata.data,
                                   mask=self.mask,
                                   maskthresh=maskthresh)
             self.__background = back
         else:
-            back = sep.Background(self.pixeldata,
+            back = sep.Background(self.pixeldata.data,
                                   mask=self.mask)
             self.__background = back
 

@@ -76,6 +76,9 @@ class TestNpArray(unittest.TestCase):
     def testHeader(self):
         self.assertDictEqual(self.si.header, {})
 
+    def testBackground(self):
+        self.assertIsInstance(self.si.background, np.ndarray)
+
 class TestNpArrayMask(unittest.TestCase):
 
     def setUp(self):
@@ -92,6 +95,10 @@ class TestNpArrayMask(unittest.TestCase):
 
     def testHeader(self):
         self.assertDictEqual(self.si.header, {})
+
+    def testBackground(self):
+        self.assertIsInstance(self.si.background, np.ndarray)
+
 
 class TestFitsFile(unittest.TestCase):
 
@@ -112,6 +119,10 @@ class TestFitsFile(unittest.TestCase):
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), h_fitsfile)
 
+    def testBackground(self):
+        self.assertIsInstance(self.si.background, np.ndarray)
+
+
 class TestFitsMask(unittest.TestCase):
 
     def setUp(self):
@@ -128,6 +139,9 @@ class TestFitsMask(unittest.TestCase):
 
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), h_fitsfile)
+
+    def testBackground(self):
+        self.assertIsInstance(self.si.background, np.ndarray)
 
 
 class TestHDU(unittest.TestCase):
@@ -149,6 +163,9 @@ class TestHDU(unittest.TestCase):
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), h_fitsfile)
 
+    def testBackground(self):
+        self.assertIsInstance(self.si.background, np.ndarray)
+
 class TestHDUList(unittest.TestCase):
 
     def setUp(self):
@@ -165,6 +182,9 @@ class TestHDUList(unittest.TestCase):
 
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), h_fitsfile)
+
+    def testBackground(self):
+        self.assertIsInstance(self.si.background, np.ndarray)
 
 
 class TestFitsExtension(unittest.TestCase):
@@ -184,6 +204,8 @@ class TestFitsExtension(unittest.TestCase):
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), h_fitsfile)
 
+    def testBackground(self):
+        self.assertIsInstance(self.si.background, np.ndarray)
 
 
 
