@@ -23,13 +23,35 @@
 #
 
 import unittest
+import numpy as np
+from astropy.io import fits
 
-from properimage import single_image
+from properimage import single_image2 as s
+
+mock_image_data = np.random.random((256, 256))
+mock_image_mask = np.random.randint(0, 2, size=(256, 256))
+fits.writeto('/tmp/mockfits.fits', mock_image_data,
+                               overwrite=True)
+fits.writeto('/tmp/mockmask.fits', mock_image_mask,
+                               overwrite=True)
+
+mockimageHdu = fits.PrimaryHDU(mock_image_data)
+mockmaskHdu = fits.ImageHDU(mock_image_mask.astype('uint8'))
+mock_masked_hdu = fits.HDUList([mockimageHdu, mockmaskHdu])
+mock_masked_hdu.writeto('/tmp/mockmasked.fits', overwrite=True)
 
 
+class TestSingleImage(unittest.TestCase):
+
+    def test_attachedto_fits(self):
+        self.assertEqual(s.SingleImage('/tmp/mockfits.fits').attached_to,
+                         '/tmp/mockfits.fits')
+    def test_attachedto_array(self):
+        self.assertEqual(s.SingleImage(mock_image_data).attached_to,
+                         'ndarray')
+    def test_attachedto_hdu(self):
+        self.assertEqual(s.SingleImage(mock_image_hdu, 'HDUList'))
 
 
-
-if __name__ == '__main__':
-    import sys
-    sys.exit(main(sys.argv))
+if __name__=='__main__':
+    unittest.main()
