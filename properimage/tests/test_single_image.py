@@ -65,6 +65,11 @@ class TestNpArray(unittest.TestCase):
     def testPixeldata(self):
         np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
+    def testMask(self):
+        nanmask = np.zeros((256, 256))
+        nanmask[123, 123] = 1
+        np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
+
 
 class TestNpArrayMask(unittest.TestCase):
 
@@ -91,6 +96,12 @@ class TestFitsFile(unittest.TestCase):
     def testPixeldata(self):
             np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
+    def testMask(self):
+        nanmask = np.zeros((256, 256))
+        nanmask[123, 123] = 1
+        np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
+
+
 class TestFitsMask(unittest.TestCase):
 
     def setUp(self):
@@ -101,6 +112,9 @@ class TestFitsMask(unittest.TestCase):
 
     def testPixeldata(self):
             np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
+
+    def testMask(self):
+        np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
 
 class TestHDU(unittest.TestCase):
 
@@ -113,6 +127,12 @@ class TestHDU(unittest.TestCase):
     def testPixeldata(self):
             np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
+    def testMask(self):
+        nanmask = np.zeros((256, 256))
+        nanmask[123, 123] = 1
+        np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
+
+
 class TestHDUList(unittest.TestCase):
 
     def setUp(self):
@@ -123,6 +143,9 @@ class TestHDUList(unittest.TestCase):
 
     def testPixeldata(self):
         np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
+
+    def testMask(self):
+        np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
 
 
 class TestFitsExtension(unittest.TestCase):
@@ -136,6 +159,8 @@ class TestFitsExtension(unittest.TestCase):
     def testPixeldata(self):
         np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
+    def testMask(self):
+        np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
 
 
 if __name__=='__main__':
