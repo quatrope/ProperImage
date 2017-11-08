@@ -160,6 +160,8 @@ class SingleImage(object):
             self.__header = {}
         elif isinstance(img, fits.HDUList):
             self.__header = img[0].header
+        elif isinstance(img, fits.PrimaryHDU):
+            self.__header = img.header
 
     @property
     def mask(self):

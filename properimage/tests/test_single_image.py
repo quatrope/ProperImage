@@ -53,6 +53,9 @@ mock_masked_hdu = fits.HDUList([mockimageHdu, mockmaskHdu])
 # a fits file with hdulist
 mock_masked_hdu.writeto('/tmp/mockmasked.fits', overwrite=True)
 
+h_fitsfile = {'SIMPLE':True, 'BITPIX':-64, 'NAXIS':2,
+              'NAXIS1':256, 'NAXIS2':256, 'EXTEND':True}
+
 
 class TestNpArray(unittest.TestCase):
 
@@ -70,6 +73,8 @@ class TestNpArray(unittest.TestCase):
         nanmask[123, 123] = 1
         np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
 
+    def testHeader(self):
+        self.assertDictEqual(self.si.header, {})
 
 class TestNpArrayMask(unittest.TestCase):
 
@@ -84,6 +89,9 @@ class TestNpArrayMask(unittest.TestCase):
 
     def testMask(self):
         np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
+
+    def testHeader(self):
+        self.assertDictEqual(self.si.header, {})
 
 class TestFitsFile(unittest.TestCase):
 
@@ -101,6 +109,8 @@ class TestFitsFile(unittest.TestCase):
         nanmask[123, 123] = 1
         np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
 
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), h_fitsfile)
 
 class TestFitsMask(unittest.TestCase):
 
@@ -132,6 +142,8 @@ class TestHDU(unittest.TestCase):
         nanmask[123, 123] = 1
         np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
 
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), h_fitsfile)
 
 class TestHDUList(unittest.TestCase):
 
@@ -161,6 +173,8 @@ class TestFitsExtension(unittest.TestCase):
 
     def testMask(self):
         np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
+
+
 
 
 if __name__=='__main__':
