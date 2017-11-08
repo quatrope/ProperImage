@@ -23,7 +23,9 @@
 #
 
 import unittest
+
 import numpy as np
+
 from astropy.io import fits
 
 from properimage import single_image2 as s
@@ -31,8 +33,10 @@ from properimage import single_image2 as s
 ### mock data
 # a numpy array
 mock_image_data = np.random.random((256, 256))
+mock_image_data[123, 123] = np.nan
 # a numpy array mask
 mock_image_mask = np.random.randint(0, 2, size=(256, 256))
+mock_image_mask[123, 123] = 1
 # a fits file
 fits.writeto('/tmp/mockfits.fits', mock_image_data,
                                overwrite=True)
@@ -58,6 +62,10 @@ class TestNpArray(unittest.TestCase):
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, 'ndarray')
 
+    def testPixeldata(self):
+        np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
+
+
 class TestNpArrayMask(unittest.TestCase):
 
     def setUp(self):
@@ -65,6 +73,12 @@ class TestNpArrayMask(unittest.TestCase):
 
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, 'ndarray')
+
+    def testPixeldata(self):
+        np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
+
+    def testMask(self):
+        np.testing.assert_array_equal(mock_image_mask, self.si.pixeldata.mask)
 
 class TestFitsFile(unittest.TestCase):
 
@@ -74,6 +88,8 @@ class TestFitsFile(unittest.TestCase):
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, '/tmp/mockfits.fits')
 
+    def testPixeldata(self):
+            np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
 class TestFitsMask(unittest.TestCase):
 
@@ -83,6 +99,8 @@ class TestFitsMask(unittest.TestCase):
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, '/tmp/mockfits.fits')
 
+    def testPixeldata(self):
+            np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
 class TestHDU(unittest.TestCase):
 
@@ -92,6 +110,9 @@ class TestHDU(unittest.TestCase):
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, 'PrimaryHDU')
 
+    def testPixeldata(self):
+            np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
+
 class TestHDUList(unittest.TestCase):
 
     def setUp(self):
@@ -99,6 +120,9 @@ class TestHDUList(unittest.TestCase):
 
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, 'HDUList')
+
+    def testPixeldata(self):
+        np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
 
 class TestFitsExtension(unittest.TestCase):
@@ -108,6 +132,9 @@ class TestFitsExtension(unittest.TestCase):
 
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, '/tmp/mockmasked.fits')
+
+    def testPixeldata(self):
+        np.testing.assert_array_equal(mock_image_data, self.si.pixeldata.data)
 
 
 
