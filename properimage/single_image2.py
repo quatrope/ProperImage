@@ -326,7 +326,6 @@ class SingleImage(object):
             s = self.stamps_pos
             return self._n_sources
 
-
     @property
     def cov_matrix(self):
         """Determines the covariance matrix of the psf measured directly from
@@ -349,4 +348,57 @@ class SingleImage(object):
                         covMat[j, i] = inner
             self._covMat = covMat
         return self._covMat
+
+
+    @property
+    def eigen_v(self):
+        if not hasattr(self, '_eigenv'):
+            self._eigenv = np.linalg.eigh(self.cov_matrix)
+        return self._eigenv
+
+    @property
+    def kl_basis(self):
+        return self._kl_base
+
+    @kl_basis.setter
+    def kl_basis(self, inf_loss=0.1):
+        """Determines the KL psf_basis from
+        stars detected in the field."""
+
+        if not hasattr(self, '_kl_basis') or self.inf_loss!=inf_loss:
+            valh, vech = self.eigenv
+            power = abs(valh)/np.sum(abs(valh))
+            pw = 1
+            cut = 1
+            for elem in power[::-1]:
+                pw -= elem
+                if pw > inf_loss:
+                    cut += 1
+
+            #  Build psf basis
+            n_basis = abs(cut)
+            xs = vech[:, -cut:]
+            psf_basis = []
+            for i in range(n_basis):
+                base = np.zeros(self.stamp_shape)
+                for j in range(self.n_sources):
+                    try:
+                        pj = self.db.load(j)[0]
+                    except:
+                        import ipdb; ipdb.set_trace()
+                    base += xs[j, i] * pj
+                    norm = np.sqrt(np.sum(base**2.))
+                psf_basis.append(base/norm)
+            del(base)
+            self._kl_basis = psf_basis
+
+        return self._kl_basis
+
+
+
+
+
+
+
+
 
