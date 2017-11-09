@@ -98,14 +98,15 @@ class SingleImage(object):
         The mask image
     """
 
-    def __init__(self, img=None, mask=None, maskthresh=None):
+    def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None):
         self.__img = img
         self.attached_to = img
         self.zp = 1.
         self.pixeldata = img
         self.header = img
         self.mask = mask
-        self.background = maskthresh
+        self._bkg = maskthresh
+        self.stamp_shape = stamp_shape
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
 
     def __enter__(self):
@@ -201,18 +202,121 @@ class SingleImage(object):
         numpy.array 2D
             a background estimation image is returned
         """
-        return self.__background.back()
+        return self.__bkg.back()
 
-    @background.setter
-    def background(self, maskthresh=None):
+    @property
+    def _bkg(self):
+        return self.__bkg
+
+    @_bkg.setter
+    def _bkg(self, maskthresh=None):
         if maskthresh is not None:
             back = sep.Background(self.pixeldata.data,
                                   mask=self.mask,
                                   maskthresh=maskthresh)
-            self.__background = back
+            self.__bkg = back
         else:
             back = sep.Background(self.pixeldata.data,
                                   mask=self.mask)
-            self.__background = back
+            self.__bkg = back
 
+    @property
+    def bkg_sub_img(self):
+        return self.pixeldata - self.__bkg
 
+    @property
+    def stamp_shape(self):
+        return self.__stamp_shape
+
+    @stamp_shape.setter
+    def stamp_shape(self, shape):
+        if shape is None:
+            percent = np.percentile(self.best_sources['npix'], q=65)
+            p_sizes = 3.*np.sqrt(percent)
+
+            if p_sizes > 21:
+                dx = int(p_sizes)
+                if dx % 2 != 1: dx += 1
+                shape = (dx, dx)
+            else:
+                shape = (21, 21)
+        self.__stamp_shape = shape
+
+    @property
+    def best_sources(self):
+        """Property, a dictionary of best sources detected in the image.
+        Keys are:
+            fitshape: tuple, the size of the stamps on each source detected
+            sources: a table of sources, with the imformation from sep
+            positions: an array, with the position of each source stamp
+            n_sources: the total number of sources extracted
+        """
+        try:
+            return self.__best_sources
+        except AttributeError:
+            # print('looking for srcs')
+            try:
+                srcs = sep.extract(self.bkg_sub_img.data,
+                                   thresh=10*self.__bkg.globalrms,
+                                   mask=self.mask)
+            except Exception:
+                sep.set_extract_pixstack(700000)
+                srcs = sep.extract(self.bkg_sub_img.data,
+                                   thresh=8*self.__bkg.globalrms,
+                                   mask=self.mask)
+            if len(srcs) < 20:
+                try:
+                    srcs = sep.extract(self.bkg_sub_img.data,
+                                       thresh=5*self.__bkg.globalrms,
+                                       mask=self.mask)
+                except Exception:
+                    sep.set_extract_pixstack(900000)
+                    srcs = sep.extract(self.bkg_sub_img.data,
+                                       thresh=5*self.__bkg.globalrms,
+                                       mask=self.mask)
+            if len(srcs) < 10:
+                print('No sources detected')
+
+            p_sizes = np.percentile(srcs['npix'], q=[25, 55, 75])
+
+            best_big = srcs['npix'] >= p_sizes[0]
+            best_small = srcs['npix'] <= p_sizes[2]
+            best_flag = srcs['flag'] <= 1
+
+            fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
+            low_flux = srcs['flux'] >= fluxes_quartiles[0]
+            hig_flux = srcs['flux'] <= fluxes_quartiles[1]
+
+            best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
+
+            if len(best_srcs) > 1800:
+                jj = np.random.choice(len(best_srcs), 1800, replace=False)
+                best_srcs = best_srcs[jj]
+
+            print('Sources found = {}'.format(len(best_srcs)))
+            self.__best_sources = best_srcs
+
+            return self.__best_sources
+
+    @property
+    def stamps_pos(self):
+        if not hasattr(self, '__best_sources_positions'):
+
+            self.db = npdb.NumPyDB_cPickle(self.dbname, mode='store')
+
+            pos = []
+            jj = 0
+            for row in self.best_sources:
+                position = (row['y'], row['x'])
+                sub_array_data = extract_array(self.bkg_sub_img.data,
+                                               self.stamp_shape, position,
+                                               fill_value=self._bkg.globalrms)
+                sub_array_data = sub_array_data/np.sum(sub_array_data)
+
+                self.db.dump(sub_array_data, jj)
+                pos.append(position)
+                jj += 1
+
+            self.__stamps_positions = np.array(pos)
+            self._n_best_sources = jj
+        return self.__stamps_positions

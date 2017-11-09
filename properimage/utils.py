@@ -59,10 +59,10 @@ import astroalign as aa
 
 def encapsule_S(S, path=None):
     if isinstance(S, np.ma.core.MaskedArray):
-        mask = S.mask.astype('uint8')
+        mask = S.mask.astype('')
         data = S.data
         hdu_data = fits.PrimaryHDU(data)
-        hdu_mask = fits.ImageHDU(mask, uint='int8')
+        hdu_mask = fits.ImageHDU(mask, uint='uint8')
         hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
         hdu = fits.HDUList([hdu_data, hdu_mask])
     else:
@@ -77,10 +77,10 @@ def encapsule_R(R, path=None, header=None):
     if isinstance(R[0, 0] , np.complex):
         R = R.real
     if isinstance(R, np.ma.core.MaskedArray):
-        mask = R.mask.astype('uint8')
+        mask = R.mask.astype('')
         data = R.data
         hdu_data = fits.PrimaryHDU(data)
-        hdu_mask = fits.ImageHDU(mask, uint='int8')
+        hdu_mask = fits.ImageHDU(mask, uint='uint8')
         hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
         hdu = fits.HDUList([hdu_data, hdu_mask])
     else:

@@ -29,14 +29,28 @@ import numpy as np
 from astropy.io import fits
 
 from properimage import single_image2 as s
+from properimage import simtools
 
 ### mock data
+psf = simtools.Psf(13, 2.5)
 # a numpy array
-mock_image_data = np.random.random((256, 256))
+mock_image_data = np.random.random((256, 256))*10. + 50
 mock_image_data[123, 123] = np.nan
+
+for i in range(30):
+    x, y = np.random.randint(2, 240, size=2)
+    #~ print x, y
+    mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*20.
+
 # a numpy array mask
-mock_image_mask = np.random.randint(0, 2, size=(256, 256))
+mock_image_mask = np.zeros((256, 256))
 mock_image_mask[123, 123] = 1
+
+for i in range(6):
+    x, y = np.random.randint(20, 240, size=2)
+    l, h = np.random.randint(2, 6, size=2)
+    mock_image_mask[x:x+l, y:y+h] = 1
+
 # a fits file
 fits.writeto('/tmp/mockfits.fits', mock_image_data,
                                overwrite=True)
@@ -206,6 +220,9 @@ class TestFitsExtension(unittest.TestCase):
 
     def testBackground(self):
         self.assertIsInstance(self.si.background, np.ndarray)
+
+    def testBkgSubImg(self):
+        self.assertIsInstance(self.si.bkg_sub_img, np.ndarray)
 
 
 
