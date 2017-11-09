@@ -251,9 +251,7 @@ class SingleImage(object):
             positions: an array, with the position of each source stamp
             n_sources: the total number of sources extracted
         """
-        try:
-            return self.__best_sources
-        except AttributeError:
+        if not hasattr(self, '_best_sources'):
             # print('looking for srcs')
             try:
                 srcs = sep.extract(self.bkg_sub_img.data,
@@ -294,14 +292,14 @@ class SingleImage(object):
                 best_srcs = best_srcs[jj]
 
             print('Sources found = {}'.format(len(best_srcs)))
-            self.__best_sources = best_srcs
+            self._best_sources = best_srcs
 
-            return self.__best_sources
+        return self._best_sources
+
 
     @property
     def stamps_pos(self):
-        if not hasattr(self, '__best_sources_positions'):
-
+        if not hasattr(self, '_stamps_pos'):
             self.db = npdb.NumPyDB_cPickle(self.dbname, mode='store')
 
             pos = []
@@ -317,6 +315,15 @@ class SingleImage(object):
                 pos.append(position)
                 jj += 1
 
-            self.__stamps_positions = np.array(pos)
-            self._n_best_sources = jj
-        return self.__stamps_positions
+            self._stamps_pos = np.array(pos)
+            self._n_sources = jj
+        return self._stamps_pos
+
+    @property
+    def n_sources(self):
+        try:
+            return self._n_sources
+        except AttributeError:
+            s = self.stamps_pos
+            return self._n_sources
+
