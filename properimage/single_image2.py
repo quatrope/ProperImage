@@ -272,8 +272,8 @@ class SingleImage(object):
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=5*self.__bkg.globalrms,
                                        mask=self.mask)
-            if len(srcs) < 10:
-                print('No sources detected')
+            if len(srcs)==0:
+                raise ValueError('Few sources detected on image')
 
             p_sizes = np.percentile(srcs['npix'], q=[25, 55, 75])
 
@@ -295,7 +295,6 @@ class SingleImage(object):
             self._best_sources = best_srcs
 
         return self._best_sources
-
 
     @property
     def stamps_pos(self):
@@ -326,4 +325,28 @@ class SingleImage(object):
         except AttributeError:
             s = self.stamps_pos
             return self._n_sources
+
+
+    @property
+    def cov_matrix(self):
+        """Determines the covariance matrix of the psf measured directly from
+        the stamps of the detected stars in the image.
+
+        """
+        if not hasattr(self, '_covMat'):
+            covMat = np.zeros(shape=(self.n_sources, self.n_sources))
+
+            for i in range(self.n_sources):
+                for j in range(self.n_sources):
+                    if i <= j:
+                        psfi_render = self.db.load(i)[0]
+                        psfj_render = self.db.load(j)[0]
+
+                        inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
+                                        psfj_render.flatten()/np.sum(psfj_render))
+
+                        covMat[i, j] = inner
+                        covMat[j, i] = inner
+            self._covMat = covMat
+        return self._covMat
 

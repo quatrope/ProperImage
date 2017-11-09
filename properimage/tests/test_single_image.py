@@ -87,6 +87,7 @@ class TestSingleImage(object):
         self.h_fitsfile = {'SIMPLE':True, 'BITPIX':-64, 'NAXIS':2,
                       'NAXIS1':256, 'NAXIS2':256, 'EXTEND':True}
 
+
     def tearDown(self):
         if os.path.isdir(self.tempdir):
             shutil.rmtree(self.tempdir)
@@ -113,6 +114,20 @@ class TestSingleImage(object):
     def testMask(self):
         np.testing.assert_array_equal(self.mock_image_mask, self.si.mask)
 
+    def testStampPos(self):
+        self.assertIsInstance(self.si.stamps_pos, np.ndarray)
+        if self.si.n_sources!=0:
+            self.assertIsInstance(self.si.stamps_pos[0], np.ndarray)
+            self.assertEqual(self.si.n_sources, len(self.si.stamps_pos))
+
+    def testBestSources(self):
+        self.assertIsInstance(self.si.best_sources, np.ndarray)
+        self.assertGreaterEqual(len(self.si.best_sources), 1)
+
+    def testCovMat(self):
+        self.assertIsInstance(self.si.cov_matrix, np.ndarray)
+        np.testing.assert_array_equal(self.si.cov_matrix,
+                                      self.si.cov_matrix.T)
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
 
@@ -213,6 +228,17 @@ class TestFitsExtension(TestSingleImage, unittest.TestCase):
 
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
+
+class TestNoSources(unittest.TestCase):
+
+    def setUp(self):
+        self.no_sources_image = np.random.random((256, 256))
+
+    def testNoSources(self):
+        with self.assertRaises(ValueError):
+            s.SingleImage(self.no_sources_image)
+
+
 
 
 if __name__=='__main__':
