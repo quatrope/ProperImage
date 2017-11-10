@@ -138,6 +138,19 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.kl_basis, list)
         self.assertGreaterEqual(len(self.si.kl_basis), 1)
 
+    def testAFields(self):
+        self.assertIsInstance(self.si.kl_afields, list)
+        self.assertGreaterEqual(len(self.si.kl_basis), 1)
+        if len(self.si.kl_basis) is 1:
+            self.assertIsNone(self.si.kl_afields[0], None)
+
+    def testGetAFieldDomain(self):
+        self.assertIsInstance(self.si.get_afield_domain(), tuple)
+        self.assertIsInstance(self.si.get_afield_domain()[0], np.ndarray)
+
+    def testGetVariablePsf(self):
+        pass
+
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
 

@@ -299,7 +299,12 @@ class SingleImage(object):
 
     @property
     def stamps_pos(self):
-        if not hasattr(self, '_stamps_pos'):
+        _cond = (hasattr(self, '_shape') and
+                 self._shape!=self.stamp_shape and
+                 self._shape is not None)
+        if not hasattr(self, '_stamps_pos') or _cond:
+            if _cond:
+                self.stamp_shape = self._shape
             self.db = npdb.NumPyDB_cPickle(self.dbname, mode='store')
 
             pos = []
@@ -354,7 +359,10 @@ class SingleImage(object):
     @property
     def eigenv(self):
         if not hasattr(self, '_eigenv'):
-            self._eigenv = np.linalg.eigh(self.cov_matrix)
+            try:
+                self._eigenv = np.linalg.eigh(self.cov_matrix)
+            except np.linalg.LinAlgError:
+                raise
         return self._eigenv
 
     @property
@@ -400,7 +408,7 @@ class SingleImage(object):
     @property
     def kl_afields(self):
         if not hasattr(self, '_a_fields'):
-            self._setup_kl_basis()
+            self._setup_kl_a_fields()
         return self._a_fields
 
     def get_afield_domain(self):
@@ -422,7 +430,7 @@ class SingleImage(object):
             n_fields = len(psf_basis)
 
             if n_fields == 1:
-                self._a_fields = None
+                self._a_fields = [None]
                 return self._a_fields
 
             best_srcs = self.best_sources
@@ -466,6 +474,53 @@ class SingleImage(object):
                 a_fields.append(fitter(a_field_model, x, y, z))
 
             self._a_fields = a_fields
+
+    def get_variable_psf(self, inf_loss=None, shape=None):
+        """Method to obtain the space variant PSF determination,
+        according to Lauer 2002 method with Karhunen Loeve transform.
+
+        Parameters
+        ----------
+        pow_th: float, between 0 and 1. It sets the minimum amount of
+        information that a PSF-basis of the Karhunen Loeve transformation
+        should have in order to be taken into account. A high value will return
+        only the most significant components. Default is 0.9
+
+        shape: tuple, the size of the stamps for source extraction.
+        This value affects the _best_srcs property, and should be settled in
+        the SingleImage instancing step. At this stage it will override the
+        value settled in the instancing step only if _best_srcs hasn't been
+        called yet, which is the case if you are performing context managed
+        image subtraction. (See propersubtract module)
+
+        Returns
+        -------
+        [a_fields, psf_basis]: a list of two lists.
+        Basically it returns a sequence of psf-basis elements with its
+        associated coefficient.
+
+        The psf_basis elements are numpy arrays of the given fitshape (or shape)
+        size.
+
+        The a_fields are astropy.fitting fitted model functions, which need
+        arguments to return numpy array fields (for example a_fields[0](x, y)).
+        These can be generated using
+        x, y = np.mgrid[:self.imagedata.shape[0],
+                        :self.imagedata.shape[1]]
+
+        """
+        if shape is not None:
+            self._shape = shape
+        if inf_loss is not None:
+            self.inf_loss = inf_loss
+
+        self._setup_kl_basis(inf_loss)
+        self._setup_kl_a_fields(inf_loss)
+
+        a_fields = self.kl_afields
+        psf_basis = self.kl_basis
+
+        return [a_fields, psf_basis]
 
 
 
