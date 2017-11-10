@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath('..'))
 import unittest
 import numpy as np
 from scipy.ndimage.interpolation import rotate
-from imsim import simtools as sm
+import simtools as sm
 
 
 class TestSimulationSuite(unittest.TestCase):

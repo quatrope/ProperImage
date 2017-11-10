@@ -28,7 +28,7 @@ import shutil
 import tempfile
 import unittest
 
-import mock
+#import mock
 
 import numpy as np
 
@@ -128,6 +128,16 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.cov_matrix, np.ndarray)
         np.testing.assert_array_equal(self.si.cov_matrix,
                                       self.si.cov_matrix.T)
+
+    def testInfLoss(self):
+        self.assertEqual(self.si.inf_loss, 0.1)
+        self.si.inf_loss = 0.01
+        self.assertEqual(self.si.inf_loss, 0.01)
+
+    def testPsfBasis(self):
+        self.assertIsInstance(self.si.kl_basis, list)
+        self.assertGreaterEqual(len(self.si.kl_basis), 1)
+
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
 

@@ -107,6 +107,7 @@ class SingleImage(object):
         self.mask = mask
         self._bkg = maskthresh
         self.stamp_shape = stamp_shape
+        self.inf_loss = 0.1
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
 
     def __enter__(self):
@@ -351,28 +352,32 @@ class SingleImage(object):
 
 
     @property
-    def eigen_v(self):
+    def eigenv(self):
         if not hasattr(self, '_eigenv'):
             self._eigenv = np.linalg.eigh(self.cov_matrix)
         return self._eigenv
 
     @property
     def kl_basis(self):
-        return self._kl_base
+        if not hasattr(self, '_kl_basis'):
+            self._setup_kl_basis()
+        return self._kl_basis
 
-    @kl_basis.setter
-    def kl_basis(self, inf_loss=0.1):
+    def _setup_kl_basis(self, inf_loss=None):
         """Determines the KL psf_basis from
         stars detected in the field."""
 
         if not hasattr(self, '_kl_basis') or self.inf_loss!=inf_loss:
+            if inf_loss is not None:
+                self.inf_loss = inf_loss
+
             valh, vech = self.eigenv
             power = abs(valh)/np.sum(abs(valh))
             pw = 1
             cut = 1
             for elem in power[::-1]:
                 pw -= elem
-                if pw > inf_loss:
+                if pw > self.inf_loss:
                     cut += 1
 
             #  Build psf basis
@@ -392,9 +397,75 @@ class SingleImage(object):
             del(base)
             self._kl_basis = psf_basis
 
-        return self._kl_basis
+    @property
+    def kl_afields(self):
+        if not hasattr(self, '_a_fields'):
+            self._setup_kl_basis()
+        return self._a_fields
+
+    def get_afield_domain(self):
+        x, y = np.mgrid[:self.pixeldata.data.shape[0],
+                        :self.pixeldata.data.shape[1]]
+        return x, y
 
 
+    def _setup_kl_a_fields(self, inf_loss=None):
+        """Calculate the coefficients of the expansion in basis of KLoeve.
+
+        """
+        if not hasattr(self, '_a_fields') or self.inf_loss!=inf_loss:
+            if inf_loss is not None:
+                self.inf_loss = inf_loss
+
+            psf_basis = self.kl_basis
+
+            n_fields = len(psf_basis)
+
+            if n_fields == 1:
+                self._a_fields = None
+                return self._a_fields
+
+            best_srcs = self.best_sources
+            # fitshape = self._best_srcs['fitshape']  # unused variable
+
+            flag_key = [col_name for col_name in best_srcs.dtype.fields.keys()
+                        if 'flag' in col_name.lower()][0]
+
+            mask = best_srcs[flag_key] <= 1
+            # patches = self._best_srcs['patches'][mask]
+            positions = self.stamps_pos[mask]
+            best_srcs = best_srcs[mask]
+
+            # Each element in patches brings information about the real PSF
+            # evaluated -or measured-, giving an interpolation point for a
+
+            a_fields = []
+            measures = np.zeros((n_fields, self.n_sources))
+            for i in range(n_fields):
+                p_i = psf_basis[i].flatten()
+                # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
+
+                x = positions[:, 0]
+                y = positions[:, 1]
+                for j in range(self.n_sources):
+                    if mask[j]:
+                        Pval = self.db.load(j)[0].flatten()
+                        # redefinir Pval
+                        for ii in range(i):
+                            Pval -= measures[ii, j] * psf_basis[ii].flatten()
+
+                        Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
+                        measures[i, j] = np.dot(Pval, p_i)/Pval_sq
+                    else:
+                        measures[i, j] = None
+
+                z = measures[i, :]
+                z = z[z > -10000.]
+                a_field_model = models.Polynomial2D(degree=4)
+                fitter = fitting.LinearLSQFitter()
+                a_fields.append(fitter(a_field_model, x, y, z))
+
+            self._a_fields = a_fields
 
 
 
