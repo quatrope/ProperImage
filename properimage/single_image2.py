@@ -584,7 +584,6 @@ class SingleImage(object):
         return self._s_component
 
 
-
 def chunk_it(seq, num):
     """Creates chunks of a sequence suitable for data parallelism using
     multiprocessing.
@@ -610,7 +609,4 @@ def chunk_it(seq, num):
         out.append(seq[int(last):int(last + avg)])
         last += avg
     return sorted(out, reverse=True)
-
-
-
 
