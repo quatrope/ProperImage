@@ -361,7 +361,7 @@ class SingleImage(object):
         if not hasattr(self, '_eigenv'):
             try:
                 self._eigenv = np.linalg.eigh(self.cov_matrix)
-            except np.linalg.LinAlgError:
+            except:
                 raise
         return self._eigenv
 
@@ -522,8 +522,94 @@ class SingleImage(object):
 
         return [a_fields, psf_basis]
 
+    @property
+    def normal_image(self):
+        """Calculates the PSF normalization image given in Lauer 2002,
+        for this image using the psf-basis elements and coefficients.
+
+        """
+        if not hasattr(self, '_normal_image'):
+            a_fields, psf_basis = self.get_variable_psf()
+
+            if a_fields[0] is None:
+                a = np.ones_like(self.pixeldata.data)
+                self._normal_image = convolve(a, psf_basis[0])
+
+            else:
+                x, y = self.get_afield_domain()
+                conv = np.zeros_like(self.pixeldata.data)
+
+                for i in range(len(a_fields)):
+                    a = a_fields[i]
+                    a = a(x, y)
+                    psf_i = psf_basis[i]
+                    conv += convolve(a, psf_i)#, psf_pad=True)#, # mode='same',
+                                        # fftn=fftwn, ifftn=ifftwn)
+                    # conv += sg.fftconvolve(a, psf_i, mode='same')
+
+                self._normal_image = conv
+            #~ print 'getting normal image'
+        return self._normal_image
+
+    @property
+    def s_component(self):
+        """Calculates the matched filter S (from propercoadd) component
+        from the image. Uses the measured psf, and is space variant capable.
+
+        """
+        if not hasattr(self, '_s_component'):
+            mfilter = np.zeros_like(self.pixeldata.data)
+            x, y = self.get_afield_domain()
+
+            a_fields, psf_basis = self.get_variable_psf()
+
+            var = self._bkg.globalrms
+            nrm = self.normal_image
+
+            if a_fields[0] is None:
+                mfilter = sg.correlate2d(self.bkg_sub_img,
+                                         psf_basis[0],
+                                         mode='same')
+            else:
+                for i in range(len(a_fields)):
+                    a = a_fields[i]
+                    psf = psf_basis[i]
+
+                    cross = np.multiply(a(x, y), self.bkg_sub_img)
+                    conv = sg.correlate2d(cross, psf, mode='same')
+                    mfilter += conv
+
+            mfilter = mfilter/nrm
+            self._s_component = self.zp * mfilter/var**2
+        return self._s_component
 
 
+
+def chunk_it(seq, num):
+    """Creates chunks of a sequence suitable for data parallelism using
+    multiprocessing.
+
+    Parameters
+    ----------
+    seq: list, array or sequence like object. (indexable)
+        data to separate in chunks
+
+    num: int
+        number of chunks required
+
+    Returns
+    -------
+    Sorted list.
+    List of chunks containing the data splited in num parts.
+
+    """
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+    while last < len(seq):
+        out.append(seq[int(last):int(last + avg)])
+        last += avg
+    return sorted(out, reverse=True)
 
 
 

@@ -129,6 +129,12 @@ class TestSingleImage(object):
         np.testing.assert_array_equal(self.si.cov_matrix,
                                       self.si.cov_matrix.T)
 
+    def testEigenV(self):
+        self.assertIsInstance(self.si.eigenv, tuple)
+        self.assertIsInstance(self.si.eigenv[0], np.ndarray)
+        self.assertIsInstance(self.si.eigenv[1], np.ndarray)
+
+
     def testInfLoss(self):
         self.assertEqual(self.si.inf_loss, 0.1)
         self.si.inf_loss = 0.01
@@ -144,12 +150,21 @@ class TestSingleImage(object):
         if len(self.si.kl_basis) is 1:
             self.assertIsNone(self.si.kl_afields[0], None)
 
+    def testAFieldsLowInfLoss(self):
+        self.si.inf_loss = 0.0002
+        self.assertIsInstance(self.si.kl_afields, list)
+        self.assertGreaterEqual(len(self.si.kl_basis), 1)
+        if len(self.si.kl_basis) is 1:
+            self.assertIsNone(self.si.kl_afields[0], None)
+
     def testGetAFieldDomain(self):
         self.assertIsInstance(self.si.get_afield_domain(), tuple)
         self.assertIsInstance(self.si.get_afield_domain()[0], np.ndarray)
 
     def testGetVariablePsf(self):
-        pass
+        self.assertIsInstance(self.si.get_variable_psf(), list)
+        self.assertIsInstance(self.si.get_variable_psf(inf_loss=0.002), list)
+        self.assertIsInstance(self.si.get_variable_psf(shape=(23, 23)), list)
 
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
