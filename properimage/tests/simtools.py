@@ -462,7 +462,7 @@ def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
 
 
 
-def sim_varpsf(nstars, test_dir, SN=3., thetas=[0, 45, 105, 150], N=512):
+def sim_varpsf(nstars, SN=3., thetas=[0, 45, 105, 150], N=512):
     frames = []
     for theta in thetas:
         X_FWHM = 5 + 5.*theta/180.

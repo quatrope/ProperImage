@@ -87,7 +87,7 @@ class SingleImage(object):
 
     """
     def __init__(self, img=None, imagefile=True, sim=False,
-                 meta={}, shape=None):
+                 meta={}, shape=None, pow_th=0.01):
 
         self.pow_th = pow_th
 

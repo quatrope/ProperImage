@@ -35,7 +35,7 @@ import numpy as np
 from astropy.io import fits
 
 from properimage import single_image2 as s
-from properimage import simtools
+from properimage.tests import simtools
 
 
 class TestSingleImage(object):
@@ -45,16 +45,24 @@ class TestSingleImage(object):
         self.tempdir = tempfile.mkdtemp()
 
         ### mock data
-        psf = simtools.Psf(13, 2.5)
+        psf = simtools.Psf(13, 2.5, 3.)
 
         # a numpy array
-        self.mock_image_data = np.random.random((256, 256))*10. + 50
+        self.mock_image_data = np.random.random((256, 256))*50. + 350
         self.mock_image_data[123, 123] = np.nan
 
         for i in range(30):
-            x, y = np.random.randint(2, 240, size=2)
+            x = np.random.randint(7, 220)
+            y = np.random.randint(7, 120)
             #~ print x, y
-            self.mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*20.
+            self.mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*2000.
+
+        psf = simtools.Psf(13, 3., 1.9)
+        for i in range(30):
+            x = np.random.randint(7, 220)
+            y = np.random.randint(122, 220)
+            #~ print x, y
+            self.mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*2000.
 
         # a numpy array mask
         self.mock_image_mask = np.zeros((256, 256))

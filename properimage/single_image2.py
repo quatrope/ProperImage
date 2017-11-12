@@ -374,8 +374,8 @@ class SingleImage(object):
     def _setup_kl_basis(self, inf_loss=None):
         """Determines the KL psf_basis from
         stars detected in the field."""
-
-        if not hasattr(self, '_kl_basis') or self.inf_loss!=inf_loss:
+        inf_loss_update = inf_loss is not None and self.inf_loss!=inf_loss
+        if not hasattr(self, '_kl_basis') or inf_loss_update:
             if inf_loss is not None:
                 self.inf_loss = inf_loss
 
@@ -421,8 +421,10 @@ class SingleImage(object):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
-        if not hasattr(self, '_a_fields') or self.inf_loss!=inf_loss:
+        inf_loss_update = (inf_loss is not None and self.inf_loss!=inf_loss)
+        if not hasattr(self, '_a_fields') or inf_loss_update:
             if inf_loss is not None:
+                self._setup_kl_basis(inf_loss)
                 self.inf_loss = inf_loss
 
             psf_basis = self.kl_basis
@@ -511,8 +513,8 @@ class SingleImage(object):
         """
         if shape is not None:
             self._shape = shape
-        if inf_loss is not None:
-            self.inf_loss = inf_loss
+        #if inf_loss is not None:
+            #self.inf_loss = inf_loss
 
         self._setup_kl_basis(inf_loss)
         self._setup_kl_a_fields(inf_loss)
@@ -554,7 +556,7 @@ class SingleImage(object):
     @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
-        from the image. Uses the measured psf, and is space variant capable.
+        from the image. Uses the measured psf, and is psf space variant capable.
 
         """
         if not hasattr(self, '_s_component'):
