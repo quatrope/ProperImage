@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  single_image.py
+#  single_image2.py
 #
 #  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
 #
@@ -40,6 +40,7 @@ import os
 from six.moves import range
 
 import numpy as np
+from numpy import ma
 
 from scipy import signal as sg
 
@@ -58,11 +59,23 @@ from .image_stats import ImageStats
 
 try:
     import pyfftw
-    _fftwn = pyfftw.interfaces.numpy_fft.fftn
-    _ifftwn = pyfftw.interfaces.numpy_fft.ifftn
+    _fftwn = pyfftw.interfaces.numpy_fft.fft2
+    _ifftwn = pyfftw.interfaces.numpy_fft.ifft2
 except:
-    _fftwn = np.fft.fft2
-    _ifftwn = np.fft.ifft2
+    _fftwn = np.fft.rfft2
+    _ifftwn = np.fft.rifft2
+
+
+class Bunch(dict):
+
+    def __dir__(self):
+        return self.keys()
+
+    def __getattr__(self, attr):
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError(attr)
 
 
 class SingleImage(object):
@@ -81,52 +94,21 @@ class SingleImage(object):
                 `~astropy.io.fits.HDUList`  or a `str` naming the filename.
         The image object to work with
 
-    imagefile : `bool`
-        optional information regarding if the img is a fits file
-        Default to None, and a guessing attempt will be made.
-
+    mask: `~numpy.ndarray` or a `str` naming the filename.
+        The mask image
     """
-    def __init__(self, img=None, imagefile=True, sim=False,
-                 meta={}, shape=None, pow_th=0.01):
 
-        self.pow_th = pow_th
-
-        if not imagefile:
-            self._attached_to = img.__class__.__name__
-        else:
-            self._attached_to = img
-
-        if imagefile:
-            self.header = fits.getheader(img)
-            self.imagedata = fits.getdata(img)
-            if not self.imagedata.dtype == 'uint16':
-                self.imagedata = self.imagedata.byteswap().newbyteorder()
-            elif self.imagedata.dtype == 'int32':
-                self.imagedata = self.imagedata.byteswap().newbyteorder()
-            else:
-                self.imagedata = self.imagedata.astype('float')
-        else:
-            self.imagedata = img
-
-        if sim:
-            self.meta = meta
-        else:
-            imgstats = ImageStats(self.imagedata, 'numpy_array')
-            imgstats.calc_stats()
-            # imgstats.summary()
-            self.meta = imgstats.full_description
-
-        if np.any(np.isnan(self.imagedata)):
-            self.imagedata = np.ma.masked_array(self.imagedata,
-                                                np.isnan(self.imagedata)).filled(35000.)
-
-        if np.any(self.imagedata < 0.):
-            self.imagedata = np.ma.masked_array(self.imagedata,
-                                                self.imagedata < 0.).filled(13)
-
-        self._shape = shape
+    def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None):
+        self.__img = img
+        self.attached_to = img
+        self.zp = 1.
+        self.pixeldata = img
+        self.header = img
+        self.mask = mask
+        self._bkg = maskthresh
+        self.stamp_shape = stamp_shape
+        self.inf_loss = 0.1
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
-        self.zp = 1.0  # in case is not setled.
 
     def __enter__(self):
         return self
@@ -135,77 +117,134 @@ class SingleImage(object):
         self._clean()
 
     def __repr__(self):
-        return 'SingleImage instance for {}'.format(self._attached_to)
+        return 'SingleImage instance for {}'.format(self.attached_to)
 
     def _clean(self):
-        print 'cleaning... '
+        print('cleaning... ')
         try:
             os.remove(self.dbname+'.dat')
             os.remove(self.dbname+'.map')
         except:
-            print 'Nothing to clean. (Or something has failed)'
+            print('Nothing to clean. (Or something has failed)')
 
     @property
-    def sigma_bkg(self):
-        """Determine background using sigma clipping stats.
-        Sets the bkg, bkg_mean, and bkg_std attributes of the
-        SingleImage instance.
+    def attached_to(self):
+        return self.__attached_to
 
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-
-        """
-        if not hasattr(self, '_sigma_bkg'):
-            self._sigma_bkg = sigma_clip(self.imagedata, iters=10)
-            self.sigma_bkg_mean = self._sigma_bkg.mean()
-            self.sigma_bkg_sd = self._sigma_bkg.std()
-        return self._sigma_bkg
+    @attached_to.setter
+    def attached_to(self, img):
+        if isinstance(img, str):
+            self.__attached_to = img
+        else:
+            self.__attached_to = img.__class__.__name__
 
     @property
-    def masked(self):
-        """This sets an attribute,
-        called self._masked that contains a mask for nans.
+    def pixeldata(self):
+        return self.__pixeldata
 
-        Returns
-        -------
-        numpy.array 2D
-            a background subtracted image is returned
-
-        """
-        if not hasattr(self, '_masked'):
-            mask1 = np.ma.masked_invalid(self.imagedata)
-            mask2 = np.ma.masked_outside(self.imagedata, -50., 25000.)
-            mask3 = sigma_clip(self.imagedata, sigma_upper=50)
-            self._masked = np.ma.masked_array(self.imagedata, mask= mask1.mask & mask2.mask & mask3.mask)
-            #~ print 'background subtracted image obtained'
-        return self._masked
+    @pixeldata.setter
+    def pixeldata(self, img):
+        if isinstance(img, str):
+            self.__pixeldata = ma.asarray(fits.getdata(img)).astype('<f8')
+        elif isinstance(img, np.ndarray):
+            self.__pixeldata = ma.asarray(img).astype('<f8')
+        elif isinstance(img, fits.HDUList):
+            if img[0].is_image:
+                self.__pixeldata = ma.asarray(img[0].data).astype('<f8')
 
     @property
-    def bkg_sub_img(self):
+    def header(self):
+        return self.__header
+    @header.setter
+    def header(self, img):
+        if isinstance(img, str):
+            self.__header = fits.getheader(img)
+        elif isinstance(img, np.ndarray):
+            self.__header = {}
+        elif isinstance(img, fits.HDUList):
+            self.__header = img[0].header
+        elif isinstance(img, fits.PrimaryHDU):
+            self.__header = img.header
+
+    @property
+    def mask(self):
+        return self.__pixeldata.mask
+
+    @mask.setter
+    def mask(self, mask):
+        if isinstance(mask, str):
+            self.__pixeldata.mask = fits.getdata(mask)
+        elif isinstance(mask, np.ndarray):
+            self.__pixeldata.mask = mask
+        elif mask is None:
+            # check the fits file
+            if self.attached_to=='HDUList':
+                if self.header['EXTEND']:
+                    self.__pixeldata.mask = self.__img[1].data
+            elif self.attached_to=='PrimaryHDU':
+                self.__pixeldata = ma.masked_invalid(self.__img.data)
+            elif isinstance(self.__img, str):
+                ff = fits.open(self.attached_to)
+                if ff[0].header['EXTEND']:
+                    try:
+                        self.__pixeldata.mask = ff[1].data
+                    except IndexError:
+                        self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+            else:
+                self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+
+    @property
+    def background(self):
         """Image background subtracted property of SingleImage.
         The background is estimated using sep.
 
         Returns
         -------
         numpy.array 2D
-            a background subtracted image is returned
-
+            a background estimation image is returned
         """
-        if not hasattr(self, '_bkg_sub_img'):
-            self.bkg = sep.Background(self.masked.data,
-                                      mask=self.masked.mask)
-            self._bkg_sub_img = self.imagedata - self.bkg
-
-            #~ print 'background subtracted image obtained'
-        return self._bkg_sub_img
+        return self.__bkg.back()
 
     @property
-    def _best_srcs(self):
+    def _bkg(self):
+        return self.__bkg
+
+    @_bkg.setter
+    def _bkg(self, maskthresh=None):
+        if maskthresh is not None:
+            back = sep.Background(self.pixeldata.data,
+                                  mask=self.mask,
+                                  maskthresh=maskthresh)
+            self.__bkg = back
+        else:
+            back = sep.Background(self.pixeldata.data,
+                                  mask=self.mask)
+            self.__bkg = back
+
+    @property
+    def bkg_sub_img(self):
+        return self.pixeldata - self.__bkg
+
+    @property
+    def stamp_shape(self):
+        return self.__stamp_shape
+
+    @stamp_shape.setter
+    def stamp_shape(self, shape):
+        if shape is None:
+            percent = np.percentile(self.best_sources['npix'], q=65)
+            p_sizes = 3.*np.sqrt(percent)
+
+            if p_sizes > 21:
+                dx = int(p_sizes)
+                if dx % 2 != 1: dx += 1
+                shape = (dx, dx)
+            else:
+                shape = (21, 21)
+        self.__stamp_shape = shape
+
+    @property
+    def best_sources(self):
         """Property, a dictionary of best sources detected in the image.
         Keys are:
             fitshape: tuple, the size of the stamps on each source detected
@@ -214,180 +253,195 @@ class SingleImage(object):
             n_sources: the total number of sources extracted
         """
         if not hasattr(self, '_best_sources'):
+            # print('looking for srcs')
             try:
-                srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=6*self.bkg.globalrms,
-                                   mask=self.masked.mask)
+                srcs = sep.extract(self.bkg_sub_img.data,
+                                   thresh=10*self.__bkg.globalrms,
+                                   mask=self.mask)
             except Exception:
                 sep.set_extract_pixstack(700000)
-                srcs = sep.extract(self.bkg_sub_img,
-                                   thresh=8*self.bkg.globalrms,
-                                   mask=self.masked.mask)
-            except ValueError:
-                srcs = sep.extract(self.bkg_sub_img.byteswap().newbyteorder(),
-                                   thresh=8*self.bkg.globalrms,
-                                   mask=self.masked.mask)
-
+                srcs = sep.extract(self.bkg_sub_img.data,
+                                   thresh=8*self.__bkg.globalrms,
+                                   mask=self.mask)
             if len(srcs) < 20:
                 try:
-                    srcs = sep.extract(self.bkg_sub_img,
-                                       thresh=5*self.bkg.globalrms,
-                                       mask=self.masked.mask)
+                    srcs = sep.extract(self.bkg_sub_img.data,
+                                       thresh=5*self.__bkg.globalrms,
+                                       mask=self.mask)
                 except Exception:
                     sep.set_extract_pixstack(900000)
-                    srcs = sep.extract(self.bkg_sub_img,
-                                       thresh=5*self.bkg.globalrms,
-                                       mask=self.masked.mask)
-            if len(srcs) < 10:
-                print 'No sources detected'
-
-            #~ print 'raw sources = {}'.format(len(srcs))
+                    srcs = sep.extract(self.bkg_sub_img.data,
+                                       thresh=5*self.__bkg.globalrms,
+                                       mask=self.mask)
+            if len(srcs)==0:
+                raise ValueError('Few sources detected on image')
 
             p_sizes = np.percentile(srcs['npix'], q=[25, 55, 75])
 
             best_big = srcs['npix'] >= p_sizes[0]
             best_small = srcs['npix'] <= p_sizes[2]
             best_flag = srcs['flag'] <= 1
+
             fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
-            low_flux = srcs['flux'] > fluxes_quartiles[0]
-            # hig_flux = srcs['flux'] < fluxes_quartiles[1]
+            low_flux = srcs['flux'] >= fluxes_quartiles[0]
+            hig_flux = srcs['flux'] <= fluxes_quartiles[1]
 
-            # best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
-            best_srcs = srcs[best_flag & best_small & low_flux & best_big]
-
-            if self._shape is not None:
-                fitshape = self._shape
-            else:
-                p_sizes = 3.*np.sqrt(np.percentile(best_srcs['npix'],
-                                                q=[35, 65, 95]))
-
-                if p_sizes[1] >= 21:
-                    dx = int(p_sizes[1])
-                    if dx % 2 != 1: dx += 1
-                    fitshape = (dx, dx)
-                else:
-                    fitshape = (21, 21)
+            best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
                 best_srcs = best_srcs[jj]
 
-            print 'Sources good to calculate = {}'.format(len(best_srcs))
-            self._best_sources = {'sources': best_srcs, 'fitshape': fitshape}
+            print('Sources found = {}'.format(len(best_srcs)))
+            self._best_sources = best_srcs
 
+        return self._best_sources
+
+    @property
+    def stamps_pos(self):
+        _cond = (hasattr(self, '_shape') and
+                 self._shape!=self.stamp_shape and
+                 self._shape is not None)
+        if not hasattr(self, '_stamps_pos') or _cond:
+            if _cond:
+                self.stamp_shape = self._shape
             self.db = npdb.NumPyDB_cPickle(self.dbname, mode='store')
 
             pos = []
             jj = 0
-            for row in best_srcs:
-                position = [row['y'], row['x']]
-                sub_array_data = extract_array(self.bkg_sub_img,
-                                               fitshape, position,
-                                               fill_value=self.bkg.globalrms)
+            for row in self.best_sources:
+                position = (row['y'], row['x'])
+                sub_array_data = extract_array(self.bkg_sub_img.filled(
+                                                    self._bkg.globalrms),
+                                               self.stamp_shape, position,
+                                               mode='partial',
+                                               fill_value=self._bkg.globalrms)
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
-
-                # Patch.append(sub_array_data)
                 self.db.dump(sub_array_data, jj)
                 pos.append(position)
                 jj += 1
 
-            # self._best_sources['patches'] = np.array(Patch)
-            self._best_sources['positions'] = np.array(pos)
-            self._best_sources['n_sources'] = jj
-            # self._best_sources['detected'] = srcs
-            # self.db = npdb.NumPyDB_cPickle(self._dbname, mode='store')
-
-            #~ print 'returning best sources\n'
-        return self._best_sources
+            self._stamps_pos = np.array(pos)
+            self._n_sources = jj
+        return self._stamps_pos
 
     @property
-    def _covMat_from_stars(self):
+    def n_sources(self):
+        try:
+            return self._n_sources
+        except AttributeError:
+            s = self.stamps_pos
+            return self._n_sources
+
+    @property
+    def cov_matrix(self):
         """Determines the covariance matrix of the psf measured directly from
         the stamps of the detected stars in the image.
 
         """
-
         if not hasattr(self, '_covMat'):
-            # calculate x, y, flux of stars
-            # best_srcs = self._best_srcs['sources']
-            fitshape = self._best_srcs['fitshape']
-            print 'Fitshape = {}'.format(fitshape)
+            covMat = np.zeros(shape=(self.n_sources, self.n_sources))
 
-            # best_srcs = best_srcs[best_srcs['flag']<=1]
-            # renders = self._best_srcs['patches']
-            nsources = self._best_srcs['n_sources']
-            covMat = np.zeros(shape=(nsources, nsources))
-
-            for i in range(nsources):
-                for j in range(nsources):
+            for i in range(self.n_sources):
+                for j in range(self.n_sources):
                     if i <= j:
                         psfi_render = self.db.load(i)[0]
                         psfj_render = self.db.load(j)[0]
 
                         inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                         psfj_render.flatten()/np.sum(psfj_render))
+                        if inner is np.nan:
+                            import ipdb; ipdb.set_trace()
 
                         covMat[i, j] = inner
                         covMat[j, i] = inner
-            # print 'returning Covariance Matrix'
             self._covMat = covMat
         return self._covMat
 
 
-    def _kl_from_stars(self, pow_th=None):
-        """Determines the KL psf_basis from stars detected in the field.
+    @property
+    def eigenv(self):
+        if not hasattr(self, '_eigenv'):
+            try:
+                self._eigenv = np.linalg.eigh(self.cov_matrix)
+            except:
+                raise
+        return self._eigenv
 
-        """
-        if pow_th is None:
-            pow_th = self.pow_th
-        if not hasattr(self, '_psf_KL_basis_stars'):
-            covMat = self._covMat_from_stars
-            # renders = self._best_srcs['patches']
-            valh, vech = np.linalg.eigh(covMat)
+    @property
+    def kl_basis(self):
+        if not hasattr(self, '_kl_basis'):
+            self._setup_kl_basis()
+        return self._kl_basis
 
+    def _setup_kl_basis(self, inf_loss=None):
+        """Determines the KL psf_basis from
+        stars detected in the field."""
+        inf_loss_update = inf_loss is not None and self.inf_loss!=inf_loss
+        if not hasattr(self, '_kl_basis') or inf_loss_update:
+            if inf_loss is not None:
+                self.inf_loss = inf_loss
+
+            valh, vech = self.eigenv
             power = abs(valh)/np.sum(abs(valh))
-                        #  THIS IS A REFACTORING OF THRESHOLDS IN PSF BASIS
-            pw = power >= pow_th
-            if sum(pw) == 0:
-                cut = -1
-            else:
-                cut = -sum(pw)
-            #  Build psf basis
-            N_psf_basis = abs(cut)
-            xs = vech[:, cut:]
-            psf_basis = []
-            # THIS IS AN IMPLEMENTATION OF numpydb METHOD FOR ARRAY STORING
+            pw = 1
+            cut = 1
+            for elem in power[::-1]:
+                pw -= elem
+                if pw > self.inf_loss:
+                    cut += 1
+                else:
+                    break
 
-            for i in range(N_psf_basis):
-                base = np.zeros(self._best_srcs['fitshape'])
-                for j in range(self._best_srcs['n_sources']):
-                    try: pj = self.db.load(j)[0]
-                    except: import ipdb; ipdb.set_trace()
+            #  Build psf basis
+            n_basis = abs(cut)
+            xs = vech[:, -cut:]
+            psf_basis = []
+            for i in range(n_basis):
+                base = np.zeros(self.stamp_shape)
+                for j in range(self.n_sources):
+                    try:
+                        pj = self.db.load(j)[0]
+                    except:
+                        import ipdb; ipdb.set_trace()
                     base += xs[j, i] * pj
-                    norm = np.sqrt(np.sum(base**2.))
+                    #norm = np.sqrt(np.sum(base**2.))
+                    norm = np.sum(base)
                 psf_basis.append(base/norm)
             del(base)
-            self._psf_KL_basis_stars = psf_basis
-            self._valh = valh
-            #~ print 'obtainig KL basis, using k = {}'.format(N_psf_basis)
-        return self._psf_KL_basis_stars
+            self._kl_basis = psf_basis
 
-    def _kl_a_fields(self, pow_th=None):
+    @property
+    def kl_afields(self):
+        if not hasattr(self, '_a_fields'):
+            self._setup_kl_a_fields()
+        return self._a_fields
+
+    def get_afield_domain(self):
+        x, y = np.mgrid[:self.pixeldata.data.shape[0],
+                        :self.pixeldata.data.shape[1]]
+        return x, y
+
+
+    def _setup_kl_a_fields(self, inf_loss=None):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
-        if pow_th is None:
-            pow_th = self.pow_th
-        if not hasattr(self, '_a_fields'):
-            psf_basis = self._kl_from_stars(pow_th=pow_th)
+        inf_loss_update = (inf_loss is not None and self.inf_loss!=inf_loss)
+        if not hasattr(self, '_a_fields') or inf_loss_update:
+            if inf_loss is not None:
+                self._setup_kl_basis(inf_loss)
+                self.inf_loss = inf_loss
 
-            N_fields = len(psf_basis)
+            psf_basis = self.kl_basis
 
-            if N_fields == 1:
-                self._a_fields = None
+            n_fields = len(psf_basis)
+
+            if n_fields == 1:
+                self._a_fields = [None]
                 return self._a_fields
 
-            best_srcs = self._best_srcs['sources']
+            best_srcs = self.best_sources
             # fitshape = self._best_srcs['fitshape']  # unused variable
 
             flag_key = [col_name for col_name in best_srcs.dtype.fields.keys()
@@ -395,21 +449,21 @@ class SingleImage(object):
 
             mask = best_srcs[flag_key] <= 1
             # patches = self._best_srcs['patches'][mask]
-            positions = self._best_srcs['positions'][mask]
+            positions = self.stamps_pos[mask]
             best_srcs = best_srcs[mask]
 
             # Each element in patches brings information about the real PSF
             # evaluated -or measured-, giving an interpolation point for a
 
             a_fields = []
-            measures = np.zeros((N_fields, self._best_srcs['n_sources']))
-            for i in range(N_fields):
+            measures = np.zeros((n_fields, self.n_sources))
+            for i in range(n_fields):
                 p_i = psf_basis[i].flatten()
                 # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
                 x = positions[:, 0]
                 y = positions[:, 1]
-                for j in range(self._best_srcs['n_sources']):
+                for j in range(self.n_sources):
                     if mask[j]:
                         Pval = self.db.load(j)[0].flatten()
                         # redefinir Pval
@@ -428,10 +482,8 @@ class SingleImage(object):
                 a_fields.append(fitter(a_field_model, x, y, z))
 
             self._a_fields = a_fields
-            # print 'obtaining a fields'
-        return self._a_fields
 
-    def get_variable_psf(self, pow_th=None, shape=None):
+    def get_variable_psf(self, inf_loss=None, shape=None):
         """Method to obtain the space variant PSF determination,
         according to Lauer 2002 method with Karhunen Loeve transform.
 
@@ -465,14 +517,17 @@ class SingleImage(object):
                         :self.imagedata.shape[1]]
 
         """
-        self._shape = shape
-        if pow_th is None:
-            pow_th = self.pow_th
+        if shape is not None:
+            self._shape = shape
+        #if inf_loss is not None:
+            #self.inf_loss = inf_loss
 
-        a_fields = self._kl_a_fields(pow_th=pow_th)
-        psf_basis = self._kl_from_stars(pow_th=pow_th)
+        self._setup_kl_basis(inf_loss)
+        self._setup_kl_a_fields(inf_loss)
 
-        #~ print 'returning variable psf'
+        a_fields = self.kl_afields
+        psf_basis = self.kl_basis
+
         return [a_fields, psf_basis]
 
     @property
@@ -484,14 +539,13 @@ class SingleImage(object):
         if not hasattr(self, '_normal_image'):
             a_fields, psf_basis = self.get_variable_psf()
 
-            if a_fields is None:
-                a = np.ones(self.imagedata.shape)
+            if a_fields[0] is None:
+                a = np.ones_like(self.pixeldata.data)
                 self._normal_image = convolve(a, psf_basis[0])
 
             else:
-                x, y = np.mgrid[:self.imagedata.shape[0],
-                                :self.imagedata.shape[1]]
-                conv = np.zeros_like(self.bkg_sub_img)
+                x, y = self.get_afield_domain()
+                conv = np.zeros_like(self.pixeldata.data)
 
                 for i in range(len(a_fields)):
                     a = a_fields[i]
@@ -508,40 +562,33 @@ class SingleImage(object):
     @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
-        from the image. Uses the measured psf, and is space variant capable.
+        from the image. Uses the measured psf, and is psf space variant capable.
 
         """
         if not hasattr(self, '_s_component'):
-            mfilter = np.zeros_like(self.bkg_sub_img)
-            x, y = np.mgrid[:mfilter.shape[0], :mfilter.shape[1]]
+            mfilter = np.zeros_like(self.pixeldata.data)
+            x, y = self.get_afield_domain()
 
-            a_fields, psf_basis = self.get_variable_psf() #delete_patches=True)
+            a_fields, psf_basis = self.get_variable_psf()
 
-            # var = self.meta['std']
-            var = self.bkg.globalrms
+            var = self._bkg.globalrms
             nrm = self.normal_image
 
-            if a_fields is None:
-                #~ print 'starting matched filter'
-                mfilter = sg.correlate2d(self._masked,
+            if a_fields[0] is None:
+                mfilter = sg.correlate2d(self.bkg_sub_img,
                                          psf_basis[0],
                                          mode='same')
             else:
                 for i in range(len(a_fields)):
                     a = a_fields[i]
                     psf = psf_basis[i]
-                    #~ print 'calculating Im . a_field({})'.format(i)
-                    cross = np.multiply(a(x, y), self._masked)
-                    # cross = convolve_fft(self.bkg_sub_img, psf)
-                    #~ print 'starting matched filter'
+
+                    cross = np.multiply(a(x, y), self.bkg_sub_img)
                     conv = sg.correlate2d(cross, psf, mode='same')
-                    #~ print 'stacking matched filter'
                     mfilter += conv
 
-            #~ print 'matched filter succesful'
             mfilter = mfilter/nrm
             self._s_component = self.zp * mfilter/var**2
-            #~ print 'getting s component'
         return self._s_component
 
 
@@ -570,3 +617,4 @@ def chunk_it(seq, num):
         out.append(seq[int(last):int(last + avg)])
         last += avg
     return sorted(out, reverse=True)
+
