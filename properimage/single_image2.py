@@ -311,11 +311,12 @@ class SingleImage(object):
             jj = 0
             for row in self.best_sources:
                 position = (row['y'], row['x'])
-                sub_array_data = extract_array(self.bkg_sub_img.data,
+                sub_array_data = extract_array(self.bkg_sub_img.filled(
+                                                    self._bkg.globalrms),
                                                self.stamp_shape, position,
+                                               mode='partial',
                                                fill_value=self._bkg.globalrms)
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
-
                 self.db.dump(sub_array_data, jj)
                 pos.append(position)
                 jj += 1
@@ -349,6 +350,8 @@ class SingleImage(object):
 
                         inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
                                         psfj_render.flatten()/np.sum(psfj_render))
+                        if inner is np.nan:
+                            import ipdb; ipdb.set_trace()
 
                         covMat[i, j] = inner
                         covMat[j, i] = inner
@@ -387,6 +390,8 @@ class SingleImage(object):
                 pw -= elem
                 if pw > self.inf_loss:
                     cut += 1
+                else:
+                    break
 
             #  Build psf basis
             n_basis = abs(cut)
@@ -400,7 +405,8 @@ class SingleImage(object):
                     except:
                         import ipdb; ipdb.set_trace()
                     base += xs[j, i] * pj
-                    norm = np.sqrt(np.sum(base**2.))
+                    #norm = np.sqrt(np.sum(base**2.))
+                    norm = np.sum(base)
                 psf_basis.append(base/norm)
             del(base)
             self._kl_basis = psf_basis

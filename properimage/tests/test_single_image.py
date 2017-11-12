@@ -142,7 +142,6 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.eigenv[0], np.ndarray)
         self.assertIsInstance(self.si.eigenv[1], np.ndarray)
 
-
     def testInfLoss(self):
         self.assertEqual(self.si.inf_loss, 0.1)
         self.si.inf_loss = 0.01
@@ -174,6 +173,11 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.get_variable_psf(inf_loss=0.002), list)
         self.assertIsInstance(self.si.get_variable_psf(shape=(23, 23)), list)
 
+    def testNormalImage(self):
+        self.assertIsInstance(self.si.normal_image, np.ndarray)
+
+    def testSComponent(self):
+        self.assertIsInstance(self.si.s_component, np.ndarray)
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
 
