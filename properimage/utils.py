@@ -184,7 +184,7 @@ def transparency(images, master=None, ensemble=True):
             if not isinstance(master, simg.SingleImage):
                 master = simg.SingleImage(master)
 
-    mastercat = master._best_srcs['sources']
+    mastercat = master.best_sources
     mastercat = append_fields(mastercat, 'sourceid',
                               np.arange(len(mastercat)),
                               usemask=False,
@@ -193,8 +193,7 @@ def transparency(images, master=None, ensemble=True):
     detect = np.repeat(True, len(mastercat))
     #  Matching the sources
     for img in imglist:
-        newcat = img._best_srcs['sources']
-
+        newcat = img.best_sources
         ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
                              angular=False, radius=1., masked=True)
 
@@ -205,7 +204,7 @@ def transparency(images, master=None, ensemble=True):
             if mastercat[i]['sourceid'] not in ids:
                 detect[i] = False
         newcat.sort(order='sourceid')
-        img._best_srcs['sources'] = newcat
+        img.bes_sources = newcat
     mastercat = append_fields(mastercat, 'detected',
                               detect,
                               usemask=False,
@@ -222,12 +221,12 @@ def transparency(images, master=None, ensemble=True):
         j = 0
         for row in mastercat[mastercat['detected']]:
             for img in imglist:
-                cat = img._best_srcs['sources']
+                cat = img.best_sources
                 imgrow = cat[cat['sourceid'] == row['sourceid']]
                 m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
                 j += 1
         # print mastercat['detected']
-        master._best_srcs['sources'] = mastercat
+        master.best_sources= mastercat
 
         print "p={}, q={}".format(p, q)
         ident = sparse.identity(q)

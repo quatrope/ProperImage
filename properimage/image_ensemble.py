@@ -45,7 +45,6 @@ from astropy.io import fits
 from . import utils
 from .combinator import Combinator
 from .single_image import SingleImage
-from .utils import chunk_it
 
 try:
     import cPickle as pickle
@@ -77,21 +76,26 @@ class ImageEnsemble(MutableSequence):
     An instance of ImageEnsemble
 
     """
-    def __init__(self, imgpaths, pow_th=0.9, *arg, **kwargs):
+    def __init__(self, imglist, masklist=None, inf_loss=0.1, *arg, **kwargs):
         super(ImageEnsemble, self).__init__(*arg, **kwargs)
-        self.imgl = imgpaths
-        self.pow_th = pow_th
+
+        if masklist is not None:
+            self.imglist = zip(imglist, masklist)
+        else:
+            self.masklist = np.repeat(masklist, len(imglist))
+            self.imglist = zip(imglist, self.masklist)
+        self.inf_loss = inf_loss
         self.global_shape = fits.getdata(imgpaths[0]).shape
         print self.global_shape
 
     def __setitem__(self, i, v):
-        self.imgl[i] = v
+        self.imglist[i] = v
 
     def __getitem__(self, i):
-        return self.imgl[i]
+        return self.imglist[i]
 
     def __delitem__(self, i):
-        del self.imgl[i]
+        del self.imglist[i]
 
     def __len__(self):
         return len(self.imgl)
@@ -125,7 +129,7 @@ class ImageEnsemble(MutableSequence):
         """
         if not hasattr(self, '_atoms'):
             self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
-                           for im in self.imgl]
+                           for im in self.imglist]
         elif len(self._atoms) is not len(self.imgl):
             self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
                            for im in self.imgl]
