@@ -34,7 +34,7 @@ import numpy as np
 
 from astropy.io import fits
 
-from properimage import single_image2 as s
+from properimage import single_image as s
 from properimage.tests import simtools
 
 
