@@ -108,23 +108,25 @@ class Combinator(Process):
     p2.join()
 
     """
-    def __init__(self, ensemble, queue, stack=True, fourier=False,
+    def __init__(self, ensemble, queue, shape, stack=True, fourier=False,
                  *args, **kwargs):
         super(Combinator, self).__init__(*args, **kwargs)
         self.list_to_combine = ensemble
         self.queue = queue
         self.stack = stack
         self.fourier = fourier
+        self.global_shape = shape
+        print self.global_shape
         # self.zps = ensemble.transparencies
 
     def run(self):
         if self.stack:
-            shape = self.list_to_combine[0].imagedata.shape
-            S = np.zeros(shape)
+            S = np.zeros(self.global_shape)
             for img in self.list_to_combine:
-                s_comp = np.ma.masked_invalid(img.s_component)
+                s_comp = np.ma.MaskedArray(img.s_component, img.mask)
                 print 'S component obtained, summing arrays'
-                S = np.ma.add(s_comp, S)
+                S = np.ma.add(s_comp[:self.global_shape[0],
+                                     :self.global_shape[1]], S)
 
             print 'chunk processed, now pickling'
             serialized = pickle.dumps(S)
@@ -135,7 +137,7 @@ class Combinator(Process):
             for img in self.list_to_combine:
                 if np.any(np.isnan(img.s_component)):
                     import ipdb; ipdb.set_trace()
-                s_comp = np.ma.masked_invalid(img.s_component)
+                s_comp = np.ma.MaskedArray(img.s_component, img.mask)
                 print 'S component obtained'
                 S_stack.append(s_comp)
 

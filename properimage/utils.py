@@ -374,6 +374,45 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
 
     return [dest_file_new, dest_file_ref]
 
+def align_for_coadd(imglist):
+    """Function to align two images using their paths,
+    and returning newpaths for differencing.
+    We will allways rotate and align the new image to the reference,
+    so it is easier to compare differences along time series.
+
+    This special function differs from aligh_for_diff since it
+    crops the images, so they do not have borders with problems.
+    """
+    ref = fits.getdata(imglist[0])
+    hdr_ref = fits.getheader(refpath)
+    pass
+    #~ dest_file_ref = 'cropped_'+os.path.basename(refpath)
+    #~ dest_file_ref = os.path.join(os.path.dirname(refpath), dest_file_ref)
+
+    #~ hdr_ref.set('comment', 'cropped img '+refpath+' to '+newpath)
+    #~ ref2 = ref[bordersize:-bordersize, bordersize:-bordersize]
+    #~ fits.writeto(dest_file_ref, ref2, hdr_ref, overwrite=True)
+
+    #~ new = fits.getdata(newpath)
+    #~ hdr_new = fits.getheader(newpath)
+
+    #~ dest_file_new = 'aligned_'+os.path.basename(newpath)
+    #~ dest_file_new = os.path.join(os.path.dirname(newpath), dest_file_new)
+
+    #~ try:
+        #~ new2 = aa.align_image(ref, new)
+    #~ except ValueError:
+        #~ ref = ref.astype(float)
+        #~ new = new.astype(float)
+        #~ new2 = aa.align_image(ref, new)
+
+    #~ hdr_new.set('comment', 'aligned img '+newpath+' to '+refpath)
+    #~ new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
+    #~ fits.writeto(dest_file_new, new2, hdr_new, overwrite=True)
+
+    #~ return [dest_file_new, dest_file_ref]
+
+
 
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
     #std = np.std(S_image)

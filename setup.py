@@ -37,13 +37,13 @@ REQUIREMENTS = ["numpy>=1.6.2",
 # =============================================================================
 # FUNCTIONS
 # =============================================================================
-print setuptools.find_packages()
+print setuptools.find_packages(exclude=['test*'])
 
 
 def do_setup():
     setuptools.setup(
         name='properimage',
-        version='0.1.0.dev1',
+        version='0.2.0.dev1',
         description='Proper astronomic image analysis',
         author='Bruno Sanchez',
         author_email='bruno@oac.unc.edu.ar',

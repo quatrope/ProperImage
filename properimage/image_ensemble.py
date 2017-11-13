@@ -45,6 +45,8 @@ from astropy.io import fits
 from . import utils
 from .combinator import Combinator
 from .single_image import SingleImage
+from .single_image import chunk_it
+
 
 try:
     import cPickle as pickle
@@ -76,7 +78,8 @@ class ImageEnsemble(MutableSequence):
     An instance of ImageEnsemble
 
     """
-    def __init__(self, imglist, masklist=None, inf_loss=0.1, *arg, **kwargs):
+    def __init__(self, imglist, masklist=None, inf_loss=0.1, align=True,
+                 *arg, **kwargs):
         super(ImageEnsemble, self).__init__(*arg, **kwargs)
 
         if masklist is not None:
@@ -85,8 +88,7 @@ class ImageEnsemble(MutableSequence):
             self.masklist = np.repeat(masklist, len(imglist))
             self.imglist = zip(imglist, self.masklist)
         self.inf_loss = inf_loss
-        self.global_shape = fits.getdata(imgpaths[0]).shape
-        print self.global_shape
+
 
     def __setitem__(self, i, v):
         self.imglist[i] = v
@@ -128,12 +130,19 @@ class ImageEnsemble(MutableSequence):
 
         """
         if not hasattr(self, '_atoms'):
-            self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
-                           for im in self.imglist]
-        elif len(self._atoms) is not len(self.imgl):
-            self._atoms = [SingleImage(im, imagefile=True, pow_th=self.pow_th)
-                           for im in self.imgl]
+            self._atoms = [SingleImage(im[0], mask=im[1]) for im in self.imglist]
+        elif len(self._atoms) is not len(self.imglist):
+            self._atoms = [SingleImage(im[0], mask=im[1]) for im in self.imglist]
         return self._atoms
+
+    @property
+    def global_shape(self):
+        if not hasattr(self, '_global_shape'):
+            shapex = np.min([at.pixeldata.shape[0] for at in self.atoms])
+            shapey = np.min([at.pixeldata.shape[1] for at in self.atoms])
+            self._global_shape = (shapex, shapey)
+            print self._global_shape
+        return self._global_shape
 
     @property
     def transparencies(self):
@@ -165,7 +174,8 @@ class ImageEnsemble(MutableSequence):
         procs = []
         for chunk in chunk_it(self.atoms, n_procs):
             queue = Queue()
-            proc = Combinator(chunk, queue, stack=True, fourier=False)
+            proc = Combinator(chunk, queue, shape=self.global_shape,
+                              stack=True, fourier=False)
             print 'starting new process'
             proc.start()
 
@@ -179,8 +189,8 @@ class ImageEnsemble(MutableSequence):
             serialized = q.get()
             print 'loading pickles'
             s_comp = pickle.loads(serialized)
-
-            S = np.ma.add(s_comp, S)
+            print s_comp.shape
+            S = np.ma.add(s_comp[:self.global_shape[0], :self.global_shape[1]], S)
 
         print 'S calculated, now starting to join processes'
 

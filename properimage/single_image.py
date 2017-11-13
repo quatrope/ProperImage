@@ -173,7 +173,7 @@ class SingleImage(object):
     @mask.setter
     def mask(self, mask):
         if isinstance(mask, str):
-            self.__pixeldata.mask = fits.getdata(mask)
+            self.__pixeldata.mask = fits.getdata(mask) >= 4
         elif isinstance(mask, np.ndarray):
             self.__pixeldata.mask = mask
         elif mask is None:
@@ -185,13 +185,15 @@ class SingleImage(object):
                 self.__pixeldata = ma.masked_invalid(self.__img.data)
             elif isinstance(self.__img, str):
                 ff = fits.open(self.attached_to)
-                if ff[0].header['EXTEND']:
-                    try:
-                        self.__pixeldata.mask = ff[1].data
-                    except IndexError:
-                        self.__pixeldata = ma.masked_invalid(self.__pixeldata)
-            else:
-                self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+                # guess mask from extensions
+                if 'EXTEND' in ff[0].header.keys():
+                    if ff[0].header['EXTEND']:
+                        try:
+                            self.__pixeldata.mask = ff[1].data
+                        except IndexError:
+                            self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+                else:
+                    self.__pixeldata = ma.masked_invalid(self.__pixeldata)
 
     @property
     def background(self):
@@ -590,6 +592,8 @@ class SingleImage(object):
             mfilter = mfilter/nrm
             self._s_component = self.zp * mfilter/var**2
         return self._s_component
+
+    #~ @property
 
 
 def chunk_it(seq, num):
