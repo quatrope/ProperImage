@@ -170,8 +170,6 @@ class SingleImage(object):
 
     @property
     def mask(self):
-        if not self.__pixeldata.mask:
-            return np.zeros((self.pixeldata.shape)).astype(np.bool)
         return self.__pixeldata.mask
 
     @mask.setter
@@ -182,22 +180,26 @@ class SingleImage(object):
             self.__pixeldata.mask = mask
         elif mask is None:
             # check the fits file
-            if self.attached_to=='HDUList':
+            if self.attached_to=='PrimaryHDU' or self.attached_to=='ndarray':
+                self.__pixeldata = ma.masked_invalid(self.__img.data)
+            elif self.attached_to=='HDUList':
                 if self.header['EXTEND']:
                     self.__pixeldata.mask = self.__img[1].data
-            elif self.attached_to=='PrimaryHDU':
-                self.__pixeldata = ma.masked_invalid(self.__img.data)
+                else:
+                    self.__pixeldata = ma.masked_invalid(self.__img.data)
             elif isinstance(self.__img, str):
                 ff = fits.open(self.attached_to)
-                # guess mask from extensions
                 if 'EXTEND' in ff[0].header.keys():
                     if ff[0].header['EXTEND']:
                         try:
                             self.__pixeldata.mask = ff[1].data
                         except IndexError:
-                            self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+                            self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
-                    self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+                    self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
+        if self.__pixeldata.mask.shape==():
+            self.__pixeldata.mask = np.zeros_like(self.pixeldata.data).astype(np.bool)
+
 
     @property
     def background(self):
@@ -217,14 +219,21 @@ class SingleImage(object):
 
     @_bkg.setter
     def _bkg(self, maskthresh=None):
-        if maskthresh is not None:
-            back = sep.Background(self.pixeldata.data,
-                                  mask=self.mask,
-                                  maskthresh=maskthresh)
-            self.__bkg = back
+        if self.mask.any():
+            if maskthresh is not None:
+                print 'secto 1'
+                back = sep.Background(self.pixeldata.data, mask=self.mask,
+                                      maskthresh=maskthresh)
+                self.__bkg = back
+            else:
+                print 'sector2'
+                back = sep.Background(self.pixeldata.data,
+                                      mask=self.mask)
+                self.__bkg = back
         else:
-            back = sep.Background(self.pixeldata.data,
-                                  mask=self.mask)
+            print 'secto 3'
+            print  self.pixeldata.data.shape
+            back = sep.Background(self.pixeldata.data)
             self.__bkg = back
 
     @property
@@ -628,10 +637,11 @@ class SingleImage(object):
 
     def psf_hat_sqnorm(self):
         psf_basis = self.kl_basis
-        p_hat = np.zeros(self.pixeldata.shape)
+        p_hat = np.zeros(self.pixeldata.shape).astype(np.complex128)
         for a_psf in psf_basis:
             psf_hat = _fftwn(a_psf, s=self.pixeldata.shape)
             p_hat = np.add(psf_hat*psf_hat.conj(), p_hat,
-                           out=p_hat, casting='unsafe')
+                           out=p_hat, casting='same_kind')
+
         return p_hat
 
