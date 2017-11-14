@@ -149,7 +149,7 @@ class SingleImage(object):
         if isinstance(img, str):
             self.__pixeldata = ma.asarray(fits.getdata(img)).astype('<f8')
         elif isinstance(img, np.ndarray):
-            self.__pixeldata = ma.asarray(img).astype('<f8')
+            self.__pixeldata = ma.MaskedArray(img, mask=False).astype('<f8')
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
                 self.__pixeldata = ma.asarray(img[0].data).astype('<f8')
@@ -180,13 +180,15 @@ class SingleImage(object):
             self.__pixeldata.mask = mask
         elif mask is None:
             # check the fits file
-            if self.attached_to=='PrimaryHDU' or self.attached_to=='ndarray':
+            if self.attached_to=='PrimaryHDU':
                 self.__pixeldata = ma.masked_invalid(self.__img.data)
+            elif self.attached_to=='ndarray':
+                self.__pixeldata = ma.masked_invalid(self.__img)
             elif self.attached_to=='HDUList':
                 if self.header['EXTEND']:
                     self.__pixeldata.mask = self.__img[1].data
                 else:
-                    self.__pixeldata = ma.masked_invalid(self.__img.data)
+                    self.__pixeldata = ma.masked_invalid(self.__img[0].data)
             elif isinstance(self.__img, str):
                 ff = fits.open(self.attached_to)
                 if 'EXTEND' in ff[0].header.keys():
@@ -197,9 +199,6 @@ class SingleImage(object):
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
-        if self.__pixeldata.mask.shape==():
-            self.__pixeldata.mask = np.zeros_like(self.pixeldata.data).astype(np.bool)
-
 
     @property
     def background(self):
@@ -218,20 +217,17 @@ class SingleImage(object):
         return self.__bkg
 
     @_bkg.setter
-    def _bkg(self, maskthresh=None):
+    def _bkg(self, maskthresh):
         if self.mask.any():
             if maskthresh is not None:
-                print 'secto 1'
                 back = sep.Background(self.pixeldata.data, mask=self.mask,
                                       maskthresh=maskthresh)
                 self.__bkg = back
             else:
-                print 'sector2'
                 back = sep.Background(self.pixeldata.data,
                                       mask=self.mask)
                 self.__bkg = back
         else:
-            print 'secto 3'
             print  self.pixeldata.data.shape
             back = sep.Background(self.pixeldata.data)
             self.__bkg = back

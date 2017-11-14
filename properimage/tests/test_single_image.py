@@ -95,6 +95,7 @@ class TestSingleImage(object):
         self.h_fitsfile = {'SIMPLE':True, 'BITPIX':-64, 'NAXIS':2,
                       'NAXIS1':256, 'NAXIS2':256, 'EXTEND':True}
 
+        print self.mock_image_data.shape, '\n'
 
     def tearDown(self):
         if os.path.isdir(self.tempdir):
@@ -187,11 +188,11 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.psf_hat_sqnorm(), np.ndarray)
 
 
-
 class TestNpArray(TestSingleImage, unittest.TestCase):
 
     def setUp(self):
         super(TestNpArray, self).setUp()
+        print self.mock_image_data.shape
         self.si = s.SingleImage(self.mock_image_data)
 
     def testMask(self):
