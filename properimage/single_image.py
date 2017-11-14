@@ -49,12 +49,14 @@ from astropy.stats import sigma_clip
 from astropy.modeling import fitting
 from astropy.modeling import models
 from astropy.convolution import convolve  # _fft, convolve
+from astropy.convolution import interpolate_replace_nans
+from astropy.convolution import Gaussian2DKernel
 from astropy.nddata.utils import extract_array
 
 import sep
 
 from . import numpydb as npdb
-#from . import utils
+from . import utils
 from .image_stats import ImageStats
 
 try:
@@ -168,6 +170,8 @@ class SingleImage(object):
 
     @property
     def mask(self):
+        if not self.__pixeldata.mask:
+            return np.zeros((self.pixeldata.shape)).astype(np.bool)
         return self.__pixeldata.mask
 
     @mask.setter
@@ -298,6 +302,13 @@ class SingleImage(object):
             self._best_sources = best_srcs
 
         return self._best_sources
+
+    def update_sources(self):
+        del(self._best_sources)
+        foo = self.best_sources
+        foo = self.stamp_shape
+        return
+
 
     @property
     def stamps_pos(self):
@@ -562,6 +573,17 @@ class SingleImage(object):
         return self._normal_image
 
     @property
+    def zp(self):
+        if not hasattr(self, '_zp'):
+            return 1.0
+        else:
+            return self._zp
+
+    @zp.setter
+    def zp(self, val):
+        self._zp = val
+
+    @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
         from the image. Uses the measured psf, and is psf space variant capable.
@@ -593,32 +615,23 @@ class SingleImage(object):
             self._s_component = self.zp * mfilter/var**2
         return self._s_component
 
-    #~ @property
 
+    def s_hat_comp(self):
+        s_comp = np.ma.MaskedArray(self.s_component, self.mask)
+        var = self._bkg.globalrms
+        kernel = Gaussian2DKernel(stddev=1.5)
 
-def chunk_it(seq, num):
-    """Creates chunks of a sequence suitable for data parallelism using
-    multiprocessing.
+        img_interp = s_comp.filled(np.nan)
+        img_interp = interpolate_replace_nans(img_interp, kernel)
 
-    Parameters
-    ----------
-    seq: list, array or sequence like object. (indexable)
-        data to separate in chunks
+        return _fftwn(img_interp)
 
-    num: int
-        number of chunks required
-
-    Returns
-    -------
-    Sorted list.
-    List of chunks containing the data splited in num parts.
-
-    """
-    avg = len(seq) / float(num)
-    out = []
-    last = 0.0
-    while last < len(seq):
-        out.append(seq[int(last):int(last + avg)])
-        last += avg
-    return sorted(out, reverse=True)
+    def psf_hat_sqnorm(self):
+        psf_basis = self.kl_basis
+        p_hat = np.zeros(self.pixeldata.shape)
+        for a_psf in psf_basis:
+            psf_hat = _fftwn(a_psf, s=self.pixeldata.shape)
+            p_hat = np.add(psf_hat*psf_hat.conj(), p_hat,
+                           out=p_hat, casting='unsafe')
+        return p_hat
 

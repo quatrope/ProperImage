@@ -52,7 +52,7 @@ except:
     _ifftwn = np.fft.ifft2
 
 
-class Combinator(Process):
+class StackCombinator(Process):
     """Combination engine.
     An engine for image combination in parallel, using multiprocessing.Process
     class.
@@ -108,49 +108,61 @@ class Combinator(Process):
     p2.join()
 
     """
-    def __init__(self, ensemble, queue, shape, stack=True, fourier=False,
+    def __init__(self, img_list, queue, shape, stack=True, fourier=False,
                  *args, **kwargs):
         super(Combinator, self).__init__(*args, **kwargs)
-        self.list_to_combine = ensemble
+        self.list_to_combine = img_list
         self.queue = queue
-        self.stack = stack
-        self.fourier = fourier
         self.global_shape = shape
         print self.global_shape
         # self.zps = ensemble.transparencies
 
     def run(self):
-        if self.stack:
-            S = np.zeros(self.global_shape)
-            for img in self.list_to_combine:
-                s_comp = np.ma.MaskedArray(img.s_component, img.mask)
-                print 'S component obtained, summing arrays'
-                S = np.ma.add(s_comp[:self.global_shape[0],
-                                     :self.global_shape[1]], S)
+        S_hat = np.zeros(self.global_shape)
+        psf_hat_sum = np.zeros(self.global_shape)
+        for an_img in self.list_to_combine:
+            S_hat += an_img.s_hat_comp
+            psf_hat_sum = ((an_img.zp/var)**2)*an_img.psf_hat_sqnorm
 
-            print 'chunk processed, now pickling'
-            serialized = pickle.dumps(S)
-            self.queue.put(serialized)
-            return
-        else:
-            S_stack = []
-            for img in self.list_to_combine:
-                if np.any(np.isnan(img.s_component)):
-                    import ipdb; ipdb.set_trace()
-                s_comp = np.ma.MaskedArray(img.s_component, img.mask)
-                print 'S component obtained'
-                S_stack.append(s_comp)
+        serialized = pickle.dumps([S_hat, psf_hat_sum])
+        self.queue.put(serialized)
+        return
 
-            if self.fourier:
-                S_hat_stack = []
-                for s_c in S_stack:
-                    sh = _fftwn(s_c)
-                    S_hat_stack.append(np.ma.masked_invalid(sh))
-                print 'Fourier transformed'
-                print 'chunk processed, now pickling'
-                serialized = pickle.dumps((S_stack, S_hat_stack))
-            else:
-                print 'chunk processed, now pickling'
-                serialized = pickle.dumps(S_stack)
-            self.queue.put(serialized)
-            return
+
+
+
+        #~ if self.stack:
+            #~ S = np.zeros(self.global_shape)
+            #~ for img in self.list_to_combine:
+                #~ s_comp = np.ma.MaskedArray(img.s_component, img.mask)
+
+                #~ print 'S component obtained, summing arrays'
+                #~ S = np.ma.add(s_comp[:self.global_shape[0],
+                                     #~ :self.global_shape[1]], S)
+
+            #~ print 'chunk processed, now pickling'
+            #~ serialized = pickle.dumps(S)
+            #~ self.queue.put(serialized)
+            #~ return
+        #~ else:
+            #~ S_stack = []
+            #~ for img in self.list_to_combine:
+                #~ if np.any(np.isnan(img.s_component)):
+                    #~ import ipdb; ipdb.set_trace()
+                #~ s_comp = np.ma.MaskedArray(img.s_component, img.mask)
+                #~ print 'S component obtained'
+                #~ S_stack.append(s_comp)
+
+            #~ if self.fourier:
+                #~ S_hat_stack = []
+                #~ for s_c in S_stack:
+                    #~ sh = _fftwn(s_c)
+                    #~ S_hat_stack.append(np.ma.masked_invalid(sh))
+                #~ print 'Fourier transformed'
+                #~ print 'chunk processed, now pickling'
+                #~ serialized = pickle.dumps((S_stack, S_hat_stack))
+            #~ else:
+                #~ print 'chunk processed, now pickling'
+                #~ serialized = pickle.dumps(S_stack)
+            #~ self.queue.put(serialized)
+            #~ return

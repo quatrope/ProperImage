@@ -37,7 +37,7 @@ REQUIREMENTS = ["numpy>=1.6.2",
 # =============================================================================
 # FUNCTIONS
 # =============================================================================
-print setuptools.find_packages(exclude=['test*'])
+print setuptools.find_packages() #exclude=['test*'])
 
 
 def do_setup():
@@ -63,7 +63,7 @@ def do_setup():
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Scientific/Engineering",
         ),
-        packages=setuptools.find_packages(exclude=['test*']),
+        packages=setuptools.find_packages(),#exclude=['test*']),
         install_requires=REQUIREMENTS
     )
 

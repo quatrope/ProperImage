@@ -157,8 +157,8 @@ class ImageSubtractor(object):
             def cost_beta(vec):
                 beta, dx, dy = vec[:]
 
-                norm  = beta*beta*(r_var*r_var*np.absolute(psf_new_hat)**2)
-                norm += n_var*n_var * np.absolute(psf_ref_hat)**2
+                norm  = beta*beta*(r_var*r_var*psf_new_hat*psf_new_hat.conj())
+                norm += n_var*n_var * psf_ref_hat * psf_ref_hat.conj()
 
                 #~ gamma_p = gamma/np.sqrt(n_var**2 + r_var**2 * beta**2)
 
@@ -174,8 +174,8 @@ class ImageSubtractor(object):
             def cost_beta_no_shift(vec):
                 beta = vec[0]
 
-                norm  = beta*beta*(r_var*r_var*np.absolute(psf_new_hat)**2)
-                norm += n_var*n_var * np.absolute(psf_ref_hat)**2
+                norm  = beta*beta*(r_var*r_var*psf_new_hat*psf_new_hat.conj())
+                norm += n_var*n_var * psf_ref_hat * psf_ref_hat.conj()
 
                 cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
                        _ifftwn((D_hat_r/np.sqrt(norm))*beta)
@@ -231,8 +231,8 @@ class ImageSubtractor(object):
             beta = n_zp/r_zp
             dx = 0.
             dy = 0.
-        norm  = beta*beta*(r_var*r_var*np.absolute(psf_new_hat)**2)
-        norm += n_var*n_var * np.absolute(psf_ref_hat)**2
+        norm  = beta*beta*(r_var*r_var*psf_new_hat * psf_new_hat.conj()
+        norm += n_var*n_var * psf_ref_hat * psf_ref_hat.conj()
 
         if dx==0. and dy==0.:
             D_hat = (D_hat_n - beta * D_hat_r)/np.sqrt(norm)
@@ -250,8 +250,8 @@ class ImageSubtractor(object):
 
         S_hat = d_zp * D_hat * P_hat.conjugate() * shift
 
-        kr=_ifftwn(beta*n_zp*psf_ref_hat.conjugate()*np.absolute(psf_new_hat)**2/norm)
-        kn=_ifftwn(beta*n_zp*psf_new_hat.conjugate()*np.absolute(psf_ref_hat)**2/norm)
+        kr=_ifftwn(beta*n_zp*psf_ref_hat.conj()*psf_new_hat*psf_new_hat.conj()/norm)
+        kn=_ifftwn(beta*n_zp*psf_new_hat.conj()*psf_ref_hat*psf_ref_hat.conj()/norm)
 
         V_en = _ifftwn(_fftwn(new.imagedata+1.)*_fftwn(kn*kn, s=shape))
         V_er = _ifftwn(_fftwn(ref.imagedata+1.)*_fftwn(kr*kr, s=shape))

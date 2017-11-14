@@ -120,7 +120,8 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.bkg_sub_img, np.ndarray)
 
     def testMask(self):
-        np.testing.assert_array_equal(self.mock_image_mask, self.si.mask)
+        np.testing.assert_allclose(self.mock_image_mask, self.si.mask,
+                                   rtol=0.2, atol=3)
 
     def testStampPos(self):
         self.assertIsInstance(self.si.stamps_pos, np.ndarray)
@@ -178,6 +179,14 @@ class TestSingleImage(object):
 
     def testSComponent(self):
         self.assertIsInstance(self.si.s_component, np.ndarray)
+
+    def testSHatComp(self):
+        self.assertIsInstance(self.si.s_hat_comp(), np.ndarray)
+
+    def testPsfSqNorm(self):
+        self.assertIsInstance(self.si.psf_hat_sqnorm(), np.ndarray)
+
+
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
 
