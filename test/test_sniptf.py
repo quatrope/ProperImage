@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#  test_sniptf.py
+#
+#  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#
+#
+import glob
+import os
+from properimage import single_image as s
+from properimage import propercoadd as pc
+from astropy.io import fits
+from properimage import utils
+from properimage import plot
+
+
+def main():
+    imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
+    imgs = glob.glob(imgsdir+'/*sci*.fits')
+    mask = glob.glob(imgsdir+'/*mask*.fits')
+
+    imgs.sort()
+    mask.sort()
+
+    for animg in imgs:
+        img = fits.open(animg, 'update')
+        img[0].data = img[0].data[:495, :495]
+        img[0].header['NAXIS1'] = 495
+        img[0].header['NAXIS2'] = 495
+
+        img.flush()
+        img.close()
+
+    images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
+
+    images = [s.SingleImage(animg) for animg in imgs]
+
+    for j, an_img in enumerate(images):
+        an_img.inf_loss = 0.02
+        plot.plot_psfbasis(an_img.kl_basis, path='psf_basis_{}.png'.format(j),
+                          nbook=False)
+        x, y = an_img.get_afield_domain()
+        plot.plot_afields(an_img.kl_afields, x, y, path='afields_{}.png'.format(j),
+                          nbook=False, size=4)
+        fits.writeto('S_comp_{}.fits'.format(j), an_img.s_component, overwrite=True)
+
+    R = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.2)
+
+    fits.writeto('R.fits', R.real, overwrite=True)
+
+    return
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main())
