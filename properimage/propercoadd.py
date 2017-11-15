@@ -31,7 +31,7 @@ from astropy.io import fits
 
 from . import utils
 from .combinator import StackCombinator
-from .single_image import SingleImage
+from .single_image import SingleImage, chunk_it
 
 
 try:
@@ -49,12 +49,12 @@ except:
 
 
 
-def stack_R(si_list, align=True, inf_loss=0.1, nprocs=2):
+def stack_R(si_list, align=True, inf_loss=0.1, n_procs=2):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
 
     """
-    if alignL:
+    if align:
         img_list = utils.align_for_coadd(si_list)
         for an_img in img_list:
             an_img.update_sources()
@@ -66,15 +66,15 @@ def stack_R(si_list, align=True, inf_loss=0.1, nprocs=2):
     global_shape = (shapex, shapey)
 
     zps, meanmags = utils.transparency(img_list)
-    for an_img in img_list:
-        an_img.zp = zp
+    for j, an_img in enumerate(img_list):
+        an_img.zp = zps[j]
 
     if n_procs>1:
         queues = []
         procs = []
-        for chunk in utils.chunk_it(img_list, n_procs):
+        for chunk in chunk_it(img_list, n_procs):
             queue = Queue()
-            proc = StackCombinator(chunk, queue, shape=self.global_shape,
+            proc = StackCombinator(chunk, queue, shape=global_shape,
                               stack=True, fourier=False)
             print 'starting new process'
             proc.start()
@@ -84,15 +84,15 @@ def stack_R(si_list, align=True, inf_loss=0.1, nprocs=2):
 
         print 'all chunks started, and procs appended'
 
-        S_hat = np.zeros(self.global_shape).astype(np.complex128)
-        P_hat = np.zeros(self.global_shape).astype(np.complex128)
+        S_hat = np.zeros(global_shape).astype(np.complex128)
+        P_hat = np.zeros(global_shape).astype(np.complex128)
         for q in queues:
             serialized = q.get()
             print 'loading pickles'
             s_hat_comp, psf_hat_sum = pickle.loads(serialized)
             print s_comp.shape
-            S_hat += s_hat_comp
-            P_hat += psf_hat_sum
+            np.add(s_hat_comp, S_hat, out=S_hat, casting='same_kind')
+            np.add(psf_hat_sum, P_hat, out=P_hat, casting='same_kind')
 
         R = _ifftwn(S_hat/np.sqrt(P_hat))
 
@@ -102,13 +102,14 @@ def stack_R(si_list, align=True, inf_loss=0.1, nprocs=2):
             print 'waiting for procs to finish'
             proc.join()
 
-        print 'processes finished, now returning S'
-        return R
+        print 'processes finished, now returning R'
     else:
-        S_hat = np.zeros(self.global_shape)
-        P_hat = np.zeros(self.global_shape)
+        S_hat = np.zeros(global_shape).astype(np.complex128)
+        P_hat = np.zeros(global_shape).astype(np.complex128)
         for an_img in img_list:
-            S_hat += an_img.s_hat_comp
-            P_hat += ((an_img.zp/var)**2)*an_img.psf_hat_sqnorm
+            np.add(an_img.s_hat_comp(), S_hat, out=S_hat, casting='same_kind')
+            np.add(((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm(), P_hat,
+                   out=P_hat, casting='same_kind')
         R = _ifftwn(S_hat/np.sqrt(P_hat))
 
+    return R

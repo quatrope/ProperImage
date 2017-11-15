@@ -110,7 +110,7 @@ class StackCombinator(Process):
     """
     def __init__(self, img_list, queue, shape, stack=True, fourier=False,
                  *args, **kwargs):
-        super(Combinator, self).__init__(*args, **kwargs)
+        super(StackCombinator, self).__init__(*args, **kwargs)
         self.list_to_combine = img_list
         self.queue = queue
         self.global_shape = shape
@@ -118,11 +118,11 @@ class StackCombinator(Process):
         # self.zps = ensemble.transparencies
 
     def run(self):
-        S_hat = np.zeros(self.global_shape)
-        psf_hat_sum = np.zeros(self.global_shape)
+        S_hat = np.zeros(self.global_shape).astype(np.complex128)
+        psf_hat_sum = np.zeros(self.global_shape).astype(np.complex128)
         for an_img in self.list_to_combine:
-            S_hat += an_img.s_hat_comp
-            psf_hat_sum = ((an_img.zp/var)**2)*an_img.psf_hat_sqnorm
+            np.add(an_img.s_hat_comp(), S_hat, out=S_hat, casting='same_kind')
+            psf_hat_sum = ((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm()
 
         serialized = pickle.dumps([S_hat, psf_hat_sum])
         self.queue.put(serialized)

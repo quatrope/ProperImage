@@ -56,7 +56,7 @@ from astropy.nddata.utils import extract_array
 import sep
 
 from . import numpydb as npdb
-from . import utils
+#from . import utils
 from .image_stats import ImageStats
 
 try:
@@ -198,7 +198,9 @@ class SingleImage(object):
                         except IndexError:
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
-                    self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
+                    self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+        self.__pixeldata = ma.masked_greater(self.__pixeldata, 30000.)
+
 
     @property
     def background(self):
@@ -228,7 +230,7 @@ class SingleImage(object):
                                       mask=self.mask)
                 self.__bkg = back
         else:
-            print  self.pixeldata.data.shape
+            # print(self.pixeldata.data.shape)
             back = sep.Background(self.pixeldata.data)
             self.__bkg = back
 
@@ -308,10 +310,13 @@ class SingleImage(object):
 
         return self._best_sources
 
-    def update_sources(self):
+    def update_sources(self, new_sources=None):
         del(self._best_sources)
-        foo = self.best_sources
-        foo = self.stamp_shape
+        if new_sources is None:
+            foo = self.best_sources
+            foo = self.stamp_shape
+        else:
+            self._best_sources = new_sources
         return
 
 
@@ -589,6 +594,10 @@ class SingleImage(object):
         self._zp = val
 
     @property
+    def var(self):
+        return self._bkg.globalrms
+
+    @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
         from the image. Uses the measured psf, and is psf space variant capable.
@@ -641,3 +650,29 @@ class SingleImage(object):
 
         return p_hat
 
+
+def chunk_it(seq, num):
+    """Creates chunks of a sequence suitable for data parallelism using
+    multiprocessing.
+
+    Parameters
+    ----------
+    seq: list, array or sequence like object. (indexable)
+        data to separate in chunks
+
+    num: int
+        number of chunks required
+
+    Returns
+    -------
+    Sorted list.
+    List of chunks containing the data splited in num parts.
+
+    """
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+    while last < len(seq):
+        out.append(seq[int(last):int(last + avg)])
+        last += avg
+    return sorted(out, reverse=True)

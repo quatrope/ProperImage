@@ -163,26 +163,14 @@ def matching(master, cat, masteridskey=None,
 def transparency(images, master=None, ensemble=True):
     """Transparency calculator, using Ofek method."""
 
-    if ensemble:
-        # master is the first file of ensemble
+    if master is None:
         p = len(images)
         master = images[0]
         imglist = images[1:]
     else:
-        for img in images:
-            if not isinstance(img, simg.SingleImage):
-                img = simg.SingleImage(img)
-
-        if master is None:
-            p = len(images)
-            master = images[0]
-            imglist = images[1:]
-        else:
-            # master is a separated file
-            p = len(images) + 1
-            imglist = images
-            if not isinstance(master, simg.SingleImage):
-                master = simg.SingleImage(master)
+        # master is a separated file
+        p = len(images) + 1
+        imglist = images
 
     mastercat = master.best_sources
     mastercat = append_fields(mastercat, 'sourceid',
@@ -204,7 +192,7 @@ def transparency(images, master=None, ensemble=True):
             if mastercat[i]['sourceid'] not in ids:
                 detect[i] = False
         newcat.sort(order='sourceid')
-        img.bes_sources = newcat
+        img.update_sources(newcat)
     mastercat = append_fields(mastercat, 'detected',
                               detect,
                               usemask=False,
@@ -226,7 +214,7 @@ def transparency(images, master=None, ensemble=True):
                 m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
                 j += 1
         # print mastercat['detected']
-        master.best_sources= mastercat
+        master.update_sources(mastercat)
 
         print "p={}, q={}".format(p, q)
         ident = sparse.identity(q)
@@ -375,43 +363,14 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
     return [dest_file_new, dest_file_ref]
 
 def align_for_coadd(imglist):
-    """Function to align two images using their paths,
-    and returning newpaths for differencing.
-    We will allways rotate and align the new image to the reference,
-    so it is easier to compare differences along time series.
-
-    This special function differs from aligh_for_diff since it
-    crops the images, so they do not have borders with problems.
+    """Function to align a group of images for coadding, it uses
+    the
     """
-    ref = fits.getdata(imglist[0])
-    hdr_ref = fits.getheader(refpath)
+    ref = imglist[0]
+    for animg in imglist[1:]:
+        aa.estimate_transform('affine', animg.pixeldata, ref.pixeldata)
+
     pass
-    #~ dest_file_ref = 'cropped_'+os.path.basename(refpath)
-    #~ dest_file_ref = os.path.join(os.path.dirname(refpath), dest_file_ref)
-
-    #~ hdr_ref.set('comment', 'cropped img '+refpath+' to '+newpath)
-    #~ ref2 = ref[bordersize:-bordersize, bordersize:-bordersize]
-    #~ fits.writeto(dest_file_ref, ref2, hdr_ref, overwrite=True)
-
-    #~ new = fits.getdata(newpath)
-    #~ hdr_new = fits.getheader(newpath)
-
-    #~ dest_file_new = 'aligned_'+os.path.basename(newpath)
-    #~ dest_file_new = os.path.join(os.path.dirname(newpath), dest_file_new)
-
-    #~ try:
-        #~ new2 = aa.align_image(ref, new)
-    #~ except ValueError:
-        #~ ref = ref.astype(float)
-        #~ new = new.astype(float)
-        #~ new2 = aa.align_image(ref, new)
-
-    #~ hdr_new.set('comment', 'aligned img '+newpath+' to '+refpath)
-    #~ new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
-    #~ fits.writeto(dest_file_new, new2, hdr_new, overwrite=True)
-
-    #~ return [dest_file_new, dest_file_ref]
-
 
 
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
@@ -437,30 +396,4 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
 
     return cat
 
-
-def chunk_it(seq, num):
-    """Creates chunks of a sequence suitable for data parallelism using
-    multiprocessing.
-
-    Parameters
-    ----------
-    seq: list, array or sequence like object. (indexable)
-        data to separate in chunks
-
-    num: int
-        number of chunks required
-
-    Returns
-    -------
-    Sorted list.
-    List of chunks containing the data splited in num parts.
-
-    """
-    avg = len(seq) / float(num)
-    out = []
-    last = 0.0
-    while last < len(seq):
-        out.append(seq[int(last):int(last + avg)])
-        last += avg
-    return sorted(out, reverse=True)
 
