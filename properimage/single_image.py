@@ -199,7 +199,7 @@ class SingleImage(object):
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
-        self.__pixeldata = ma.masked_greater(self.__pixeldata, 30000.)
+        self.__pixeldata = ma.masked_greater(self.__pixeldata, 25000.)
 
 
     @property
@@ -573,12 +573,11 @@ class SingleImage(object):
                     a = a_fields[i]
                     a = a(x, y)
                     psf_i = psf_basis[i]
-                    conv += convolve(a, psf_i)#, psf_pad=True)#, # mode='same',
-                                        # fftn=fftwn, ifftn=ifftwn)
+                    conv += convolve(a, psf_i)
+                    #, psf_pad=True)#, # mode='same',
+                    # fftn=fftwn, ifftn=ifftwn)
                     # conv += sg.fftconvolve(a, psf_i, mode='same')
-
                 self._normal_image = conv
-            #~ print 'getting normal image'
         return self._normal_image
 
     @property
@@ -612,7 +611,7 @@ class SingleImage(object):
             nrm = self.normal_image
 
             if a_fields[0] is None:
-                mfilter = sg.correlate2d(self.bkg_sub_img,
+                mfilter = sg.correlate2d(self.interped,
                                          psf_basis[0],
                                          mode='same')
             else:
@@ -620,7 +619,7 @@ class SingleImage(object):
                     a = a_fields[i]
                     psf = psf_basis[i]
 
-                    cross = np.multiply(a(x, y), self.bkg_sub_img)
+                    cross = np.multiply(a(x, y), self.interped)
                     conv = sg.correlate2d(cross, psf, mode='same')
                     mfilter += conv
 
@@ -631,7 +630,7 @@ class SingleImage(object):
     @property
     def interped(self):
         if not hasattr(self, 'interped'):
-            kernel = Gaussian2DKernel(stddev=1.5)
+            kernel = Gaussian2DKernel(stddev=self.stamp_shape[0]/5.)
             img_interp = self.bkg_sub_img.filled(np.nan)
             self._interped = interpolate_replace_nans(img_interp, kernel)
         return self._interped

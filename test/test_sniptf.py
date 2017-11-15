@@ -49,15 +49,16 @@ def main():
 
     images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
 
-    images = [s.SingleImage(animg) for animg in imgs]
+    #images = [s.SingleImage(animg) for animg in imgs]
 
     for j, an_img in enumerate(images):
-        an_img.inf_loss = 0.02
+        an_img.inf_loss = 0.2
         plot.plot_psfbasis(an_img.kl_basis, path='psf_basis_{}.png'.format(j),
                           nbook=False)
         x, y = an_img.get_afield_domain()
         plot.plot_afields(an_img.kl_afields, x, y, path='afields_{}.png'.format(j),
                           nbook=False, size=4)
+        fits.writeto('mask_{}.fits'.format(j), an_img.mask.astype('uint8'), overwrite=True)
         fits.writeto('S_comp_{}.fits'.format(j), an_img.s_component, overwrite=True)
 
     R = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.2)

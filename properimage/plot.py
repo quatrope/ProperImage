@@ -70,7 +70,7 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (N/float(p), p+1)
+        subplots = (np.rint(N/float(p)), p)
 
     plt.figure(figsize=(size*subplots[0], size*subplots[1]))
     for i in range(len(psf_basis)):
@@ -99,7 +99,7 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (N/float(p), p+1)
+        subplots = (np.rint(N/float(p)), p)
 
     plt.figure(figsize=(size*subplots[0], size*subplots[1]), **kwargs)
     for i in range(len(a_fields)):
