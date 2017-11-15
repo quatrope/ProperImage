@@ -70,7 +70,7 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (N/float(p), p)
+        subplots = (N/float(p), p+1)
 
     plt.figure(figsize=(size*subplots[0], size*subplots[1]))
     for i in range(len(psf_basis)):
@@ -87,8 +87,8 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     return
 
 
-def plot_afields(a_fields, shape, path=None, nbook=False, size=4, **kwargs):
-    if a_fields is None:
+def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
+    if a_fields[0] is None:
         print 'No a_fields were calculated. Only one Psf Basis'
         return
     a_fields.reverse()
@@ -99,10 +99,9 @@ def plot_afields(a_fields, shape, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (N/float(p), p)
+        subplots = (N/float(p), p+1)
 
     plt.figure(figsize=(size*subplots[0], size*subplots[1]), **kwargs)
-    x, y = np.mgrid[:shape[0], :shape[1]]
     for i in range(len(a_fields)):
         plt.subplot(subplots[1], subplots[0], i+1)
         plt.imshow(a_fields[i](x, y), cmap='viridis')

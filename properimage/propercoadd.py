@@ -49,7 +49,7 @@ except:
 
 
 
-def stack_R(si_list, align=True, inf_loss=0.1, n_procs=2):
+def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
 
@@ -68,6 +68,8 @@ def stack_R(si_list, align=True, inf_loss=0.1, n_procs=2):
     zps, meanmags = utils.transparency(img_list)
     for j, an_img in enumerate(img_list):
         an_img.zp = zps[j]
+        an_img._setup_kl_a_fields(inf_loss)
+
 
     if n_procs>1:
         queues = []
@@ -90,7 +92,6 @@ def stack_R(si_list, align=True, inf_loss=0.1, n_procs=2):
             serialized = q.get()
             print 'loading pickles'
             s_hat_comp, psf_hat_sum = pickle.loads(serialized)
-            print s_comp.shape
             np.add(s_hat_comp, S_hat, out=S_hat, casting='same_kind')
             np.add(psf_hat_sum, P_hat, out=P_hat, casting='same_kind')
 

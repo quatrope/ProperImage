@@ -248,12 +248,12 @@ class SingleImage(object):
             percent = np.percentile(self.best_sources['npix'], q=65)
             p_sizes = 3.*np.sqrt(percent)
 
-            if p_sizes > 21:
+            if p_sizes > 9:
                 dx = int(p_sizes)
                 if dx % 2 != 1: dx += 1
                 shape = (dx, dx)
             else:
-                shape = (21, 21)
+                shape = (9, 9)
         self.__stamp_shape = shape
 
     @property
@@ -269,22 +269,22 @@ class SingleImage(object):
             # print('looking for srcs')
             try:
                 srcs = sep.extract(self.bkg_sub_img.data,
-                                   thresh=10*self.__bkg.globalrms,
+                                   thresh=8*self.__bkg.globalrms,
                                    mask=self.mask)
             except Exception:
                 sep.set_extract_pixstack(700000)
                 srcs = sep.extract(self.bkg_sub_img.data,
-                                   thresh=8*self.__bkg.globalrms,
+                                   thresh=5*self.__bkg.globalrms,
                                    mask=self.mask)
             if len(srcs) < 20:
                 try:
                     srcs = sep.extract(self.bkg_sub_img.data,
-                                       thresh=5*self.__bkg.globalrms,
+                                       thresh=3*self.__bkg.globalrms,
                                        mask=self.mask)
                 except Exception:
                     sep.set_extract_pixstack(900000)
                     srcs = sep.extract(self.bkg_sub_img.data,
-                                       thresh=5*self.__bkg.globalrms,
+                                       thresh=3*self.__bkg.globalrms,
                                        mask=self.mask)
             if len(srcs)==0:
                 raise ValueError('Few sources detected on image')
@@ -334,8 +334,7 @@ class SingleImage(object):
             jj = 0
             for row in self.best_sources:
                 position = (row['y'], row['x'])
-                sub_array_data = extract_array(self.bkg_sub_img.filled(
-                                                    self._bkg.globalrms),
+                sub_array_data = extract_array(self.interped,
                                                self.stamp_shape, position,
                                                mode='partial',
                                                fill_value=self._bkg.globalrms)
@@ -629,6 +628,13 @@ class SingleImage(object):
             self._s_component = self.zp * mfilter/var**2
         return self._s_component
 
+    @property
+    def interped(self):
+        if not hasattr(self, 'interped'):
+            kernel = Gaussian2DKernel(stddev=1.5)
+            img_interp = self.bkg_sub_img.filled(np.nan)
+            self._interped = interpolate_replace_nans(img_interp, kernel)
+        return self._interped
 
     def s_hat_comp(self):
         s_comp = np.ma.MaskedArray(self.s_component, self.mask)
