@@ -32,6 +32,8 @@ from properimage import plot
 
 def main():
     imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
+    imgsdir = '/home/bruno/Data/SNiPTF/imgs'
+    dest_dir = './test/test_images/test_sniptf'
     imgs = glob.glob(imgsdir+'/*sci*.fits')
     mask = glob.glob(imgsdir+'/*mask*.fits')
 
@@ -53,17 +55,25 @@ def main():
 
     for j, an_img in enumerate(images):
         an_img.inf_loss = 0.2
-        plot.plot_psfbasis(an_img.kl_basis, path='psf_basis_{}.png'.format(j),
-                          nbook=False)
+        plot.plot_psfbasis(an_img.kl_basis,
+                           path=os.path.join(dest_dir, 'psf_basis_{}.png'.format(j)),
+                           nbook=False)
         x, y = an_img.get_afield_domain()
-        plot.plot_afields(an_img.kl_afields, x, y, path='afields_{}.png'.format(j),
+        plot.plot_afields(an_img.kl_afields, x, y,
+                          path=os.path.join(dest_dir,'afields_{}.png'.format(j)),
                           nbook=False, size=4)
-        fits.writeto('mask_{}.fits'.format(j), an_img.mask.astype('uint8'), overwrite=True)
-        fits.writeto('S_comp_{}.fits'.format(j), an_img.s_component, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'mask_{}.fits'.format(j)),
+                     an_img.mask.astype('uint8'), overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'S_comp_{}.fits'.format(j)),
+                     an_img.s_component, overwrite=True)
 
-    R = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.2)
+    R, P_r = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.2)
 
     fits.writeto('R.fits', R.real, overwrite=True)
+    fits.writeto('P.fits', P_r.real, overwrite=True)
+
+    for an_img in images:
+        an_img._clean()
 
     return
 

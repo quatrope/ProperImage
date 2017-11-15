@@ -78,7 +78,7 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
         plt.imshow(psf_basis[i], interpolation='none', cmap='viridis')
         plt.title(r'$p_i, i = {}$'.format(i+1))  # , interpolation='linear')
         plt.tight_layout()
-        # plt.colorbar(shrink=0.85)
+        plt.colorbar(shrink=0.85)
     if path is not None:
         plt.savefig(path)
     if not nbook:
@@ -107,7 +107,7 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
         plt.imshow(a_fields[i](x, y), cmap='viridis')
         plt.title(r'$a_i, i = {}$'.format(i+1))
         plt.tight_layout()
-        # plt.colorbar(shrink=0.85, aspect=30)
+        plt.colorbar(shrink=0.85, aspect=30)
     if path is not None:
         plt.savefig(path)
     if not nbook:

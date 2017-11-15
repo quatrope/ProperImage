@@ -293,7 +293,7 @@ class SingleImage(object):
 
             best_big = srcs['npix'] >= p_sizes[0]
             best_small = srcs['npix'] <= p_sizes[2]
-            best_flag = srcs['flag'] <= 1
+            best_flag = srcs['flag'] == 0
 
             fluxes_quartiles = np.percentile(srcs['flux'], q=[15, 85])
             low_flux = srcs['flux'] >= fluxes_quartiles[0]
@@ -339,6 +339,10 @@ class SingleImage(object):
                                                mode='partial',
                                                fill_value=self._bkg.globalrms)
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
+                # there should be some checkings on the used stamps
+                #~ if np.sum(sub_array_data[0, :]) >
+                #~    np.sum(sub_array_data[self.stamp_shape/2, :]):
+                    #~ continue
                 self.db.dump(sub_array_data, jj)
                 pos.append(position)
                 jj += 1
@@ -624,7 +628,7 @@ class SingleImage(object):
                     mfilter += conv
 
             mfilter = mfilter/nrm
-            self._s_component = self.zp * mfilter/var**2
+            self._s_component = (self.zp/(var**2)) * mfilter
         return self._s_component
 
     @property
