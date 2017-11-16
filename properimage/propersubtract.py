@@ -86,6 +86,7 @@ class ImageSubtractor(object):
         self.zp = calc_zps
         self.psfshape = shape
         self.shift_beta = shift_beta
+
     def __enter__(self):
         return self
 

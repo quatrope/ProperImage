@@ -40,18 +40,18 @@ def main():
     imgs.sort()
     mask.sort()
 
-    for animg in imgs:
-        img = fits.open(animg, 'update')
-        img[0].data = img[0].data[:495, :495]
-        img[0].header['NAXIS1'] = 495
-        img[0].header['NAXIS2'] = 495
+    #~ for animg in imgs:
+        #~ img = fits.open(animg, 'update')
+        #~ img[0].data = img[0].data[:495, :495]
+        #~ img[0].header['NAXIS1'] = 495
+        #~ img[0].header['NAXIS2'] = 495
 
-        img.flush()
-        img.close()
+        #~ img.flush()
+        #~ img.close()
 
-    images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
+    #~ images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
 
-    #images = [s.SingleImage(animg) for animg in imgs]
+    images = [s.SingleImage(animg) for animg in imgs]
 
     for j, an_img in enumerate(images):
         an_img.inf_loss = 0.2
@@ -69,6 +69,7 @@ def main():
 
     R, P_r = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.2)
 
+    R = pc.stack_R(images, align=False, n_procs=4)
     fits.writeto('R.fits', R.real, overwrite=True)
     fits.writeto('P.fits', P_r.real, overwrite=True)
 

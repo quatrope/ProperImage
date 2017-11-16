@@ -109,7 +109,7 @@ class SingleImage(object):
         self.mask = mask
         self._bkg = maskthresh
         self.stamp_shape = stamp_shape
-        self.inf_loss = 0.1
+        self.inf_loss = 0.2
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
 
     def __enter__(self):
@@ -634,7 +634,7 @@ class SingleImage(object):
     @property
     def interped(self):
         if not hasattr(self, 'interped'):
-            kernel = Gaussian2DKernel(stddev=self.stamp_shape[0]/5.)
+            kernel = Gaussian2DKernel(stddev=2.0) #self.stamp_shape[0]/6.)
             img_interp = self.bkg_sub_img.filled(np.nan)
             self._interped = interpolate_replace_nans(img_interp, kernel)
         return self._interped
