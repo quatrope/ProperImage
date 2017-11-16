@@ -49,9 +49,9 @@ def main():
         #~ img.flush()
         #~ img.close()
 
-    #~ images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
+    images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
 
-    images = [s.SingleImage(animg) for animg in imgs]
+    #images = [s.SingleImage(animg) for animg in imgs]
 
     for j, an_img in enumerate(images):
         an_img.inf_loss = 0.2
@@ -66,12 +66,17 @@ def main():
                      an_img.mask.astype('uint8'), overwrite=True)
         fits.writeto(os.path.join(dest_dir,'S_comp_{}.fits'.format(j)),
                      an_img.s_component, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'interped_{}.fits'.format(j)),
+                     an_img.interped, overwrite=True)
+        plot.plt.imshow(an_img.psf_hat_sqnorm().real)
+        plot.plt.colorbar()
+        plot.plt.savefig(os.path.join(dest_dir,'psf_hat_sqnorm_{}.png'.format(j)))
+        plot.plt.close()
 
-    R, P_r = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.2)
+    R, P_r = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.25)
 
-    R = pc.stack_R(images, align=False, n_procs=4)
-    fits.writeto('R.fits', R.real, overwrite=True)
-    fits.writeto('P.fits', P_r.real, overwrite=True)
+    fits.writeto(os.path.join(dest_dir,'R.fits'), R.real, overwrite=True)
+    fits.writeto(os.path.join(dest_dir,'P.fits'), P_r.real, overwrite=True)
 
     for an_img in images:
         an_img._clean()

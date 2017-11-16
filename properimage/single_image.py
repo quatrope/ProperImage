@@ -43,9 +43,12 @@ import numpy as np
 from numpy import ma
 
 from scipy import signal as sg
+from scipy.ndimage.fourier import fourier_shift
+from scipy.ndimage import center_of_mass
 
 from astropy.io import fits
 from astropy.stats import sigma_clip
+
 from astropy.modeling import fitting
 from astropy.modeling import models
 from astropy.convolution import convolve  # _fft, convolve
@@ -199,7 +202,7 @@ class SingleImage(object):
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
-        self.__pixeldata = ma.masked_greater(self.__pixeldata, 25000.)
+        self.__pixeldata = ma.masked_greater(self.__pixeldata, 55000.)
 
 
     @property
@@ -340,9 +343,12 @@ class SingleImage(object):
                                                fill_value=self._bkg.globalrms)
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
                 # there should be some checkings on the used stamps
-                #~ if np.sum(sub_array_data[0, :]) >
-                #~    np.sum(sub_array_data[self.stamp_shape/2, :]):
-                    #~ continue
+                xcm, ycm = np.where(sub_array_data==np.max(sub_array_data))
+                xcm = np.array([xcm[0],ycm[0]])
+
+                delta = xcm - np.asarray(self.stamp_shape)/2.
+                if np.sqrt(np.sum(delta**2)) > self.stamp_shape[0]/2.:
+                    continue
                 self.db.dump(sub_array_data, jj)
                 pos.append(position)
                 jj += 1
@@ -606,26 +612,31 @@ class SingleImage(object):
 
         """
         if not hasattr(self, '_s_component'):
-            mfilter = np.zeros_like(self.pixeldata.data)
-            x, y = self.get_afield_domain()
-
             a_fields, psf_basis = self.get_variable_psf()
 
             var = self._bkg.globalrms
             nrm = self.normal_image
 
             if a_fields[0] is None:
-                mfilter = sg.correlate2d(self.interped,
-                                         psf_basis[0],
-                                         mode='same')
+                dx, dy = center_of_mass(psf_basis[0])
+                mfilter = self.interped_hat * \
+                          _fftwn(psf_basis[0], s=self.pixeldata.shape).conj()
+
+                mfilter = fourier_shift(mfilter, (+dx,+dy))
+                mfilter = _ifftwn(mfilter).real
             else:
+                mfilter = np.zeros_like(self.pixeldata.data)
+                x, y = self.get_afield_domain()
                 for i in range(len(a_fields)):
                     a = a_fields[i]
                     psf = psf_basis[i]
+                    dx, dy = center_of_mass(psf)
 
-                    cross = np.multiply(a(x, y), self.interped)
-                    conv = sg.correlate2d(cross, psf, mode='same')
-                    mfilter += conv
+                    conv = self.interped_hat * \
+                          _fftwn(psf, s=self.pixeldata.shape).conj()
+                    conv = fourier_shift(conv, (+dx,+dy))
+                    conv = _ifftwn(conv)
+                    mfilter += np.multiply(a(x, y), conv.real)
 
             mfilter = mfilter/nrm
             self._s_component = (self.zp/(var**2)) * mfilter
@@ -633,11 +644,29 @@ class SingleImage(object):
 
     @property
     def interped(self):
-        if not hasattr(self, 'interped'):
-            kernel = Gaussian2DKernel(stddev=2.0) #self.stamp_shape[0]/6.)
+        if not hasattr(self, '_interped'):
+            import time
+
+            time_k = time.time()
+            kernel = Gaussian2DKernel(stddev=1.5)
             img_interp = self.bkg_sub_img.filled(np.nan)
-            self._interped = interpolate_replace_nans(img_interp, kernel)
+            img_interp = interpolate_replace_nans(img_interp, kernel)
+            time_kf = time.time()
+
+            clipped = sigma_clip(img_interp, iters=2, sigma_upper=50).filled(np.nan)
+            img_interp = interpolate_replace_nans(clipped, kernel)
+            time_cf = time.time()
+
+            self._interped = img_interp
+            print 'interpol1', time_kf - time_k
+            print 'interpol2', time_cf - time_kf
         return self._interped
+
+    @property
+    def interped_hat(self):
+        if not hasattr(self, '_interped_hat'):
+            self._interped_hat = _fftwn(self.interped)
+        return self._interped_hat
 
     def s_hat_comp(self):
         s_comp = np.ma.MaskedArray(self.s_component, self.mask)
@@ -651,13 +680,17 @@ class SingleImage(object):
 
     def psf_hat_sqnorm(self):
         psf_basis = self.kl_basis
-        p_hat = np.zeros(self.pixeldata.shape).astype(np.complex128)
-        for a_psf in psf_basis:
-            psf_hat = _fftwn(a_psf, s=self.pixeldata.shape)
-            p_hat = np.add(psf_hat*psf_hat.conj(), p_hat,
-                           out=p_hat, casting='same_kind')
+        if len(psf_basis)==1:
+            p_hat = _fftwn(psf_basis[0], s=self.pixeldata.shape)
+            p_hat_sqnorm = p_hat * p_hat.conj()
+        else:
+            p_hat_sqnorm = np.zeros(self.pixeldata.shape) #, dtype=np.complex128)
+            for a_psf in psf_basis:
+                psf_hat = _fftwn(a_psf, s=self.pixeldata.shape)
+                p_hat_sqnorm = np.add(psf_hat*psf_hat.conj(), p_hat_sqnorm,
+                                      casting='same_kind')
 
-        return p_hat
+        return p_hat_sqnorm
 
 
 def chunk_it(seq, num):
