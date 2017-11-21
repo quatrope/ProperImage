@@ -318,6 +318,7 @@ class SingleImage(object):
         if new_sources is None:
             foo = self.best_sources
             foo = self.stamp_shape
+            foo = self.n_sources
         else:
             self._best_sources = new_sources
         return
@@ -343,6 +344,7 @@ class SingleImage(object):
                                                mode='partial',
                                                fill_value=self._bkg.globalrms)
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
+
                 # there should be some checkings on the used stamps
                 xcm, ycm = np.where(sub_array_data==np.max(sub_array_data))
                 xcm = np.array([xcm[0],ycm[0]])
@@ -352,12 +354,15 @@ class SingleImage(object):
                     to_del.append(jj)
                     jj +=1
                     continue
-                self.db.dump(sub_array_data, jj)
+
+                # if everything was fine we store
                 pos.append(position)
+                self.db.dump(sub_array_data, len(pos)-1)
                 jj += 1
+
             self._best_sources = np.delete(self._best_sources, to_del, axis=0)
             self._stamps_pos = np.array(pos)
-            self._n_sources = jj
+            self._n_sources = len(pos)
         return self._stamps_pos
 
     @property

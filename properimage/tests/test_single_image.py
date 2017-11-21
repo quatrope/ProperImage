@@ -201,6 +201,10 @@ class TestSingleImage(object):
     def testVar(self):
         self.assertIsInstance(self.si.var, float)
 
+    def testNormalImage(self):
+        self.assertIsInstance(self.si.normal_image, np.ndarray)
+
+
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
 
