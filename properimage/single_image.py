@@ -335,6 +335,7 @@ class SingleImage(object):
 
             pos = []
             jj = 0
+            to_del = []
             for row in self.best_sources:
                 position = (row['y'], row['x'])
                 sub_array_data = extract_array(self.interped,
@@ -348,11 +349,13 @@ class SingleImage(object):
 
                 delta = xcm - np.asarray(self.stamp_shape)/2.
                 if np.sqrt(np.sum(delta**2)) > self.stamp_shape[0]/2.:
+                    to_del.append(jj)
+                    jj +=1
                     continue
                 self.db.dump(sub_array_data, jj)
                 pos.append(position)
                 jj += 1
-
+            self._best_sources = np.delete(self._best_sources, to_del, axis=0)
             self._stamps_pos = np.array(pos)
             self._n_sources = jj
         return self._stamps_pos

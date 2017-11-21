@@ -80,7 +80,7 @@ except:
 
 
 
-def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True):
+def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True, iterative=False):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
 
@@ -113,13 +113,13 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True):
         new_back = sep.Background(new.interped).back()
         ref_back = sep.Background(ref.interped).back()
         gamma = new_back - ref_back
-
+        b = 1
         #start with beta=1
 
         if shift:
             def cost_beta(vec):
                 b, dx, dy = vec[:]
-                b = 1
+
                 gamma = gamma/np.sqrt(new.var**2 + b*b* * ref.var**2)
 
                 norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat.conj())
@@ -127,12 +127,38 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True):
 
                 cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
                        _ifftwn(fourier_shift((D_hat_r/np.sqrt(norm))*beta, (dx,dy))) -\
-                       _ifftwn(fourier_shift(_fftwn(gamma), (dx, dy))
+                       _ifftwn(fourier_shift(_fftwn(gamma), (dx, dy)))
                 cost = np.absolute(cost*cost.conj())
 
                 return sigma_clipped_stats(cost[50:-50, 50:50], sigma=5.)[1]
         else:
-            def cost_beta(beta)
+            def cost_beta(vec):
+                b = vec[0]
+                gamma = gamma/np.sqrt(new.var**2 + b*b* * ref.var**2)
+
+                norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat.conj())
+                norm += new.var**2 * psf_ref_hat * psf_ref_hat.conj()
+
+                cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
+                       _ifftwn((D_hat_r/np.sqrt(norm))*beta) - gamma
+                cost = np.absolute(cost*cost.conj())
+
+                return sigma_clipped_stats(cost[50:-50, 50:50], sigma=5.)[1]
+        if iterative:
+            def beta_next(b):
+                gamma = gamma/np.sqrt(new.var**2 + b*b* * ref.var**2)
+
+                norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat.conj())
+                norm += new.var**2 * psf_ref_hat * psf_ref_hat.conj()
+
+                b_n = (_ifftwn(D_hat_n/np.sqrt(norm)) - gamma)/_ifftwn(D_hat_r/np.sqrt(norm))
+
+                b_next = sigma_clipped_stats(b_n)[1]
+                return b_next
+
+
+
+
 
 
 
