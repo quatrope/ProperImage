@@ -133,6 +133,11 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.best_sources, np.ndarray)
         self.assertGreaterEqual(len(self.si.best_sources), 1)
 
+    def testUpdateBestSources(self):
+        self.si.update_sources()
+        self.assertIsInstance(self.si.best_sources, np.ndarray)
+        self.assertGreaterEqual(len(self.si.best_sources), 1)
+
     def testCovMat(self):
         self.assertIsInstance(self.si.cov_matrix, np.ndarray)
         np.testing.assert_array_equal(self.si.cov_matrix,
@@ -144,7 +149,7 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.eigenv[1], np.ndarray)
 
     def testInfLoss(self):
-        self.assertEqual(self.si.inf_loss, 0.1)
+        self.assertEqual(self.si.inf_loss, 0.2)
         self.si.inf_loss = 0.01
         self.assertEqual(self.si.inf_loss, 0.01)
 
@@ -185,6 +190,16 @@ class TestSingleImage(object):
 
     def testPsfSqNorm(self):
         self.assertIsInstance(self.si.psf_hat_sqnorm(), np.ndarray)
+
+    def testZP(self):
+        self.assertEqual(self.si.zp, 1)
+
+    def testSetZP(self):
+        self.si.zp = 12.
+        self.assertEqual(self.si.zp, 12)
+
+    def testVar(self):
+        self.assertIsInstance(self.si.var, float)
 
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
