@@ -14,9 +14,11 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from properimage import simtools
+from properimage.tests import simtools
 from properimage import propercoadd as pc
+from properimage import single_image as si
 from properimage import utils
+from properimage import plot
 
 # =============================================================================
 #     PSF measure test by propercoadd
@@ -49,17 +51,16 @@ for j in range(2):
 
 
 
-with pc.SingleImage(frame, sim=True, imagefile=False) as sim:
-    a_fields, psf_basis = sim.get_variable_psf(pow_th=0.01)
-
+with si.SingleImage(frame) as sim:
+    a_fields, psf_basis = sim.get_variable_psf(inf_loss=0.025)
+    x, y = sim.get_afield_domain()
 
 plt.imshow(np.log(frame), interpolation='none')
 plt.colorbar()
 plt.savefig(os.path.join(test_dir, 'test_frame.png'))
 plt.close()
 
-utils.plot_psfbasis(psf_basis, path=os.path.join(test_dir, 'psf_basis.png'))
-utils.plot_afields(a_fields, shape=(1024, 1024),
-                   path=os.path.join(test_dir, 'a_fields.png'))
+plot.plot_psfbasis(psf_basis, path=os.path.join(test_dir, 'psf_basis.png'))
+plot.plot_afields(a_fields, x, y, path=os.path.join(test_dir, 'a_fields.png'))
 
 

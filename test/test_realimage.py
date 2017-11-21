@@ -15,39 +15,40 @@ import matplotlib.pyplot as plt
 
 from astropy.io import fits
 
-from properimage import propercoadd as pc
-from properimage import utils
+from properimage import single_image as si
+from properimage import plot
 
-
-reload(utils)
-reload(pc)
 # =============================================================================
 #     PSF measure test by propercoadd
 # =============================================================================
-datapath = os.path.abspath('/home/bruno/Documentos/Data/ESO085-030')
+datapath = os.path.abspath('/home/bruno/Data/Tolar2017/20170624/NGC_6544')
 
-frame = os.path.join(datapath, 'eso085-030-030.fit')
+frame = os.path.join(datapath, 'NGC_6544-010.fit')
 
 d = fits.getdata(frame)
 
-utils.plot_S(d, path='./test/test_images/real_image_test/frame.png')
-
-#fitted_models = sim.fit_psf_sep()
+plot.plot_S(d, path='./test/test_images/real_image_test/frame.png')
 
 # =============================================================================
 #    PSF spatially variant
 # =============================================================================
 
 
-with pc.SingleImage(frame, imagefile=True) as sim:
-    a_f, psf_b = sim.get_variable_psf(pow_th=0.01)
+with si.SingleImage(frame) as sim:
+    a_f, psf_b = sim.get_variable_psf(inf_loss=0.1)
+    x, y = sim.get_afield_domain()
+    normal_image = sim.normal_image
+    interp = sim.interped
+    print(sim.n_sources)
     S = sim.s_component
 
-utils.plot_psfbasis(psf_b,
+plot.plot_psfbasis(psf_b,
                     path='./test/test_images/real_image_test/psf_basis.png')
 
-utils.plot_afields(a_f, S.shape,
+plot.plot_afields(a_f, x, y,
                    path='./test/test_images/real_image_test/a_fields.png')
 
-utils.plot_S(S, path='./test/test_images/real_image_test/S.png')
+plot.plot_S(S, path='./test/test_images/real_image_test/S.png')
+plot.plot_S(interp, path='./test/test_images/real_image_test/interped.png')
+plot.plot_S(normal_image, path='./test/test_images/real_image_test/norm.png')
 

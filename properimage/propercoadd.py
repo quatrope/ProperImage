@@ -28,6 +28,7 @@ from collections import MutableSequence
 import numpy as np
 
 from astropy.io import fits
+from scipy.ndimage.fourier import fourier_shift
 
 from . import utils
 from .combinator import StackCombinator
@@ -86,16 +87,16 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
 
         print 'all chunks started, and procs appended'
 
-        S_hat = np.zeros(global_shape).astype(np.complex128)
-        P_hat = np.zeros(global_shape).astype(np.complex128)
+        S_hat = np.zeros(global_shape, dtype=np.complex128)
+        P_hat = np.zeros(global_shape, dtype=np.complex128)
         for q in queues:
             serialized = q.get()
             print 'loading pickles'
             s_hat_comp, psf_hat_sum = pickle.loads(serialized)
-            np.add(s_hat_comp, S_hat, out=S_hat, casting='same_kind')
-            np.add(psf_hat_sum, P_hat, out=P_hat, casting='same_kind')
+            np.add(s_hat_comp, S_hat, out=S_hat)#, casting='same_kind')
+            np.add(psf_hat_sum, P_hat, out=P_hat)#, casting='same_kind')
         P_r_hat = np.sqrt(P_hat)
-        P_r = _ifftwn(P_r_hat)
+        P_r = _ifftwn(fourier_shift(P_r_hat, (6, 6)))
         P_r = P_r/np.sum(P_r)
         R = _ifftwn(S_hat/np.sqrt(P_hat))
 
@@ -107,12 +108,12 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
 
         print 'processes finished, now returning R'
     else:
-        S_hat = np.zeros(global_shape).astype(np.complex128)
-        P_hat = np.zeros(global_shape).astype(np.complex128)
+        S_hat = np.zeros(global_shape, dtype=np.complex128)
+        P_hat = np.zeros(global_shape, dtype=np.complex128)
         for an_img in img_list:
-            np.add(an_img.s_hat_comp(), S_hat, out=S_hat, casting='same_kind')
+            np.add(an_img.s_hat_comp, S_hat, out=S_hat)
             np.add(((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm(), P_hat,
-                   out=P_hat, casting='same_kind')
+                   out=P_hat)
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(P_r_hat)
         P_r = P_r/np.sum(P_r)

@@ -48,6 +48,7 @@ from scipy.ndimage import center_of_mass
 
 from astropy.io import fits
 from astropy.stats import sigma_clip
+from astropy.stats import sigma_clipped_stats
 
 from astropy.modeling import fitting
 from astropy.modeling import models
@@ -388,8 +389,8 @@ class SingleImage(object):
                         psfi_render = self.db.load(i)[0]
                         psfj_render = self.db.load(j)[0]
 
-                        inner = np.vdot(psfi_render.flatten()/np.sum(psfi_render),
-                                        psfj_render.flatten()/np.sum(psfj_render))
+                        inner = np.vdot(psfi_render.flatten(), #/np.sum(psfi_render),
+                                        psfj_render.flatten()) #/np.sum(psfj_render))
                         if inner is np.nan:
                             import ipdb; ipdb.set_trace()
 
@@ -440,13 +441,10 @@ class SingleImage(object):
             for i in range(n_basis):
                 base = np.zeros(self.stamp_shape)
                 for j in range(self.n_sources):
-                    try:
-                        pj = self.db.load(j)[0]
-                    except:
-                        import ipdb; ipdb.set_trace()
+                    pj = self.db.load(j)[0]
                     base += xs[j, i] * pj
-                    #norm = np.sqrt(np.sum(base**2.))
-                    norm = np.sum(base)
+
+                norm = np.sum(base)
                 psf_basis.append(base/norm)
             del(base)
             self._kl_basis = psf_basis
@@ -487,40 +485,47 @@ class SingleImage(object):
             flag_key = [col_name for col_name in best_srcs.dtype.fields.keys()
                         if 'flag' in col_name.lower()][0]
 
-            mask = best_srcs[flag_key] <= 1
+            mask = best_srcs[flag_key] == 0
             # patches = self._best_srcs['patches'][mask]
             positions = self.stamps_pos[mask]
             best_srcs = best_srcs[mask]
+            x = positions[:, 0]
+            y = positions[:, 1]
 
-            # Each element in patches brings information about the real PSF
-            # evaluated -or measured-, giving an interpolation point for a
-
+            #~ # Each element in patches brings information about the real PSF
+            #~ # evaluated -or measured-, giving an interpolation point for a
+            #~ # the minus sign is to fit firstly the most important psfbasis
             a_fields = []
             measures = np.zeros((n_fields, self.n_sources))
-            for i in range(n_fields):
-                p_i = psf_basis[i].flatten()
-                # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
+            for k in range(self.n_sources):
+                if mask[k]:
+                    Pval = self.db.load(k)[0].flatten()
+                    Pval = Pval/np.sum(Pval)
+                    for i in range(n_fields):
+                        p_i = psf_basis[-i-1].flatten() #starting from bottom
+                        p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
-                x = positions[:, 0]
-                y = positions[:, 1]
-                for j in range(self.n_sources):
-                    if mask[j]:
-                        Pval = self.db.load(j)[0].flatten()
-                        # redefinir Pval
-                        for ii in range(i):
-                            Pval -= measures[ii, j] * psf_basis[ii].flatten()
+                        for j in range(i): # subtract previous models
+                            Pval -= measures[j, k]*psf_basis[-j-1].flatten()
 
                         Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
-                        measures[i, j] = np.dot(Pval, p_i)/Pval_sq
-                    else:
-                        measures[i, j] = None
+                        m = np.dot(Pval, p_i)
+                        m = m/(Pval_sq*p_i_sq)
+                        measures[i, k] = m
+                else:
+                    measures[i, k] = None
 
+            for i in range(n_fields):
                 z = measures[i, :]
-                z = z[z > -10000.]
-                a_field_model = models.Polynomial2D(degree=4)
+                a_field_model = models.Polynomial2D(degree=2)
                 fitter = fitting.LinearLSQFitter()
-                a_fields.append(fitter(a_field_model, x, y, z))
+                fit = fitter(a_field_model, x, y, z)
+                #~ res = [zz - fit(xx, yy) for xx, yy, zz in zip(x, y, z)]
+                #~ mean, med, std = sigma_clipped_stats(res)
+                #~ print('Fitter has got m={}, med={}, std={}'.format(mean, med, std))
+                a_fields.append(fit)
 
+            a_fields.reverse()
             self._a_fields = a_fields
 
     def get_variable_psf(self, inf_loss=None, shape=None):
@@ -592,9 +597,6 @@ class SingleImage(object):
                     a = a(x, y)
                     psf_i = psf_basis[i]
                     conv += convolve(a, psf_i)
-                    #, psf_pad=True)#, # mode='same',
-                    # fftn=fftwn, ifftn=ifftwn)
-                    # conv += sg.fftconvolve(a, psf_i, mode='same')
                 self._normal_image = conv
         return self._normal_image
 
@@ -614,60 +616,58 @@ class SingleImage(object):
         return self._bkg.globalrms
 
     @property
+    def s_hat_comp(self):
+        if not hasattr(self, '_s_hat_comp'):
+            a_fields, psf_basis = self.get_variable_psf()
+
+            var = self._bkg.globalrms
+            nrm = self.normal_image
+            dx, dy = center_of_mass(psf_basis[0])
+
+            if len(psf_basis) == 1:
+                s_hat = self.interped_hat * \
+                          _fftwn(psf_basis[0], s=self.pixeldata.shape).conj()
+
+                s_hat = fourier_shift(s_hat, (+dx,+dy))
+            else:
+                s_hat = np.zeros_like(self.pixeldata.data, dtype=np.complex128)
+                x, y = self.get_afield_domain()
+                for i in range(len(a_fields)):
+                    a = a_fields[i]
+                    psf = psf_basis[i]
+
+                    conv = _fftwn(self.interped * a(x, y)/nrm) *\
+                           _fftwn(psf, s=self.pixeldata.shape).conj()
+                    conv = fourier_shift(conv, (+dx,+dy))
+
+                    np.add(conv, s_hat, out=s_hat)
+
+            self._s_hat_comp = (self.zp/(var**2)) * s_hat
+        return self._s_hat_comp
+
+
+    @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
         from the image. Uses the measured psf, and is psf space variant capable.
 
         """
         if not hasattr(self, '_s_component'):
-            a_fields, psf_basis = self.get_variable_psf()
-
-            var = self._bkg.globalrms
-            nrm = self.normal_image
-
-            if a_fields[0] is None:
-                dx, dy = center_of_mass(psf_basis[0])
-                mfilter = self.interped_hat * \
-                          _fftwn(psf_basis[0], s=self.pixeldata.shape).conj()
-
-                mfilter = fourier_shift(mfilter, (+dx,+dy))
-                mfilter = _ifftwn(mfilter).real
-            else:
-                mfilter = np.zeros_like(self.pixeldata.data)
-                x, y = self.get_afield_domain()
-                for i in range(len(a_fields)):
-                    a = a_fields[i]
-                    psf = psf_basis[i]
-                    dx, dy = center_of_mass(psf)
-
-                    conv = self.interped_hat * \
-                          _fftwn(psf, s=self.pixeldata.shape).conj()
-                    conv = fourier_shift(conv, (+dx,+dy))
-                    conv = _ifftwn(conv)
-                    mfilter += np.multiply(a(x, y), conv.real)
-
-            mfilter = mfilter/nrm
-            self._s_component = (self.zp/(var**2)) * mfilter
+            self._s_component = _ifftwn(self.s_hat_comp).real
         return self._s_component
 
     @property
     def interped(self):
         if not hasattr(self, '_interped'):
-            import time
 
-            time_k = time.time()
-            kernel = Gaussian2DKernel(stddev=1.5)
+            kernel = Gaussian2DKernel(stddev=3.5)
             img_interp = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img_interp, kernel)
-            time_kf = time.time()
 
-            clipped = sigma_clip(img_interp, iters=2, sigma_upper=50).filled(np.nan)
+            clipped = sigma_clip(img_interp, iters=3, sigma_upper=50).filled(np.nan)
             img_interp = interpolate_replace_nans(clipped, kernel)
-            time_cf = time.time()
 
             self._interped = img_interp
-            print 'interpol1', time_kf - time_k
-            print 'interpol2', time_cf - time_kf
         return self._interped
 
     @property
@@ -676,29 +676,25 @@ class SingleImage(object):
             self._interped_hat = _fftwn(self.interped)
         return self._interped_hat
 
-    def s_hat_comp(self):
-        s_comp = np.ma.MaskedArray(self.s_component, self.mask)
-        var = self._bkg.globalrms
-        kernel = Gaussian2DKernel(stddev=1.5)
-
-        img_interp = s_comp.filled(np.nan)
-        img_interp = interpolate_replace_nans(img_interp, kernel)
-
-        return _fftwn(img_interp)
-
     def psf_hat_sqnorm(self):
         psf_basis = self.kl_basis
         if len(psf_basis)==1:
             p_hat = _fftwn(psf_basis[0], s=self.pixeldata.shape)
             p_hat_sqnorm = p_hat * p_hat.conj()
         else:
-            p_hat_sqnorm = np.zeros(self.pixeldata.shape) #, dtype=np.complex128)
+            p_hat_sqnorm = np.zeros(self.pixeldata.shape, dtype=np.complex128)
             for a_psf in psf_basis:
                 psf_hat = _fftwn(a_psf, s=self.pixeldata.shape)
-                p_hat_sqnorm = np.add(psf_hat*psf_hat.conj(), p_hat_sqnorm,
-                                      casting='same_kind')
+                np.add(psf_hat*psf_hat.conj(), p_hat_sqnorm, out=p_hat_sqnorm)
 
         return p_hat_sqnorm
+
+    def p_sqnorm(self):
+        phat = self.psf_hat_sqnorm()
+        p = _ifftwn(phat)
+        print np.sum(p)
+        return _ifftwn(fourier_shift(phat, (self.stamp_shape[0]/2,
+                                            self.stamp_shape[1]/2)))
 
 
 def chunk_it(seq, num):

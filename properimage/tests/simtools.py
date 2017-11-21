@@ -351,7 +351,7 @@ def delta_point(N, center=True, xy=None, weights=None):
         if weights is None:
             weights = list(np.repeat(1., len(xy)))
         j = -1
-        for x, y in xy.astype(int).__iter__():
+        for x, y in xy:
             w = weights[j]
             m[int(x), int(y)] = 1.*w
             j -= 1

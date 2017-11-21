@@ -37,6 +37,7 @@ Of 301
 """
 
 import numpy as np
+from astropy.stats import sigma_clipped_stats
 
 import matplotlib.pyplot as plt
 
@@ -55,10 +56,12 @@ def primes(n):
     divisors = [d for d in range(2, n//2+1) if n % d == 0]
     prims = [d for d in divisors if
              all(d % od != 0 for od in divisors if od != d)]
-    if len(prims) is 0:
+    if len(prims) >= 4:
+        return prims[-1]*prims[-2]
+    elif len(prims) == 0:
         return n
-    else:
-        return max(prims)
+
+    return max(prims)
 
 
 def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
@@ -70,21 +73,23 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (np.rint(N/float(p)), p+1)
+        rows =  N // p
+        rows += N % p
+        subplots = (p, rows)
 
     plt.figure(figsize=(size*subplots[0], size*subplots[1]))
     for i in range(len(psf_basis)):
         plt.subplot(subplots[1], subplots[0], i+1)
         plt.imshow(psf_basis[i], interpolation='none', cmap='viridis')
-        plt.title(r'$p_i, i = {}$'.format(i+1))  # , interpolation='linear')
-        plt.tight_layout()
+        labels = {'j': i+1, 'sum': np.sum(psf_basis[i])}
+        plt.title(r'$\sum p_{j} = {sum:4.3e}$'.format(**labels))  # , interpolation='linear')
         plt.colorbar(shrink=0.85)
+    plt.tight_layout()
     if path is not None:
         plt.savefig(path)
     if not nbook:
         plt.close()
 
-    return
 
 
 def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
@@ -99,15 +104,20 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
     else:
-        subplots = (np.rint(N/float(p)), p+1)
+        rows =  N // p
+        rows += N % p
+        subplots = (p, rows)
 
     plt.figure(figsize=(size*subplots[0], size*subplots[1]), **kwargs)
     for i in range(len(a_fields)):
         plt.subplot(subplots[1], subplots[0], i+1)
-        plt.imshow(a_fields[i](x, y), cmap='viridis')
-        plt.title(r'$a_i, i = {}$'.format(i+1))
-        plt.tight_layout()
-        plt.colorbar(shrink=0.85, aspect=30)
+        a = a_fields[i](x, y)
+        mean, med, std = sigma_clipped_stats(a)
+        plt.imshow(a, vmax=med+2*std, vmin=med-2*std, cmap='viridis')
+        labels = {'j':i+1, 'sum':np.sqrt(np.sum(a**2))}
+        plt.title(r'$a_{j}$,$\sum a_{j}={sum:4.3e}$'.format(**labels))
+        plt.colorbar(shrink=0.75, aspect=30)
+    plt.tight_layout()
     if path is not None:
         plt.savefig(path)
     if not nbook:
@@ -118,7 +128,8 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
 def plot_S(S, path=None, nbook=False):
     if isinstance(S, np.ma.masked_array):
         S = S.filled()
-    plt.imshow(np.log10(S), interpolation='none', cmap='viridis')
+    mean, med, std = sigma_clipped_stats(S)
+    plt.imshow(S, vmax=med+4*std, vmin=med-4*std, interpolation='none', cmap='viridis')
     plt.tight_layout()
     plt.colorbar()
     if path is not None:

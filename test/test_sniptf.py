@@ -33,13 +33,16 @@ from properimage import plot
 def main():
     imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
     imgsdir = '/home/bruno/Data/SNiPTF/imgs'
-    imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
-    dest_dir = './test/test_images/test_eaba'
-    imgs = glob.glob(imgsdir+'/*.fit')
-    #mask = glob.glob(imgsdir+'/*mask*.fits')
+    #imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
+    dest_dir = './test/test_images/test_sniptf'
+    imgs = glob.glob(imgsdir+'/*sci*.fits')
+    mask = glob.glob(imgsdir+'/*mask*.fits')
 
     imgs.sort()
-    #mask.sort()
+    mask.sort()
+
+    #~ print imgs
+    #~ print mask
 
     #~ for animg in imgs:
         #~ img = fits.open(animg, 'update')
@@ -50,12 +53,12 @@ def main():
         #~ img.flush()
         #~ img.close()
 
-    #images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
+    images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
 
-    images = [s.SingleImage(animg) for animg in imgs]
+    #images = [s.SingleImage(animg) for animg in imgs]
 
     for j, an_img in enumerate(images):
-        an_img.inf_loss = 0.25
+        an_img.inf_loss = 0.15
         plot.plot_psfbasis(an_img.kl_basis,
                            path=os.path.join(dest_dir, 'psf_basis_{}.png'.format(j)),
                            nbook=False)

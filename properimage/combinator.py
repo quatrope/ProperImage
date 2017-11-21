@@ -121,7 +121,7 @@ class StackCombinator(Process):
         S_hat = np.zeros(self.global_shape).astype(np.complex128)
         psf_hat_sum = np.zeros(self.global_shape).astype(np.complex128)
         for an_img in self.list_to_combine:
-            np.add(an_img.s_hat_comp(), S_hat, out=S_hat, casting='same_kind')
+            np.add(an_img.s_hat_comp, S_hat, out=S_hat, casting='same_kind')
             psf_hat_sum = ((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm()
 
         serialized = pickle.dumps([S_hat, psf_hat_sum])

@@ -181,15 +181,19 @@ class TestSingleImage(object):
 
     def testNormalImage(self):
         self.assertIsInstance(self.si.normal_image, np.ndarray)
+        self.assertFalse(np.isnan(np.sum(self.si.normal_image)))
 
     def testSComponent(self):
         self.assertIsInstance(self.si.s_component, np.ndarray)
+        self.assertFalse(np.isnan(np.sum(self.si.s_component)))
 
     def testSHatComp(self):
-        self.assertIsInstance(self.si.s_hat_comp(), np.ndarray)
+        self.assertIsInstance(self.si.s_hat_comp, np.ndarray)
+        self.assertFalse(np.isnan(np.sum(self.si.s_hat_comp)))
 
-    def testPsfSqNorm(self):
+    def testPsfHatSqNorm(self):
         self.assertIsInstance(self.si.psf_hat_sqnorm(), np.ndarray)
+        self.assertFalse(np.isnan(np.sum(self.si.psf_hat_sqnorm())))
 
     def testZP(self):
         self.assertEqual(self.si.zp, 1)
@@ -201,14 +205,21 @@ class TestSingleImage(object):
     def testVar(self):
         self.assertIsInstance(self.si.var, float)
 
-    def testNormalImage(self):
-        self.assertIsInstance(self.si.normal_image, np.ndarray)
-
     def testInterped(self):
         self.assertIsInstance(self.si.interped, np.ndarray)
         self.assertFalse(np.isnan(np.sum(self.si.interped)))
 
+    def testInterpedHat(self):
+        self.assertIsInstance(self.si.interped_hat, np.ndarray)
+        self.assertFalse(np.isnan(np.sum(self.si.interped_hat)))
 
+    def testPSqNorm(self):
+        self.assertIsInstance(self.si.p_sqnorm(), np.ndarray)
+
+    def testPsfBasisNorm(self):
+        afields, psfs = self.si.get_variable_psf()
+        for apsf in psfs:
+            np.testing.assert_approx_equal(1., np.sum(apsf), significant=4)
 
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
