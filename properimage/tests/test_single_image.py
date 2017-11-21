@@ -204,6 +204,11 @@ class TestSingleImage(object):
     def testNormalImage(self):
         self.assertIsInstance(self.si.normal_image, np.ndarray)
 
+    def testInterped(self):
+        self.assertIsInstance(self.si.interped, np.ndarray)
+        self.assertFalse(np.isnan(np.sum(self.si.interped)))
+
+
 
 
 class TestNpArray(TestSingleImage, unittest.TestCase):
