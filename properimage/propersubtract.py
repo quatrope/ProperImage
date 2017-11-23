@@ -64,6 +64,12 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
 
     """
 
+    if not isinstance(ref, s.SingleImage):
+        ref = s.SingleImage(ref)
+
+    if not isinstance(new, s.SingleImage):
+        new = s.SingleImage(new)
+
     if align:
         img_list = utils.align_for_coadd([ref, new])
         for an_img in img_list:
@@ -73,6 +79,7 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
 
     t0 = time.time()
     zps, meanmags = utils.transparency([ref, new])
+    print zps
     ref.zp = zps[0]
     new.zp = zps[1]
     n_zp = new.zp
@@ -89,8 +96,8 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
     psf_ref_hat = _fftwn(psf_ref[0], s=ref.pixeldata.shape)
     psf_new_hat = _fftwn(psf_new[0], s=new.pixeldata.shape)
 
-    D_hat_r = fourier_shift(psf_new_hat * ref.interped_hat, (dx_ref, dy_ref))
-    D_hat_n = fourier_shift(psf_ref_hat * new.interped_hat, (dx_new, dy_new))
+    D_hat_r = fourier_shift(psf_new_hat * ref.interped_hat, (-dx_new, -dy_new))
+    D_hat_n = fourier_shift(psf_ref_hat * new.interped_hat, (-dx_ref, -dy_ref))
 
     if beta:
         new_back = sep.Background(new.interped).back()
@@ -105,7 +112,7 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
 
                 gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
 
-                norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat.conj())
+                norm  = b**2 * ref.var**2 * psf_new_hat*psf_new_hat.conj()
                 norm += new.var**2 * psf_ref_hat * psf_ref_hat.conj()
 
                 cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
@@ -140,13 +147,13 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
             def beta_next(b, gamma=gamma):
                 gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
 
-                norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat.conj())
+                norm  = b**2 *ref.var**2 * psf_new_hat * psf_new_hat.conj()
                 norm += new.var**2 * psf_ref_hat * psf_ref_hat.conj()
 
                 b_n = (_ifftwn(D_hat_n/np.sqrt(norm)) - gammap)/_ifftwn(D_hat_r/np.sqrt(norm))
 
                 b_next = sigma_clipped_stats(b_n)[1]
-                return b_next
+                return b_next.real
             bi = 1
             print('Start iteration')
             ti = time.time()
@@ -154,7 +161,7 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
             n_iter = 1
             while np.abs(bf-bi) > 0.002 or n_iter>25:
                 bi = bf
-                bf = beta_next(bf)
+                bf = beta_next(bi)
                 n_iter += 1
             b = bf
             tf = time.time()
@@ -201,7 +208,7 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
         dx = 0.
         dy = 0.
 
-    norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat.conj())
+    norm  = b**2 * ref.var**2 * psf_new_hat * psf_new_hat.conj()
     norm += new.var**2 * psf_ref_hat * psf_ref_hat.conj()
 
     if dx==0. and dy==0.:
@@ -210,7 +217,7 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=False, shift=False, iterative=
         D_hat = (D_hat_n - fourier_shift(b*D_hat_r, (dx,dy)))/np.sqrt(norm)
     D = _ifftwn(D_hat)
 
-    d_zp = new.zp/np.sqrt(ref.var**2 * b*b + new.var**2 )
+    d_zp = new.zp/np.sqrt(ref.var**2 * b**2 + new.var**2 )
     P_hat =(psf_ref_hat * psf_new_hat * b)/(np.sqrt(norm)*d_zp)
 
     P = _ifftwn(P_hat).real

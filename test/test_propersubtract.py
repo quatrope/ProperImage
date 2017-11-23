@@ -22,13 +22,40 @@
 #
 #
 import os
+import glob
+
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
-import properimage.propercoadd as pc
-import properimage.utils as u
-import properimage.propersubtract as ps
+from properimage import single_image as s
+from properimage import propersubtract as ps
+
+from properimage import utils
+from properimage import plot
 
 
-path = '/home/bruno/Devel/zackay_code/properimage/test/test_images/test_diff_cstar'
 
+def main(args):
+    imgsdir = '/home/bruno/Data/LIGO_O2/Jan04/newstacks/NGC1341'
+    dest_dir = './test/test_images/test_propersubtract'
+    imgs = glob.glob(imgsdir+'/ngc1341_1701*.fits')
+    #mask = glob.glob(imgsdir+'/*mask*.fits')
+
+    imgs.sort()
+    #mask.sort()
+
+    #images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
+
+    images = [s.SingleImage(animg) for animg in imgs]
+    for i, animg in enumerate(images[1:]):
+        D, P, S_corr = ps.diff(images[0], animg, align=True,
+                               iterative=False, shift=False, beta=False)
+
+        fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)), D.real, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)), P.real, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'Scorr_{}.fits'.format(i)), S_corr, overwrite=True)
+
+    for an_img in images:
+        an_img._clean()
+
+    return

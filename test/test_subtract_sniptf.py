@@ -24,15 +24,15 @@
 import glob
 import os
 from properimage import single_image as s
-from properimage import propersubtract2 as ps
+from properimage import propersubtract as ps
 from astropy.io import fits
 from properimage import utils
 from properimage import plot
 
 
 def main(args):
-    imgsdir = '/home/bruno/Data/SNiPTF/imgs'
     imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
+    imgsdir = '/home/bruno/Data/SNiPTF/imgs'
 
     #imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
     dest_dir = './test/test_images/test_sub_sniptf'
@@ -45,13 +45,13 @@ def main(args):
     images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
 
     #images = [s.SingleImage(animg) for animg in imgs]
+    for i, animg in enumerate(images[1:]):
+        D, P, S_corr = ps.diff(images[0], animg, align=False,
+                               iterative=False, shift=False, beta=False)
 
-    D, P, S_corr = ps.diff(images[0], images[1], align=False, iterative=False, shift=False, beta=True)
-
-
-    fits.writeto(os.path.join(dest_dir,'Diff1.fits'), D.real, overwrite=True)
-    fits.writeto(os.path.join(dest_dir,'P1.fits'), P.real, overwrite=True)
-    fits.writeto(os.path.join(dest_dir,'Scorr1.fits'), S_corr, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)), D.real, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)), P.real, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'Scorr_{}.fits'.format(i)), S_corr, overwrite=True)
 
     for an_img in images:
         an_img._clean()

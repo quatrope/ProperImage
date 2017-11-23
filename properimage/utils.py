@@ -173,10 +173,13 @@ def transparency(images, master=None, ensemble=True):
         imglist = images
 
     mastercat = master.best_sources
-    mastercat = append_fields(mastercat, 'sourceid',
-                              np.arange(len(mastercat)),
-                              usemask=False,
-                              dtypes=int)
+    try:
+        mastercat = append_fields(mastercat, 'sourceid',
+                                  np.arange(len(mastercat)),
+                                  usemask=False,
+                                  dtypes=int)
+    except ValueError:
+        pass
 
     detect = np.repeat(True, len(mastercat))
     #  Matching the sources
@@ -193,10 +196,11 @@ def transparency(images, master=None, ensemble=True):
                 detect[i] = False
         newcat.sort(order='sourceid')
         img.update_sources(newcat)
-    mastercat = append_fields(mastercat, 'detected',
-                              detect,
-                              usemask=False,
-                              dtypes=bool)
+    try:
+        mastercat = append_fields(mastercat, 'detected', detect, usemask=False,
+                                  dtypes=bool)
+    except ValueError:
+        mastercat['detected'] = detect
 
     # Now populating the vector of magnitudes
     q = sum(mastercat['detected'])

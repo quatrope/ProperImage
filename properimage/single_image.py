@@ -203,7 +203,7 @@ class SingleImage(object):
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
-        self.__pixeldata = ma.masked_greater(self.__pixeldata, 55000.)
+        self.__pixeldata = ma.masked_greater(self.__pixeldata, 45000.)
 
 
     @property
