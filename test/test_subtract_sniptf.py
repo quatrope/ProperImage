@@ -46,8 +46,8 @@ def main(args):
 
     #images = [s.SingleImage(animg) for animg in imgs]
     for i, animg in enumerate(images[1:]):
-        D, P, S_corr = ps.diff(images[0], animg, align=False,
-                               iterative=False, shift=False, beta=False)
+        D, P, S_corr = ps.diff(images[0], animg, align=True,
+                               iterative=True, shift=False, beta=True)
 
         fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)), D.real, overwrite=True)
         fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)), P.real, overwrite=True)

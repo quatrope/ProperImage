@@ -57,10 +57,11 @@ from astropy.convolution import interpolate_replace_nans
 from astropy.convolution import Gaussian2DKernel
 from astropy.nddata.utils import extract_array
 
+from astroscrappy import detect_cosmics
 import sep
 
 from . import numpydb as npdb
-#from . import utils
+# from . import utils
 from .image_stats import ImageStats
 
 try:
@@ -203,7 +204,7 @@ class SingleImage(object):
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
-        self.__pixeldata = ma.masked_greater(self.__pixeldata, 45000.)
+        self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
 
 
     @property
@@ -252,12 +253,12 @@ class SingleImage(object):
             percent = np.percentile(self.best_sources['npix'], q=65)
             p_sizes = 3.*np.sqrt(percent)
 
-            if p_sizes > 9:
+            if p_sizes > 11:
                 dx = int(p_sizes)
                 if dx % 2 != 1: dx += 1
                 shape = (dx, dx)
             else:
-                shape = (9, 9)
+                shape = (11, 11)
         self.__stamp_shape = shape
 
     @property
@@ -664,7 +665,8 @@ class SingleImage(object):
             img_interp = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img_interp, kernel)
 
-            clipped = sigma_clip(img_interp, iters=3, sigma_upper=50).filled(np.nan)
+            crmask, img_interp = detect_cosmics(img_interp)
+            clipped = sigma_clip(img_interp, iters=5, sigma_upper=40).filled(np.nan)
             img_interp = interpolate_replace_nans(clipped, kernel)
 
             self._interped = img_interp
