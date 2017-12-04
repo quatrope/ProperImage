@@ -59,7 +59,7 @@ except:
 
 
 
-def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True, iterative=False):
+def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=False):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
 
@@ -74,7 +74,6 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True, iterative=Fa
     if align:
         registered = aa.register(new.pixeldata, ref.pixeldata)
         new._clean()
-        del(new)
         new = s.SingleImage(registered.data, mask=registered.mask)
         #~ new.pixeldata = registered
         #~ new.pixeldata.mask = registered.mask
@@ -94,6 +93,9 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True, iterative=Fa
 
     dx_ref, dy_ref = center_of_mass(psf_ref[0])
     dx_new, dy_new = center_of_mass(psf_new[0])
+    #~ print(dx_new, dy_new)
+    if dx_new < 0. or dy_new<0.:
+        import ipdb; ipdb.set_trace()
 
     psf_ref_hat = _fftwn(psf_ref[0], s=ref.pixeldata.shape)
     psf_new_hat = _fftwn(psf_new[0], s=new.pixeldata.shape)
@@ -259,7 +261,7 @@ def diff(ref, new, align=True, inf_loss=0.2, beta=True, shift=True, iterative=Fa
     S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
     print('S_corr sigma_clipped_stats ')
     print('mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real.flatten(), sigma=200)))
-    print('Subtraction performed in {} seconds'.format(time.time()-t0))
+    print('Subtraction performed in {} seconds\n\n'.format(time.time()-t0))
 
     #import ipdb; ipdb.set_trace()
     return D, P, S_corr.real

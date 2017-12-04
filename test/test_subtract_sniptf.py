@@ -28,7 +28,8 @@ from properimage import propersubtract as ps
 from astropy.io import fits
 from properimage import utils
 from properimage import plot
-
+import astroalign as aa
+import numpy as np
 
 def main(args):
     imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
@@ -46,13 +47,25 @@ def main(args):
 
     #images = [s.SingleImage(animg) for animg in imgs]
     for i, animg in enumerate(images[1:]):
-        D, P, S_corr = ps.diff(images[0], animg, align=True,
-                               iterative=True, shift=False, beta=True)
+        t, _ = aa.find_transform(animg.pixeldata, images[0].pixeldata)
+
+        if abs(t.rotation)>5e-4:
+            k = t.__class__
+            t = k(np.round(t.params, decimals=5))
+
+        reg = aa.apply_transform(t, animg.pixeldata, images[0].pixeldata)
+        new = s.SingleImage(reg.data, mask=reg.mask)
+
+        fits.writeto('/home/bruno/aligned_{}.fits'.format(i),
+                     reg.data, overwrite=True)
+
+        D, P, S_corr = ps.diff(images[0], new, align=False,
+                               iterative=False, shift=True, beta=True)
 
         fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)), D.real, overwrite=True)
         fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)), P.real, overwrite=True)
         fits.writeto(os.path.join(dest_dir,'Scorr_{}.fits'.format(i)), S_corr, overwrite=True)
-
+        new._clean()
     for an_img in images:
         an_img._clean()
 

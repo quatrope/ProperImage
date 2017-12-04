@@ -357,6 +357,12 @@ class SingleImage(object):
                     jj +=1
                     continue
 
+                sd = np.std(sub_array_data)
+                if sd > 0.05:
+                    to_del.append(jj)
+                    jj +=1
+                    continue
+
                 # if everything was fine we store
                 pos.append(position)
                 self.db.dump(sub_array_data, len(pos)-1)
