@@ -1,4 +1,4 @@
-[http://properimage.readthedocs.io/en/latest/?badge=latest]
+[![Documentation Status](https://readthedocs.org/projects/properimage/badge/?version=latest)](http://properimage.readthedocs.io/en/latest/?badge=latest)
 
 # Proper image treatments.
 
