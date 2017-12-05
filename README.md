@@ -1,3 +1,5 @@
+[http://properimage.readthedocs.io/en/latest/?badge=latest]
+
 # Proper image treatments.
 
 This code is inspired on Zackay & Ofek 2015 papers *How to coadd images?*
