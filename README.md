@@ -7,4 +7,5 @@ It can perform the statistical proper coadd of several images using a spatially
 variant PSF estimation.
 
 Images need to be aligned and registered.
-Details when v1.0 is on soon arrival
+
+New documentation is in progress.
