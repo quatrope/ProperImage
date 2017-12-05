@@ -15,5 +15,5 @@ and implementation details.
         A light source, often used to name stars and galaxies in images.
 
     covariance matrix
-        The matrix formed such as $$c_{ij} = <o_i, o_j>$$,
-        where $$<,>$$ is the inner product operator.
+        The matrix :math:`C` formed such as  :math:`C_{ij} = <o_i, o_j>`, where :math:`<,>`
+        is the inner product operator, and each :math:`o_i` is an observation.
