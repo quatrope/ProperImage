@@ -31,3 +31,6 @@ displaying the number of sources found.
 This just accounts for sources good enough for PSF estimation, which is
 the first step for any processing ProperImage is intended for.
 
+If we try to print the instance, (or obtain the representation output) we find
+that the explicit origin of the pixeldata is being displayed
+
