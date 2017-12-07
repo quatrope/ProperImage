@@ -43,6 +43,7 @@ import numpy as np
 from numpy import ma
 
 from scipy import signal as sg
+from scipy.ndimage import convolve as convolve_scp
 from scipy.ndimage.fourier import fourier_shift
 from scipy.ndimage import center_of_mass
 
@@ -390,19 +391,28 @@ class SingleImage(object):
         if not hasattr(self, '_covMat'):
             covMat = np.zeros(shape=(self.n_sources, self.n_sources))
 
-            for i in range(self.n_sources):
-                for j in range(self.n_sources):
-                    if i <= j:
-                        psfi_render = self.db.load(i)[0]
-                        psfj_render = self.db.load(j)[0]
+            if self.n_sources < 120:
+                m = np.zeros((self.stamp_shape[0] * self.stamp_shape[1],
+                              self.n_sources))
+                for i in range(self.n_sources):
+                    psfi_render = self.db.load(i)[0]
+                    m[:, i] = psfi_render.flatten()
+                covMat = np.cov(m, rowvar=False)
+                self._m = m
+            else:
+                for i in range(self.n_sources):
+                    for j in range(self.n_sources):
+                        if i <= j:
+                            psfi_render = self.db.load(i)[0]
+                            psfj_render = self.db.load(j)[0]
 
-                        inner = np.vdot(psfi_render.flatten(), #/np.sum(psfi_render),
-                                        psfj_render.flatten()) #/np.sum(psfj_render))
-                        if inner is np.nan:
-                            import ipdb; ipdb.set_trace()
+                            inner = np.vdot(psfi_render.flatten(), #/np.sum(psfi_render),
+                                            psfj_render.flatten()) #/np.sum(psfj_render))
+                            if inner is np.nan:
+                                import ipdb; ipdb.set_trace()
 
-                        covMat[i, j] = inner
-                        covMat[j, i] = inner
+                            covMat[i, j] = inner
+                            covMat[j, i] = inner
             self._covMat = covMat
         return self._covMat
 
@@ -445,15 +455,22 @@ class SingleImage(object):
             n_basis = abs(cut)
             xs = vech[:, -cut:]
             psf_basis = []
-            for i in range(n_basis):
-                base = np.zeros(self.stamp_shape)
-                for j in range(self.n_sources):
-                    pj = self.db.load(j)[0]
-                    base += xs[j, i] * pj
-
-                norm = np.sum(base)
-                psf_basis.append(base/norm)
-            del(base)
+            if hasattr(self, '_m'):
+                for i in range(n_basis):
+                    eig = xs[:, i]
+                    base = np.matmul(self._m, eig).reshape(self.stamp_shape)
+                    norm = np.sum(base)
+                    psf_basis.append(base/norm)
+            else:
+                for i in range(n_basis):
+                    base = np.zeros(self.stamp_shape)
+                    for j in range(self.n_sources):
+                        pj = self.db.load(j)[0]
+                        base += xs[j, i] * pj
+                    norm = np.sum(base)
+                    psf_basis.append(base/norm)
+                    del(base)
+            psf_basis.reverse()
             self._kl_basis = psf_basis
 
     @property
@@ -477,62 +494,49 @@ class SingleImage(object):
             if inf_loss is not None:
                 self._setup_kl_basis(inf_loss)
                 self.inf_loss = inf_loss
-
+            # get the psf basis
             psf_basis = self.kl_basis
-
             n_fields = len(psf_basis)
 
+            # if only one psf then the afields is  [None]
             if n_fields == 1:
                 self._a_fields = [None]
                 return self._a_fields
 
+            # get the sources for observations
             best_srcs = self.best_sources
-            # fitshape = self._best_srcs['fitshape']  # unused variable
-
-            flag_key = [col_name for col_name in best_srcs.dtype.fields.keys()
-                        if 'flag' in col_name.lower()][0]
-
-            mask = best_srcs[flag_key] == 0
-            # patches = self._best_srcs['patches'][mask]
-            positions = self.stamps_pos[mask]
-            best_srcs = best_srcs[mask]
+            positions = self.stamps_pos
             x = positions[:, 0]
             y = positions[:, 1]
 
             #~ # Each element in patches brings information about the real PSF
             #~ # evaluated -or measured-, giving an interpolation point for a
-            #~ # the minus sign is to fit firstly the most important psfbasis
             a_fields = []
             measures = np.zeros((n_fields, self.n_sources))
             for k in range(self.n_sources):
-                if mask[k]:
-                    Pval = self.db.load(k)[0].flatten()
-                    Pval = Pval/np.sum(Pval)
-                    for i in range(n_fields):
-                        p_i = psf_basis[-i-1].flatten() #starting from bottom
-                        p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
+                Pval = self.db.load(k)[0].flatten()
+                Pval = Pval/np.sum(Pval)
+                for i in range(n_fields):
+                    p_i = psf_basis[i].flatten() #starting from bottom
+                    p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
-                        for j in range(i): # subtract previous models
-                            Pval -= measures[j, k]*psf_basis[-j-1].flatten()
+                    #~ for j in range(i): # subtract previous models
+                        #~ Pval -= measures[j, k]*psf_basis[-j-1].flatten()
 
-                        Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
-                        m = np.dot(Pval, p_i)
-                        m = m/(Pval_sq*p_i_sq)
-                        measures[i, k] = m
-                else:
-                    measures[i, k] = None
+                    Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
+                    m = np.dot(Pval, p_i)
+                    m = m/(Pval_sq*p_i_sq)
+                    measures[i, k] = m
+                #~ else:
+                    #~ measures[i, k] = None
 
             for i in range(n_fields):
                 z = measures[i, :]
-                a_field_model = models.Polynomial2D(degree=2)
+                a_field_model = models.Polynomial2D(degree=3)
                 fitter = fitting.LinearLSQFitter()
                 fit = fitter(a_field_model, x, y, z)
-                #~ res = [zz - fit(xx, yy) for xx, yy, zz in zip(x, y, z)]
-                #~ mean, med, std = sigma_clipped_stats(res)
-                #~ print('Fitter has got m={}, med={}, std={}'.format(mean, med, std))
-                a_fields.append(fit)
 
-            a_fields.reverse()
+                a_fields.append(fit)
             self._a_fields = a_fields
 
     def get_variable_psf(self, inf_loss=None, shape=None):
@@ -603,7 +607,7 @@ class SingleImage(object):
                     a = a_fields[i]
                     a = a(x, y)
                     psf_i = psf_basis[i]
-                    conv += convolve(a, psf_i)
+                    conv += convolve_scp(a, psf_i)
                 self._normal_image = conv
         return self._normal_image
 
@@ -640,10 +644,12 @@ class SingleImage(object):
                 s_hat = np.zeros_like(self.pixeldata.data, dtype=np.complex128)
                 x, y = self.get_afield_domain()
                 for i in range(len(a_fields)):
-                    a = a_fields[i]
+                    a = a_fields[i](x, y)/nrm
                     psf = psf_basis[i]
 
-                    conv = _fftwn(self.interped * a(x, y)/nrm) *\
+                    #if i>0: a = a/10.
+
+                    conv = _fftwn(self.interped * a) *\
                            _fftwn(psf, s=self.pixeldata.shape).conj()
                     conv = fourier_shift(conv, (+dx,+dy))
 
