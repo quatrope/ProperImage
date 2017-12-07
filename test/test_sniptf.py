@@ -59,7 +59,7 @@ def main():
     #images = [s.SingleImage(animg) for animg in imgs]
 
     for j, an_img in enumerate(images):
-        an_img.inf_loss = 0.08
+        an_img.inf_loss = 0.18
         plot.plot_psfbasis(an_img.kl_basis,
                            path=os.path.join(dest_dir, 'psf_basis_{}.png'.format(j)),
                            nbook=False)

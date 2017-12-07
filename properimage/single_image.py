@@ -250,17 +250,19 @@ class SingleImage(object):
 
     @stamp_shape.setter
     def stamp_shape(self, shape):
-        if shape is None:
-            percent = np.percentile(self.best_sources['npix'], q=65)
-            p_sizes = 3.*np.sqrt(percent)
+        if not hasattr(self, '__stamp_shape'):
+            if shape is None:
+                percent = np.percentile(self.best_sources['npix'], q=65)
+                p_sizes = 3.*np.sqrt(percent)
 
-            if p_sizes > 11:
-                dx = int(p_sizes)
-                if dx % 2 != 1: dx += 1
-                shape = (dx, dx)
-            else:
-                shape = (11, 11)
-        self.__stamp_shape = shape
+                if p_sizes > 9:
+                    dx = int(p_sizes)
+                    if dx % 2 != 1: dx += 1
+                    shape = (dx, dx)
+                else:
+                    shape = (9, 9)
+                print('stamps will be {} x {}'.format(*shape))
+            self.__stamp_shape = shape
 
     @property
     def best_sources(self):

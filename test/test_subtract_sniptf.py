@@ -32,8 +32,8 @@ import astroalign as aa
 import numpy as np
 
 def main(args):
-    imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
     imgsdir = '/home/bruno/Data/SNiPTF/imgs'
+    imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
 
     #imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
     dest_dir = './test/test_images/test_sub_sniptf'
@@ -61,11 +61,14 @@ def main(args):
                      reg.data, overwrite=True)
 
         D, P, S_corr = ps.diff(images[0], new, align=False,
-                               iterative=False, shift=True, beta=True)
+                               iterative=True, shift=False, beta=True)
 
-        fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)), D.real, overwrite=True)
-        fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)), P.real, overwrite=True)
-        fits.writeto(os.path.join(dest_dir,'Scorr_{}.fits'.format(i)), S_corr, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)),
+                     D.real, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)),
+                     P.real, overwrite=True)
+        fits.writeto(os.path.join(dest_dir,'Scorr_{}.fits'.format(i)),
+                     S_corr, overwrite=True)
         new._clean()
     for an_img in images:
         an_img._clean()
