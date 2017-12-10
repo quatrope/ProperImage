@@ -79,6 +79,8 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
         #~ new.pixeldata.mask = registered.mask
 
     t0 = time.time()
+    mix_mask = np.ma.mask_or(new.pixeldata.mask, ref.pixeldata.mask)
+
     zps, meanmags = utils.transparency([ref, new])
     print zps
     ref.zp = zps[0]
@@ -112,7 +114,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
         new_back = sep.Background(new.interped).back()
         ref_back = sep.Background(ref.interped).back()
         gamma = new_back - ref_back
-        b = 1
+        b = n_zp/r_zp
         #start with beta=1
 
         if shift:
@@ -127,7 +129,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                 cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
                        _ifftwn(fourier_shift((D_hat_r/np.sqrt(norm))*b, (dx,dy))) #-\
                        #~ _ifftwn(fourier_shift(_fftwn(gammap), (dx, dy)))
-                cost = np.absolute(cost*cost.conj())
+                cost = cost.real #np.absolute(cost*cost.conj())
 
                 #~ return sigma_clipped_stats(cost[50:-50, 50:-50], sigma=5.)[1]
                 return np.std(cost[50:-50, 50:-50].flatten())
@@ -161,13 +163,14 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                 norm  = b**2 *ref.var**2 * psf_new_hat * psf_new_hat_conj
                 norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
 
-                b_n = (_ifftwn(D_hat_n/np.sqrt(norm)) - gammap)/_ifftwn(D_hat_r/np.sqrt(norm))
+                b_n = np.divide((_ifftwn(D_hat_n/np.sqrt(norm)) - gammap),
+                                _ifftwn(D_hat_r/np.sqrt(norm)))
 
                 #b_n = _ifftwn(D_hat_n/np.sqrt(norm))/_ifftwn(D_hat_r/np.sqrt(norm))
 
-                ab = np.absolute(b_n)
+                ab = np.absolute(b_n)[mix_mask]
 
-                bb = ab[(np.percentile(ab, q=90)>ab)*(ab>np.percentile(ab, q=70))]
+                bb = ab[(np.percentile(ab, q=90)>ab)*(ab>np.percentile(ab, q=50))]
 
                 #~ import matplotlib.pyplot as plt
                 #~ plt.hist(bb.real.flatten(), log=True, bins=150)
@@ -202,7 +205,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
 
                 cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
                        _ifftwn((D_hat_r/np.sqrt(norm))*b) #- gammap
-                cost = np.absolute(cost*cost.conj())
+                cost = cost.real #np.absolute(cost*cost.conj())
 
                 #~ return sigma_clipped_stats(cost[50:-50, 50:-50], sigma=5.)[1]
                 return np.std(cost[50:-50, 50:-50].flatten())

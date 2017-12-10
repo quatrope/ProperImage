@@ -61,7 +61,7 @@ def main(args):
                      reg.data, overwrite=True)
 
         D, P, S_corr = ps.diff(images[0], new, align=False,
-                               iterative=True, shift=False, beta=True)
+                               iterative=False, shift=False, beta=True)
 
         fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)),
                      D.real, overwrite=True)
