@@ -60,7 +60,7 @@ def main(args):
         fits.writeto('/home/bruno/aligned_{}.fits'.format(i),
                      reg.data, overwrite=True)
 
-        D, P, S_corr = ps.diff(images[0], new, align=False,
+        D, P, S_corr = ps.diff(images[0], new, align=True,
                                iterative=False, shift=True, beta=True)
 
         fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)), D.real, overwrite=True)

@@ -52,7 +52,7 @@ from astropy.convolution import Gaussian2DKernel
 from astroML import crossmatch as cx
 
 import astroalign as aa
-
+aa.PIXEL_TOL=0.5
 #from .tests import simtools
 #from . import single_image as simg
 
@@ -301,27 +301,29 @@ def align_for_diff(refpath, newpath, newmask=None):
     We will allways rotate and align the new image to the reference,
     so it is easier to compare differences along time series.
     """
-    ref = fits.getdata(refpath)
+    ref = np.ma.masked_invalid(fits.getdata(refpath))
     new = fits.getdata(newpath)
     hdr = fits.getheader(newpath)
     if newmask is not None:
         new = np.ma.masked_array(new, mask=fits.getdata(newmask))
+    else:
+        new = np.ma.masked_invalid(new)
 
     dest_file = 'aligned_'+os.path.basename(newpath)
     dest_file = os.path.join(os.path.dirname(newpath), dest_file)
 
     try:
-        new2 = aa.align_image(ref, new)
+        new2 = aa.register(new.filled(np.median(new)), ref)
     except ValueError:
         ref = ref.astype(float)
         new = new.astype(float)
-        new2 = aa.align_image(ref, new)
+        new2 = aa.register(new, ref)
 
     hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
     if isinstance(new2, np.ma.masked_array):
         hdu = fits.HDUList([fits.PrimaryHDU(new2.data, header=hdr),
                             fits.ImageHDU(new2.mask.astype('uint8'))])
-        hdu.writeto(dest_file, new2, hdr, overwrite=True)
+        hdu.writeto(dest_file, overwrite=True)
     else:
         fits.writeto(dest_file, new2, hdr, overwrite=True)
 

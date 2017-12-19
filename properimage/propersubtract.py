@@ -57,7 +57,8 @@ except:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
 
-
+aa.PIXEL_TOL=0.5
+eps = np.finfo(np.float64).eps
 
 def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=False):
     """Function that takes a list of SingleImage instances
@@ -78,6 +79,10 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
         #~ new.pixeldata = registered
         #~ new.pixeldata.mask = registered.mask
 
+    #~ make sure that the alignement has delivered arrays of size
+    if new.pixeldata.data.shape != ref.pixeldata.data.shape:
+        import ipdb; ipdb.set_trace()
+
     t0 = time.time()
     zps, meanmags = utils.transparency([ref, new])
     print zps
@@ -97,8 +102,11 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
     if dx_new < 0. or dy_new<0.:
         import ipdb; ipdb.set_trace()
 
-    psf_ref_hat = _fftwn(psf_ref[0], s=ref.pixeldata.shape)
-    psf_new_hat = _fftwn(psf_new[0], s=new.pixeldata.shape)
+    psf_ref_hat = _fftwn(psf_ref[0], s=ref.pixeldata.shape, norm='ortho')
+    psf_new_hat = _fftwn(psf_new[0], s=new.pixeldata.shape, norm='ortho')
+
+    psf_ref_hat[np.where(psf_ref_hat.real==0)] = eps
+    psf_new_hat[np.where(psf_new_hat.real==0)] = eps
 
     psf_ref_hat_conj = psf_ref_hat.conj()
     psf_new_hat_conj = psf_new_hat.conj()
@@ -124,13 +132,13 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                 norm  = b**2 * ref.var**2 * psf_new_hat*psf_new_hat_conj
                 norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
 
-                cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
-                       _ifftwn(fourier_shift((D_hat_r/np.sqrt(norm))*b, (dx,dy))) #-\
+                cost = _ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') - \
+                       _ifftwn(fourier_shift((D_hat_r/np.sqrt(norm))*b, (dx,dy)), norm='ortho') #-\
                        #~ _ifftwn(fourier_shift(_fftwn(gammap), (dx, dy)))
-                cost = np.absolute(cost*cost.conj())
+                cost = np.absolute(cost*cost.conj())[50:-50, 50:-50].flatten()
 
                 #~ return sigma_clipped_stats(cost[50:-50, 50:-50], sigma=5.)[1]
-                return np.std(cost[50:-50, 50:-50].flatten())
+                return np.abs(sigma_clipped_stats(cost, sigma=5.)[2] -1)
 
 
             tbeta0 = time.time()
@@ -161,35 +169,38 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                 norm  = b**2 *ref.var**2 * psf_new_hat * psf_new_hat_conj
                 norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
 
-                b_n = (_ifftwn(D_hat_n/np.sqrt(norm)) - gammap)/_ifftwn(D_hat_r/np.sqrt(norm))
+                b_n = (_ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') - gammap)/_ifftwn(D_hat_r/np.sqrt(norm), norm='ortho')
 
                 #b_n = _ifftwn(D_hat_n/np.sqrt(norm))/_ifftwn(D_hat_r/np.sqrt(norm))
 
                 ab = np.absolute(b_n)
-
-                bb = ab[(np.percentile(ab, q=90)>ab)*(ab>np.percentile(ab, q=70))]
+                bb = ab[(np.percentile(ab, q=97)>ab)*(ab>np.percentile(ab, q=55))]
 
                 #~ import matplotlib.pyplot as plt
                 #~ plt.hist(bb.real.flatten(), log=True, bins=150)
                 #~ plt.vlines(sigma_clipped_stats(bb, sigma=12)[1], 0, 1000)
                 #~ plt.show()
-
-                b_next = sigma_clipped_stats(bb.real, iters=2, sigma=12.)[1]
+                print('Sigma clip on beta values')
+                print(sigma_clipped_stats(bb.real, iters=3, sigma=5.))
+                b_next = sigma_clipped_stats(bb.real, iters=3, sigma=5.)[1]
+                #~ b_next = sigma_clipped_stats(ab)[0]
+                if b_next==0.:
+                    return b
                 #~ b_next = np.mean(b_n)
                 return b_next
 
-            bi = 1
+            bi = new.zp/ref.zp # 1
             print('Start iteration')
             ti = time.time()
             bf = beta_next(bi)
             n_iter = 1
-            while np.abs(bf-bi) > 0.002 and n_iter<15:
+            while np.abs(bf-bi) > 0.002 and n_iter<45:
                 bi = bf
                 bf = beta_next(bi)
                 n_iter += 1
             b = bf
             tf = time.time()
-            print('b = {}. Finished on {} iterations, and {} time'.format(b, n_iter, tf-ti))
+            print('b = {}. Finished on {} iterations, and {} time\n'.format(b, n_iter, tf-ti))
             dx = dy = 0.
 
         else:
@@ -200,12 +211,12 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                 norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat_conj)
                 norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
 
-                cost = _ifftwn(D_hat_n/np.sqrt(norm)) - \
-                       _ifftwn((D_hat_r/np.sqrt(norm))*b) #- gammap
-                cost = np.absolute(cost*cost.conj())
+                cost = _ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') - \
+                       _ifftwn((D_hat_r/np.sqrt(norm))*b, norm='ortho') #- gammap
+                cost = np.absolute(cost*cost.conj())[50:-50, 50:-50].flatten()
 
-                #~ return sigma_clipped_stats(cost[50:-50, 50:-50], sigma=5.)[1]
-                return np.std(cost[50:-50, 50:-50].flatten())
+                return sigma_clipped_stats(cost, sigma=5.)[2]
+                #~ return np.std(cost[50:-50, 50:-50].flatten())
 
             dx = 0
             dy = 0
@@ -220,7 +231,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
             if solv_beta.success:
                 print('Found that beta = {}'.format(solv_beta.x))
                 print('Took only {} awesome seconds'.format(tbeta1-tbeta0))
-                print('The solution was with cost {}'.format(solv_beta.cost))
+                print('The solution was with cost {}'.format(solv_beta.cost+1))
                 b = solv_beta.x
             else:
                 print('Least squares could not find our beta  :(')
@@ -236,29 +247,27 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
     norm  = b**2 * ref.var**2 * psf_new_hat * psf_new_hat_conj
     norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
 
-    #import ipdb; ipdb.set_trace()
-
     if dx==0. and dy==0.:
         D_hat = (D_hat_n - b * D_hat_r)/np.sqrt(norm)
     else:
         D_hat = (D_hat_n - fourier_shift(b*D_hat_r, (dx,dy)))/np.sqrt(norm)
-    D = _ifftwn(D_hat)
+    D = _ifftwn(D_hat, norm='ortho')
 
     d_zp = new.zp/np.sqrt(ref.var**2 * b**2 + new.var**2 )
     P_hat =(psf_ref_hat * psf_new_hat * b)/(np.sqrt(norm)*d_zp)
 
-    P = _ifftwn(P_hat).real
+    P = _ifftwn(P_hat, norm='ortho').real
     dx_p, dy_p = center_of_mass(P)
 
     S_hat = fourier_shift(d_zp * D_hat * P_hat.conj(), (dx_p, dy_p))
 
-    kr=_ifftwn(b*new.zp*psf_ref_hat_conj*psf_new_hat*psf_new_hat_conj/norm)
-    kn=_ifftwn(b*new.zp*psf_new_hat_conj*psf_ref_hat*psf_ref_hat_conj/norm)
+    kr=_ifftwn(b*new.zp*psf_ref_hat_conj*psf_new_hat*psf_new_hat_conj/norm, norm='ortho')
+    kn=_ifftwn(b*new.zp*psf_new_hat_conj*psf_ref_hat*psf_ref_hat_conj/norm, norm='ortho')
 
-    V_en = _ifftwn(_fftwn(new.pixeldata.filled(0)+1.) * _fftwn(kn**2, s=new.pixeldata.shape))
-    V_er = _ifftwn(_fftwn(ref.pixeldata.filled(0)+1.) * _fftwn(kr**2, s=ref.pixeldata.shape))
+    V_en = _ifftwn(_fftwn(new.pixeldata.filled(0)+1., norm='ortho') * _fftwn(kn**2, s=new.pixeldata.shape), norm='ortho')
+    V_er = _ifftwn(_fftwn(ref.pixeldata.filled(0)+1., norm='ortho') * _fftwn(kr**2, s=ref.pixeldata.shape), norm='ortho')
 
-    S_corr = _ifftwn(S_hat)/np.sqrt(V_en + V_er)
+    S_corr = _ifftwn(S_hat, norm='ortho')/np.sqrt(V_en + V_er)
     print('S_corr sigma_clipped_stats ')
     print('mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real.flatten(), sigma=200)))
     print('Subtraction performed in {} seconds\n\n'.format(time.time()-t0))
