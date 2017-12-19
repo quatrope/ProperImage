@@ -31,8 +31,9 @@ from properimage import plot
 
 
 def main():
-    imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
     imgsdir = '/home/bruno/Data/SNiPTF/imgs'
+    imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
+
     #imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
     dest_dir = './test/test_images/test_sniptf'
     imgs = glob.glob(imgsdir+'/*sci*.fits')
@@ -58,7 +59,7 @@ def main():
     #images = [s.SingleImage(animg) for animg in imgs]
 
     for j, an_img in enumerate(images):
-        an_img.inf_loss = 0.15
+        an_img.inf_loss = 0.18
         plot.plot_psfbasis(an_img.kl_basis,
                            path=os.path.join(dest_dir, 'psf_basis_{}.png'.format(j)),
                            nbook=False)

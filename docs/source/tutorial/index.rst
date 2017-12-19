@@ -10,3 +10,4 @@ Contents:
     :maxdepth: 1
 
     tuto01.rst
+    Tutorial01.ipynb

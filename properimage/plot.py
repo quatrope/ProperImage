@@ -65,7 +65,7 @@ def primes(n):
 
 
 def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
-    psf_basis.reverse()
+    #psf_basis.reverse()
     N = len(psf_basis)
     p = primes(N)
     if N == 2:
@@ -96,7 +96,7 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
     if a_fields[0] is None:
         print 'No a_fields were calculated. Only one Psf Basis'
         return
-    a_fields.reverse()
+    #a_fields.reverse()
     N = len(a_fields)
     p = primes(N)
     if N == 2:

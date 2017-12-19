@@ -84,6 +84,8 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
         import ipdb; ipdb.set_trace()
 
     t0 = time.time()
+    mix_mask = np.ma.mask_or(new.pixeldata.mask, ref.pixeldata.mask)
+
     zps, meanmags = utils.transparency([ref, new])
     print zps
     ref.zp = zps[0]
@@ -120,7 +122,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
         new_back = sep.Background(new.interped).back()
         ref_back = sep.Background(ref.interped).back()
         gamma = new_back - ref_back
-        b = 1
+        b = n_zp/r_zp
         #start with beta=1
 
         if shift:

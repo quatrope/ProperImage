@@ -208,14 +208,14 @@ def transparency(images, master=None, ensemble=True):
     if q != 0:
         m = np.zeros(p*q)
         # here 20 is a common value for a zp, and is only for weighting
-        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 20.
+        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 25.
 
         j = 0
         for row in mastercat[mastercat['detected']]:
             for img in imglist:
                 cat = img.best_sources
                 imgrow = cat[cat['sourceid'] == row['sourceid']]
-                m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
+                m[q+j] = -2.5*np.log10(imgrow['flux']) + 25.
                 j += 1
         # print mastercat['detected']
         master.update_sources(mastercat)
