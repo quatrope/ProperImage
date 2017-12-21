@@ -160,7 +160,7 @@ def matching(master, cat, masteridskey=None,
     return(IDs)
 
 
-def transparency(images, master=None, ensemble=True):
+def transparency(images, master=None):
     """Transparency calculator, using Ofek method."""
 
     if master is None:
@@ -186,7 +186,7 @@ def transparency(images, master=None, ensemble=True):
     for img in imglist:
         newcat = img.best_sources
         ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
-                             angular=False, radius=1., masked=True)
+                             angular=False, radius=2., masked=True)
 
         newcat = append_fields(newcat, 'sourceid', ids,
                                usemask=False)
@@ -208,14 +208,14 @@ def transparency(images, master=None, ensemble=True):
     if q != 0:
         m = np.zeros(p*q)
         # here 20 is a common value for a zp, and is only for weighting
-        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 25.
+        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 20.
 
         j = 0
         for row in mastercat[mastercat['detected']]:
             for img in imglist:
                 cat = img.best_sources
                 imgrow = cat[cat['sourceid'] == row['sourceid']]
-                m[q+j] = -2.5*np.log10(imgrow['flux']) + 25.
+                m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
                 j += 1
         # print mastercat['detected']
         master.update_sources(mastercat)

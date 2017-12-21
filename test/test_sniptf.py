@@ -31,8 +31,8 @@ from properimage import plot
 
 
 def main():
-    imgsdir = '/home/bruno/Data/SNiPTF/imgs'
     imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
+    imgsdir = '/home/bruno/Data/SNiPTF/imgs'
 
     #imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
     dest_dir = './test/test_images/test_sniptf'

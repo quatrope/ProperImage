@@ -262,7 +262,7 @@ class SingleImage(object):
                 else:
                     shape = (5, 5)
                 print('stamps will be {} x {}'.format(*shape))
-            self.__stamp_shape = shape
+        self.__stamp_shape = shape
 
     @property
     def best_sources(self):
@@ -348,6 +348,11 @@ class SingleImage(object):
                                                self.stamp_shape, position,
                                                mode='partial',
                                                fill_value=self._bkg.globalrms)
+                if np.any(np.isnan(sub_array_data)):
+                    to_del.append(jj)
+                    jj +=1
+                    continue
+
                 sub_array_data = sub_array_data + np.abs(np.min(sub_array_data))
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
 
@@ -466,6 +471,7 @@ class SingleImage(object):
                     base = np.matmul(self._m, eig).reshape(self.stamp_shape)
                     base = base/np.sum(base)
                     base = base - np.abs(np.min(base))
+                    base = base/np.sum(base)
                     psf_basis.append(base)
             else:
                 for i in range(n_basis):
@@ -475,6 +481,7 @@ class SingleImage(object):
                         base += xs[j, i] * pj
                     base = base/np.sum(base)
                     base = base - np.abs(np.min(base))
+                    base = base/np.sum(base)
                     psf_basis.append(base)
                     del(base)
             psf_basis.reverse()
@@ -679,15 +686,18 @@ class SingleImage(object):
     @property
     def interped(self):
         if not hasattr(self, '_interped'):
+            kernel = Box2DKernel(4) # Gaussian2DKernel(stddev=2.5) #
+            #import ipdb; ipdb.set_trace()
+            crmask, _ = detect_cosmics(self.bkg_sub_img.data, self.bkg_sub_img.mask,
+                                    sigclip=10.)
+            self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask, crmask)
+            self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask, np.isnan(self.bkg_sub_img))
+            print('Masked pixels: ', np.sum(self.bkg_sub_img.mask))
+            img = self.bkg_sub_img.filled(np.nan)
+            img_interp = interpolate_replace_nans(img, kernel)
 
-            kernel = Gaussian2DKernel(stddev=3.5) # Box2DKernel(4)
-            img_interp = self.bkg_sub_img.filled(np.nan)
+            #clipped = sigma_clip(self.bkg_sub_img, iters=5, sigma_upper=40).filled(np.nan)
             img_interp = interpolate_replace_nans(img_interp, kernel)
-
-            crmask, img_interp = detect_cosmics(img_interp)
-            clipped = sigma_clip(img_interp, iters=5, sigma_upper=40).filled(np.nan)
-            img_interp = interpolate_replace_nans(clipped, kernel)
-
             self._interped = img_interp
         return self._interped
 
