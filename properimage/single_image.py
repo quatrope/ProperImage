@@ -106,7 +106,10 @@ class SingleImage(object):
         The mask image
     """
 
-    def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None):
+    def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None,
+                 borders=True, crop=((0, 0), (0, 0))):
+        self.borders = borders  # try to find zero border padding?
+        self.crop = crop  # crop edge?
         self.__img = img
         self.attached_to = img
         self.zp = 1.
@@ -159,6 +162,54 @@ class SingleImage(object):
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
                 self.__pixeldata = ma.asarray(img[0].data).astype('<f8')
+        if self.borders:
+            sx, sy = self.__pixeldata.shape
+            line = self.__pixeldata.data[sx/2, :]
+            pxsum = 0
+            for x, px in enumerate(line):
+                pxsum += px
+                if pxsum > 0.:
+                    ldx = x
+                    break
+            for dx in range(ldx):
+                if not np.sum(self.__pixeldata.data[:dx, :])==0:
+                    ldx = dx
+                    break
+            pxsum=0
+            for x, px in enumerate(np.flip(line, axis=0)):
+                pxsum += px
+                if pxsum > 0.:
+                    rdx = sx - x
+                    break
+            for dx in range(x):
+                if not np.sum(self.__pixeldata.data[-dx-1:, :])==0:
+                    rdx = sx - dx
+                    break
+            col = self.__pixeldata.data[:, sy/2]
+            pxsum=0
+            for y, px in enumerate(col):
+                pxsum += px
+                if pxsum > 0.:
+                    ldy = y
+                    break
+            for dy in range(ldy):
+                if not np.sum(self.__pixeldata.data[:, :dy])==0:
+                    ldy = dy
+                    break
+            pxsum=0
+            for y, px in enumerate(np.flip(line, axis=0)):
+                pxsum += px
+                if pxsum > 0.:
+                    rdy = sy - y
+                    break
+            for dy in range(y):
+                if not np.sum(self.__pixeldata.data[:, -dy-1:])==0:
+                    rdy = sy - dy
+                    break
+            self.__pixeldata = self.__pixeldata[ldx:rdx, ldy:rdy]
+        if not np.sum(self.crop)==0.:
+            dx, dy = self.crop
+            self.__pixeldata = self.__pixeldata[dx[0]:-dx[1], dy[0]:-dy[1]]
 
     @property
     def header(self):
@@ -280,10 +331,13 @@ class SingleImage(object):
                                    thresh=8*self.__bkg.globalrms,
                                    mask=self.mask)
             except Exception:
-                sep.set_extract_pixstack(700000)
-                srcs = sep.extract(self.bkg_sub_img.data,
-                                   thresh=5*self.__bkg.globalrms,
+                try:
+                    sep.set_extract_pixstack(3600000)
+                    srcs = sep.extract(self.bkg_sub_img.data,
+                                   thresh=35*self.__bkg.globalrms,
                                    mask=self.mask)
+                except:
+                    raise
             if len(srcs) < 20:
                 try:
                     srcs = sep.extract(self.bkg_sub_img.data,
@@ -297,7 +351,7 @@ class SingleImage(object):
             if len(srcs)==0:
                 raise ValueError('Few sources detected on image')
 
-            p_sizes = np.percentile(srcs['npix'], q=[25, 55, 75])
+            p_sizes = np.percentile(srcs['npix'], q=[20, 50, 80])
 
             best_big = srcs['npix'] >= p_sizes[0]
             best_small = srcs['npix'] <= p_sizes[2]
@@ -338,7 +392,6 @@ class SingleImage(object):
             if _cond:
                 self.stamp_shape = self._shape
             self.db = npdb.NumPyDB_cPickle(self.dbname, mode='store')
-
             pos = []
             jj = 0
             to_del = []
@@ -696,8 +749,10 @@ class SingleImage(object):
             img = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img, kernel)
 
+            while np.any(np.isnan(img_interp)):
+                img_interp = interpolate_replace_nans(img_interp, kernel)
             #clipped = sigma_clip(self.bkg_sub_img, iters=5, sigma_upper=40).filled(np.nan)
-            img_interp = interpolate_replace_nans(img_interp, kernel)
+            #img_interp = interpolate_replace_nans(img_interp, kernel)
             self._interped = img_interp
         return self._interped
 

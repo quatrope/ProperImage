@@ -75,7 +75,8 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
     if align:
         registered = aa.register(new.pixeldata, ref.pixeldata)
         new._clean()
-        new = s.SingleImage(registered.data, mask=registered.mask)
+        registered = registered[:ref.pixeldata.shape[0], :ref.pixeldata.shape[1]]
+        new = s.SingleImage(registered.data, mask=registered.mask, borders=False)
         #~ new.pixeldata = registered
         #~ new.pixeldata.mask = registered.mask
 
@@ -148,7 +149,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
 
             tbeta0 = time.time()
             vec0 = [b, 0., 0.]
-            bounds = ([0.1, -2.9, -2.9], [15., 2.9, 2.9])
+            bounds = ([0.1, -2.9, -2.9], [25., 2.9, 2.9])
             solv_beta = optimize.least_squares(cost_beta,
                                                vec0, ftol=1e-10,
                                                jac='3-point',
@@ -298,7 +299,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
             dy = 0
             tbeta0 = time.time()
             vec0 = [new.zp/ref.zp]
-            bounds = ([0.01], [15.])
+            bounds = ([0.01], [25.])
             solv_beta = optimize.least_squares(cost_beta,
                                                vec0, ftol=1e-9,
                                                jac='3-point',
@@ -328,7 +329,8 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
     else:
         D_hat = (D_hat_n - fourier_shift(b*D_hat_r, (dx,dy)))/np.sqrt(norm)
     D = _ifftwn(D_hat, norm='ortho')
-
+    if np.any(np.isnan(D.real)):
+        import ipdb; ipdb.set_trace()
     d_zp = new.zp/np.sqrt(ref.var**2 * b**2 + new.var**2 )
     P_hat =(psf_ref_hat * psf_new_hat * b)/(np.sqrt(norm)*d_zp)
 

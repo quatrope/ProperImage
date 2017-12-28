@@ -34,9 +34,9 @@ def main():
     imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
     imgsdir = '/home/bruno/Data/SNiPTF/imgs'
 
-    #imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
+    imgsdir = '/home/bruno/Data/LIGO_O2/Jan04/20171119/PGC073926/calibrated'
     dest_dir = './test/test_images/test_sniptf'
-    imgs = glob.glob(imgsdir+'/*sci*.fits')
+    imgs = glob.glob(imgsdir+'/aligned_PGC073926-*.fits')
     mask = glob.glob(imgsdir+'/*mask*.fits')
 
     imgs.sort()
@@ -54,9 +54,9 @@ def main():
         #~ img.flush()
         #~ img.close()
 
-    images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
+    #images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
 
-    #images = [s.SingleImage(animg) for animg in imgs]
+    images = [s.SingleImage(animg) for animg in imgs]
 
     for j, an_img in enumerate(images):
         an_img.inf_loss = 0.18

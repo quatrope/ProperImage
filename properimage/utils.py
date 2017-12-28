@@ -52,7 +52,8 @@ from astropy.convolution import Gaussian2DKernel
 from astroML import crossmatch as cx
 
 import astroalign as aa
-aa.PIXEL_TOL=0.5
+aa.PIXEL_TOL=0.3
+aa.NUM_NEAREST_NEIGHBORS = 5
 #from .tests import simtools
 #from . import single_image as simg
 
