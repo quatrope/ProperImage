@@ -71,7 +71,7 @@ try:
     _ifftwn = pyfftw.interfaces.numpy_fft.ifft2
 except:
     _fftwn = np.fft.rfft2
-    _ifftwn = np.fft.rifft2
+    _ifftwn = np.fft.irfft2
 
 
 class Bunch(dict):
