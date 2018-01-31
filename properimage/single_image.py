@@ -70,8 +70,8 @@ try:
     _fftwn = pyfftw.interfaces.numpy_fft.fft2
     _ifftwn = pyfftw.interfaces.numpy_fft.ifft2
 except:
-    _fftwn = np.fft.rfft2
-    _ifftwn = np.fft.irfft2
+    _fftwn = np.fft.fft2
+    _ifftwn = np.fft.ifft2
 
 
 class Bunch(dict):
