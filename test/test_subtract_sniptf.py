@@ -32,8 +32,8 @@ import astroalign as aa
 import numpy as np
 
 def main(args):
-    imgsdir = '/home/bruno/Data/SNiPTF/imgs'
     imgsdir = '/home/bruno/Documentos/Data/SNiPTF/imgs'
+    imgsdir = '/home/bruno/Data/SNiPTF/imgs'
 
     #imgsdir = '/home/bruno/Documentos/Data/LIGO_O2/20171116/ESO202-009'
     dest_dir = './test/test_images/test_sub_sniptf'
@@ -60,9 +60,10 @@ def main(args):
         fits.writeto('/home/bruno/aligned_{}.fits'.format(i),
                      reg.data, overwrite=True)
 
-        D, P, S_corr = ps.diff(images[0], new, align=False,
-                               iterative=False, shift=False, beta=True)
+        D, P, S_corr, mask = ps.diff(images[0], new, align=True,
+                               iterative=False, shift=True, beta=True)
 
+        D = np.ma.MaskedArray(D.real, mask).filled(np.median(D.real))
         fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)),
                      D.real, overwrite=True)
         fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)),

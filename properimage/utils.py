@@ -52,7 +52,8 @@ from astropy.convolution import Gaussian2DKernel
 from astroML import crossmatch as cx
 
 import astroalign as aa
-
+aa.PIXEL_TOL=0.3
+aa.NUM_NEAREST_NEIGHBORS = 5
 #from .tests import simtools
 #from . import single_image as simg
 
@@ -160,7 +161,7 @@ def matching(master, cat, masteridskey=None,
     return(IDs)
 
 
-def transparency(images, master=None, ensemble=True):
+def transparency(images, master=None):
     """Transparency calculator, using Ofek method."""
 
     if master is None:
@@ -186,7 +187,7 @@ def transparency(images, master=None, ensemble=True):
     for img in imglist:
         newcat = img.best_sources
         ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
-                             angular=False, radius=1., masked=True)
+                             angular=False, radius=2., masked=True)
 
         newcat = append_fields(newcat, 'sourceid', ids,
                                usemask=False)
@@ -208,14 +209,14 @@ def transparency(images, master=None, ensemble=True):
     if q != 0:
         m = np.zeros(p*q)
         # here 20 is a common value for a zp, and is only for weighting
-        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 25.
+        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 20.
 
         j = 0
         for row in mastercat[mastercat['detected']]:
             for img in imglist:
                 cat = img.best_sources
                 imgrow = cat[cat['sourceid'] == row['sourceid']]
-                m[q+j] = -2.5*np.log10(imgrow['flux']) + 25.
+                m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
                 j += 1
         # print mastercat['detected']
         master.update_sources(mastercat)
@@ -301,27 +302,29 @@ def align_for_diff(refpath, newpath, newmask=None):
     We will allways rotate and align the new image to the reference,
     so it is easier to compare differences along time series.
     """
-    ref = fits.getdata(refpath)
+    ref = np.ma.masked_invalid(fits.getdata(refpath))
     new = fits.getdata(newpath)
     hdr = fits.getheader(newpath)
     if newmask is not None:
         new = np.ma.masked_array(new, mask=fits.getdata(newmask))
+    else:
+        new = np.ma.masked_invalid(new)
 
     dest_file = 'aligned_'+os.path.basename(newpath)
     dest_file = os.path.join(os.path.dirname(newpath), dest_file)
 
     try:
-        new2 = aa.align_image(ref, new)
+        new2 = aa.register(new.filled(np.median(new)), ref)
     except ValueError:
         ref = ref.astype(float)
         new = new.astype(float)
-        new2 = aa.align_image(ref, new)
+        new2 = aa.register(new, ref)
 
     hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
     if isinstance(new2, np.ma.masked_array):
         hdu = fits.HDUList([fits.PrimaryHDU(new2.data, header=hdr),
                             fits.ImageHDU(new2.mask.astype('uint8'))])
-        hdu.writeto(dest_file, new2, hdr, overwrite=True)
+        hdu.writeto(dest_file, overwrite=True)
     else:
         fits.writeto(dest_file, new2, hdr, overwrite=True)
 
