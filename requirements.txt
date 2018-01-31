@@ -1,6 +1,7 @@
 numpy>=1.13.3
-#scipy>=1.0.0
-#astropy>=2.0.2
-#sep>=1.0.1
-#astroalign>=1.0.1
+scipy>=1.0.0
+astropy>=2.0.2
+sep>=1.0.1
+astroalign>=1.0.1
 #sphinx-rtd-theme>=0.1.9
+astroscrappy>=1.0.5
