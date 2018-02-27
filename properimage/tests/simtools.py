@@ -264,13 +264,13 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
 
     if bkg_pdf == 'poisson':
         mean = b/SN
-        print 'mean = {}, b = {}, SN = {}'.format(mean, b, SN)
+        print('mean = {}, b = {}, SN = {}'.format(mean, b, SN))
         C = cielo(N=N2, pdf=bkg_pdf, mean=mean)
 
     elif bkg_pdf == 'gaussian':
         mean = 0
         std = b/SN
-        print 'mean = {}, std = {}, b = {}, SN = {}'.format(mean, std, b, SN)
+        print('mean = {}, std = {}, b = {}, SN = {}'.format(mean, std, b, SN))
         C = cielo(N=N2, pdf=bkg_pdf, mean=mean, std=std)
     bias = 100.
     F = C + image + bias

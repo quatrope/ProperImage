@@ -114,7 +114,7 @@ class StackCombinator(Process):
         self.list_to_combine = img_list
         self.queue = queue
         self.global_shape = shape
-        print self.global_shape
+        print(self.global_shape)
         # self.zps = ensemble.transparencies
 
     def run(self):

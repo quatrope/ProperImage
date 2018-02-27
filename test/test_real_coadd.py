@@ -31,7 +31,7 @@ datapath = os.path.abspath(
 
 for root, dirs, files in os.walk(datapath):
     fs = [os.path.join(root, afile) for afile in files]
-    print 'files to process: {}'.format(fs)
+    print('files to process: {}'.format(fs))
 
     with pc.ImageEnsemble(fs, pow_th=0.01) as ensemble:
         R, S = ensemble.calculate_R(n_procs=4, return_S=True)

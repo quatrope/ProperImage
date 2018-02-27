@@ -153,8 +153,8 @@ def matching(master, cat, masteridskey=None,
                 if ind_s == i:
                     IDs[i] = master[idkey][ind_o]
 
-    print(len(IDs), len(ind_), len(ind))
-    print("Matching result::  IDs > 0. => {}".format(sum(IDs>0)))
+    print((len(IDs), len(ind_), len(ind)))
+    print(("Matching result::  IDs > 0. => {}".format(sum(IDs>0))))
     if masked:
         mask = IDs > 0
         return(IDs, mask)
@@ -221,7 +221,7 @@ def transparency(images, master=None):
         # print mastercat['detected']
         master.update_sources(mastercat)
 
-        print "p={}, q={}".format(p, q)
+        print("p={}, q={}".format(p, q))
         ident = sparse.identity(q)
         col = np.repeat(1., q)
         sparses = []

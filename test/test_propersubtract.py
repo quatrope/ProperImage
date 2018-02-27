@@ -49,7 +49,7 @@ def main(args):
     #images = [s.SingleImage(animg, mask=amask) for animg, amask in zip(imgs, mask)]
     images = []
     for animg in imgs:
-        print animg
+        print(animg)
         try:
             o = s.SingleImage(animg, borders=True, crop=((150,150), (150, 150)))
             images.append(o)
@@ -81,7 +81,7 @@ def main(args):
                 continue
             if star['cflux']<f60:
                 continue
-            print x,y
+            print(x,y)
             noise = np.random.normal(loc=med, scale=st, size=animg.stamp_shape)
             animg.pixeldata.data[np.int(x-sx/2.):np.int(x+sx/2.),
                                  np.int(y-sy/2.):np.int(y+sy/2.)] = noise
@@ -110,9 +110,9 @@ def main(args):
             fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)), P.real, overwrite=True)
             fits.writeto(os.path.join(dest_dir,'Scorr_{}.fits'.format(i)), S_corr, overwrite=True)
         except:
-            print 'subtraction failed'
-            print 'ref: ', images[0]
-            print 'new: ', animg
+            print('subtraction failed')
+            print('ref: ', images[0])
+            print('new: ', animg)
 
     for an_img in images:
         an_img._clean()

@@ -140,7 +140,7 @@ rhdulist = fits.HDUList([rhdu])
 rhdulist.writeto(os.path.join(test_dir,'R.fits'), clobber=True)
 
 # =============================================================================
-print 'Individual analisis of psf decomposition'
+print('Individual analisis of psf decomposition')
 # =============================================================================
 
 for im in ensemble.atoms:

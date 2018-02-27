@@ -37,7 +37,7 @@ REQUIREMENTS = ["numpy>=1.6.2",
 # =============================================================================
 # FUNCTIONS
 # =============================================================================
-print setuptools.find_packages() #exclude=['test*'])
+print(setuptools.find_packages()) #exclude=['test*']
 
 
 def do_setup():

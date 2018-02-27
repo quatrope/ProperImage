@@ -312,7 +312,7 @@ class SingleImage(object):
                     shape = (dx, dx)
                 else:
                     shape = (5, 5)
-                print('stamps will be {} x {}'.format(*shape))
+                print(('stamps will be {} x {}'.format(*shape)))
         self.__stamp_shape = shape
 
     @property
@@ -367,7 +367,7 @@ class SingleImage(object):
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
                 best_srcs = best_srcs[jj]
 
-            print('Sources found = {}'.format(len(best_srcs)))
+            print(('Sources found = {}'.format(len(best_srcs))))
             self._best_sources = best_srcs
 
         return self._best_sources
@@ -745,7 +745,7 @@ class SingleImage(object):
                                     sigclip=10.)
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask, crmask)
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask, np.isnan(self.bkg_sub_img))
-            print('Masked pixels: ', np.sum(self.bkg_sub_img.mask))
+            print(('Masked pixels: ', np.sum(self.bkg_sub_img.mask)))
             img = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img, kernel)
 
@@ -778,7 +778,7 @@ class SingleImage(object):
     def p_sqnorm(self):
         phat = self.psf_hat_sqnorm()
         p = _ifftwn(phat, norm='ortho')
-        print np.sum(p)
+        print(np.sum(p))
         return _ifftwn(fourier_shift(phat, (self.stamp_shape[0]/2,
                                             self.stamp_shape[1]/2)), norm='ortho')
 

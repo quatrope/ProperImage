@@ -226,7 +226,7 @@ class TestNpArray(TestSingleImage, unittest.TestCase):
 
     def setUp(self):
         super(TestNpArray, self).setUp()
-        print self.mock_image_data.shape
+        print(self.mock_image_data.shape)
         self.si = s.SingleImage(self.mock_image_data)
 
     def testMask(self):

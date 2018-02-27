@@ -69,7 +69,7 @@ fwhm_y = 2.335*np.mean(y_sds)
 mean_th = round(np.mean(th))
 fwhm = max(fwhm_x, fwhm_y)
 
-print 'X Fwhm = {}, Y Fwhm = {}, Mean Theta = {}'.format(fwhm_x, fwhm_y, mean_th)
+print('X Fwhm = {}, Y Fwhm = {}, Mean Theta = {}'.format(fwhm_x, fwhm_y, mean_th))
 
 # =============================================================================
 #    PSF spatially variant
@@ -138,8 +138,8 @@ if runtest:
         prf_model.x_mean = position[1]
         prf_model.y_mean = position[0]
         fit = fitter(prf_model, x, y, sub_array_data)
-        print row['x'],row['y'],row['flux'],row['tnpix'],row['a'],row['b']
-        print fit
+        print(row['x'],row['y'],row['flux'],row['tnpix'],row['a'],row['b'])
+        print(fit)
         res = sub_array_data - fit(x,y)
 
         if np.sum(res*res) < sim.bkg.globalrms*fitshape[0]**2:

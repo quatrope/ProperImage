@@ -39,7 +39,7 @@ with si.SingleImage(frame) as sim:
     x, y = sim.get_afield_domain()
     normal_image = sim.normal_image
     interp = sim.interped
-    print(sim.n_sources)
+    print((sim.n_sources))
     S = sim.s_component
 
 plot.plot_psfbasis(psf_b,

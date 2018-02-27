@@ -141,7 +141,7 @@ class ImageEnsemble(MutableSequence):
             shapex = np.min([at.pixeldata.shape[0] for at in self.atoms])
             shapey = np.min([at.pixeldata.shape[1] for at in self.atoms])
             self._global_shape = (shapex, shapey)
-            print self._global_shape
+            print(self._global_shape)
         return self._global_shape
 
     @property
@@ -176,29 +176,29 @@ class ImageEnsemble(MutableSequence):
             queue = Queue()
             proc = Combinator(chunk, queue, shape=self.global_shape,
                               stack=True, fourier=False)
-            print 'starting new process'
+            print('starting new process')
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
 
-        print 'all chunks started, and procs appended'
+        print('all chunks started, and procs appended')
 
         S = np.zeros(self.global_shape)
         for q in queues:
             serialized = q.get()
-            print 'loading pickles'
+            print('loading pickles')
             s_comp = pickle.loads(serialized)
-            print s_comp.shape
+            print(s_comp.shape)
             S = np.ma.add(s_comp[:self.global_shape[0], :self.global_shape[1]], S)
 
-        print 'S calculated, now starting to join processes'
+        print('S calculated, now starting to join processes')
 
         for proc in procs:
-            print 'waiting for procs to finish'
+            print('waiting for procs to finish')
             proc.join()
 
-        print 'processes finished, now returning S'
+        print('processes finished, now returning S')
         return S
 
     def calculate_R(self, n_procs=2, return_S=False, debug=False):
@@ -224,20 +224,20 @@ class ImageEnsemble(MutableSequence):
         for chunk in chunk_it(self.atoms, n_procs):
             queue = Queue()
             proc = Combinator(chunk, queue, fourier=True, stack=False)
-            print 'starting new process'
+            print('starting new process')
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
 
-        print 'all chunks started, and procs appended'
+        print('all chunks started, and procs appended')
 
         S_stk = []
         S_hat_stk = []
 
         for q in queues:
             serialized = q.get()
-            print 'loading pickles'
+            print('loading pickles')
             s_list, s_hat_list = pickle.loads(serialized)
 
             S_stk.extend(s_list)
@@ -267,16 +267,16 @@ class ImageEnsemble(MutableSequence):
         R = _ifftwn(R_hat)
 
         for proc in procs:
-            print 'waiting for procs to finish'
+            print('waiting for procs to finish')
             proc.join()
 
         if debug:
             return [S_hat_stack, S_stack, S_hat, S, R_hat]
         if return_S:
-            print 'processes finished, now returning R, S'
+            print('processes finished, now returning R, S')
             return R, S
         else:
-            print 'processes finished, now returning R'
+            print('processes finished, now returning R')
             return R
 
     def _clean(self):

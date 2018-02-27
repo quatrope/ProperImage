@@ -88,7 +88,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
     mix_mask = np.ma.mask_or(new.pixeldata.mask, ref.pixeldata.mask)
 
     zps, meanmags = utils.transparency([ref, new])
-    print zps
+    print(zps)
     ref.zp = zps[0]
     new.zp = zps[1]
     n_zp = new.zp
@@ -157,9 +157,9 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
             tbeta1 = time.time()
 
             if solv_beta.success:
-                print('Found that beta = {}'.format(solv_beta.x))
-                print('Took only {} awesome seconds'.format(tbeta1-tbeta0))
-                print('The solution was with cost {}'.format(solv_beta.cost))
+                print(('Found that beta = {}'.format(solv_beta.x)))
+                print(('Took only {} awesome seconds'.format(tbeta1-tbeta0)))
+                print(('The solution was with cost {}'.format(solv_beta.cost)))
                 b, dx, dy = solv_beta.x
             else:
                 print('Least squares could not find our beta  :(')
@@ -201,7 +201,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
 
                 #print('Sigma clip on beta values')
                 #print(mean, med, std)
-                print mean_flux
+                print(mean_flux)
                 if np.abs(mean_flux-1) < 1e-2:
                     b_next = b
                 elif mean_flux > 1:
@@ -270,7 +270,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                 n_iter += 1
             b = bf
             tf = time.time()
-            print('b = {}. Finished on {} iterations, and {} time\n'.format(b, n_iter, tf-ti))
+            print(('b = {}. Finished on {} iterations, and {} time\n'.format(b, n_iter, tf-ti)))
             dx = dy = 0.
 
         else:
@@ -306,9 +306,9 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                                                bounds=bounds)
             tbeta1 = time.time()
             if solv_beta.success:
-                print('Found that beta = {}'.format(solv_beta.x))
-                print('Took only {} awesome seconds'.format(tbeta1-tbeta0))
-                print('The solution was with cost {}'.format(solv_beta.cost))
+                print(('Found that beta = {}'.format(solv_beta.x)))
+                print(('Took only {} awesome seconds'.format(tbeta1-tbeta0)))
+                print(('The solution was with cost {}'.format(solv_beta.cost)))
                 b = solv_beta.x
             else:
                 print('Least squares could not find our beta  :(')
@@ -347,8 +347,8 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
 
     S_corr = _ifftwn(S_hat, norm='ortho')/np.sqrt(V_en + V_er)
     print('S_corr sigma_clipped_stats ')
-    print('mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real.flatten(), sigma=200)))
-    print('Subtraction performed in {} seconds\n\n'.format(time.time()-t0))
+    print(('mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(S_corr.real.flatten(), sigma=200))))
+    print(('Subtraction performed in {} seconds\n\n'.format(time.time()-t0)))
 
     #import ipdb; ipdb.set_trace()
     return D, P, S_corr.real, mix_mask
