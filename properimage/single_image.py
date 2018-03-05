@@ -669,12 +669,8 @@ class SingleImage(object):
             else:
                 x, y = self.get_afield_domain()
                 conv = np.zeros_like(self.pixeldata.data)
-
-                for i in range(len(a_fields)):
-                    a = a_fields[i]
-                    a = a(x, y)
-                    psf_i = psf_basis[i]
-                    conv += convolve_scp(a, psf_i)
+                for a, psf_i in zip(a_fields, psf_basis):
+                    conv += convolve_scp(a(x, y), psf_i)
                 self._normal_image = conv
         return self._normal_image
 
