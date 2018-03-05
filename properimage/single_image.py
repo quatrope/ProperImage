@@ -706,15 +706,13 @@ class SingleImage(object):
             else:
                 s_hat = np.zeros_like(self.pixeldata.data, dtype=np.complex128)
                 x, y = self.get_afield_domain()
-                for i in range(len(a_fields)):
-                    a = a_fields[i](x, y)/nrm
-                    psf = psf_basis[i]
+                for a, psf in zip(a_fields, psf_basis):
 
                     #if i>0: a = a/10.
 
-                    conv = _fftwn(self.interped * a, norm='ortho') *\
+                    conv = _fftwn(self.interped * a(x, y) / nrm, norm='ortho') *\
                            _fftwn(psf, s=self.pixeldata.shape, norm='ortho').conj()
-                    conv = fourier_shift(conv, (+dx,+dy))
+                    conv = fourier_shift(conv, (+dx, +dy))
 
                     np.add(conv, s_hat, out=s_hat)
 
