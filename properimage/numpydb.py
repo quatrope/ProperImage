@@ -91,7 +91,7 @@ class NumPyDB_cPickle(NumPyDB):
     def dump(self, a, identifier):
         """Dump NumPy array a with identifier."""
         # fd: datafile, fm: mapfile
-        with open(self.dn, 'a') as fd:
+        with open(self.dn, 'ab') as fd:
             with open(self.pn, 'a') as fm:
                 # fd.tell(): return current position in datafile
                 fm.write("%d\t\t %s\n" % (fd.tell(), identifier))
@@ -108,7 +108,7 @@ class NumPyDB_cPickle(NumPyDB):
         pos, id = self.locate(identifier)
         if pos < 0:
             return [None, "not found"]
-        with open(self.dn, 'r') as fd:
+        with open(self.dn, 'rb') as fd:
             fd.seek(pos)
             a = pickle.load(fd)
         return [a, id]
