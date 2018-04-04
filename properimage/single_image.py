@@ -164,7 +164,7 @@ class SingleImage(object):
                 self.__pixeldata = ma.asarray(img[0].data).astype('<f8')
         if self.borders:
             sx, sy = self.__pixeldata.shape
-            line = self.__pixeldata.data[sx/2, :]
+            line = self.__pixeldata.data[sx // 2, :]
             pxsum = 0
             for x, px in enumerate(line):
                 pxsum += px
@@ -185,7 +185,7 @@ class SingleImage(object):
                 if not np.sum(self.__pixeldata.data[-dx-1:, :])==0:
                     rdx = sx - dx
                     break
-            col = self.__pixeldata.data[:, sy/2]
+            col = self.__pixeldata.data[:, sy // 2]
             pxsum=0
             for y, px in enumerate(col):
                 pxsum += px
