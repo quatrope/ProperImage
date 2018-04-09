@@ -10,3 +10,5 @@ Contents:
     :maxdepth: 1
 
     Tutorial01.ipynb
+    Tutorial02.ipynb
+
