@@ -62,7 +62,7 @@ from astroscrappy import detect_cosmics
 import sep
 
 from . import numpydb as npdb
-# from . import utils
+from . import utils
 from .image_stats import ImageStats
 
 try:
@@ -388,6 +388,7 @@ class SingleImage(object):
         _cond = (hasattr(self, '_shape') and
                  self._shape!=self.stamp_shape and
                  self._shape is not None)
+
         if not hasattr(self, '_stamps_pos') or _cond:
             if _cond:
                 self.stamp_shape = self._shape
@@ -395,44 +396,104 @@ class SingleImage(object):
             pos = []
             jj = 0
             to_del = []
+            sx, sy = self.stamp_shape
+            def check_margin(stamp, rms=self._bkg.globalrms):
+                check_shape = False
+
+                l_marg = stamp[0, :]
+                r_marg = stamp[-1, :]
+                t_marg = stamp[:, -1]
+                b_marg = stamp[:, 0]
+
+                margs = np.hstack([b_marg, t_marg, r_marg, l_marg])
+                margs_m = np.mean(margs)
+                margs_s = np.std(margs)
+
+                if margs_m+margs_s > 2.5*rms or margs_m-margs_s < 2.5*rms:
+                    check_shape = True
+
+                return check_shape
+
             for row in self.best_sources:
                 position = (row['y'], row['x'])
                 sub_array_data = extract_array(self.interped,
                                                self.stamp_shape, position,
                                                mode='partial',
                                                fill_value=self._bkg.globalrms)
+
                 if np.any(np.isnan(sub_array_data)):
                     to_del.append(jj)
                     jj +=1
                     continue
 
+                # there should be some checkings on the used stamps
+                # check the margins so they are large enough
+                check_shape = True
+                new_shape = self.stamp_shape
+                while check_shape:
+                    check_shape = check_margin(sub_array_data)
+                    new_shape = (new_shape[0]+2, new_shape[1]+2)
+                    sub_array_data = extract_array(self.interped,
+                                               new_shape, position,
+                                               mode='partial',
+                                               fill_value=self._bkg.globalrms)
+                    # print check_shape, new_shape
+                    if new_shape[0]-self.stamp_shape[0] >=6:
+                        check_shape=False
+
+                # Normalize to unit sum
                 sub_array_data = sub_array_data + np.abs(np.min(sub_array_data))
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
 
-                # there should be some checkings on the used stamps
+                pad_dim = ((self.stamp_shape[0]-new_shape[0]+6)/2,
+                           (self.stamp_shape[1]-new_shape[1]+6)/2)
+
+                if not pad_dim==(0,0):
+                    sub_array_data = np.pad(sub_array_data, [pad_dim, pad_dim],
+                                            'linear_ramp', end_values=0)
+
+                #  Checking if the peak is off center
                 xcm, ycm = np.where(sub_array_data==np.max(sub_array_data))
                 xcm = np.array([xcm[0],ycm[0]])
 
-                delta = xcm - np.asarray(self.stamp_shape)/2.
-                if np.sqrt(np.sum(delta**2)) > self.stamp_shape[0]/2.:
+                delta = xcm - np.asarray(sub_array_data.shape)/2.
+                if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
                     to_del.append(jj)
                     jj +=1
                     continue
 
+                #  Checking if it has outliers
                 sd = np.std(sub_array_data)
                 if sd > 0.05:
                     to_del.append(jj)
                     jj +=1
                     continue
 
-                #~ sub_array_data = np.pad(sub_array_data, [(3,3), (3,3)], 'linear_ramp', end_values=0)
+                outl_cat = utils.find_S_local_maxima(sub_array_data,
+                                                     threshold=3.5,
+                                                     neighborhood_size=5)
+                if len(outl_cat) > 1:
+                    to_del.append(jj)
+                    jj +=1
+                    continue
+
+                #~ thrs = [outl[-1] for outl in outl_cat]
+                ymax, xmax, thmax = outl_cat[0]
+                # np.where(thrs==np.max(thrs))[0][0]]
+                xcm = np.array([xmax, ymax])
+                delta = xcm - np.asarray(sub_array_data.shape)/2.
+                if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
+                    to_del.append(jj)
+                    jj +=1
+                    continue
+
                 # if everything was fine we store
                 pos.append(position)
                 self.db.dump(sub_array_data, len(pos)-1)
                 jj += 1
 
             self._best_sources = np.delete(self._best_sources, to_del, axis=0)
-            #~ self.stamp_shape = (self.stamp_shape[0] + 6, self.stamp_shape[1] + 6)
+            self.stamp_shape = (self.stamp_shape[0] + 6, self.stamp_shape[1] + 6)
             self._stamps_pos = np.array(pos)
             self._n_sources = len(pos)
         return self._stamps_pos
@@ -735,18 +796,23 @@ class SingleImage(object):
         if not hasattr(self, '_interped'):
             kernel = Box2DKernel(4) # Gaussian2DKernel(stddev=2.5) #
             #import ipdb; ipdb.set_trace()
-            crmask, _ = detect_cosmics(self.bkg_sub_img.data, self.bkg_sub_img.mask,
-                                    sigclip=10.)
-            self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask, crmask)
-            self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask, np.isnan(self.bkg_sub_img))
+            crmask, _ = detect_cosmics(self.bkg_sub_img.data,
+                                       self.bkg_sub_img.mask,
+                                       sigclip=6.)
+            self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,
+                                                  crmask)
+            self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,
+                                                  np.isnan(self.bkg_sub_img))
+
             print(('Masked pixels: ', np.sum(self.bkg_sub_img.mask)))
             img = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img, kernel)
 
             while np.any(np.isnan(img_interp)):
                 img_interp = interpolate_replace_nans(img_interp, kernel)
-            #clipped = sigma_clip(self.bkg_sub_img, iters=5, sigma_upper=40).filled(np.nan)
-            #img_interp = interpolate_replace_nans(img_interp, kernel)
+            #~ clipped = sigma_clip(self.bkg_sub_img,
+                                 #~ iters=5, sigma_upper=40).filled(np.nan)
+            #~ img_interp = interpolate_replace_nans(img_interp, kernel)
             self._interped = img_interp
         return self._interped
 

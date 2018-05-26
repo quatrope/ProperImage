@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 import sep
 from astropy.io import fits
 
-from properimage import simtools
+from properimage.tests import simtools
 from properimage import propercoadd as pc
 from properimage import utils
 
@@ -44,8 +44,8 @@ test_dir = os.path.abspath('./test/test_images/rebuild_psf2')
 frame = utils.sim_varpsf(400, test_dir, SN=5.)
 
 
-with pc.SingleImage(frame, sim=True, imagefile=False) as sim:
-    a_fields, psf_basis = sim.get_variable_psf(pow_th=0.001)
+with pc.SingleImage(frame) as sim:
+    a_fields, psf_basis = sim.get_variable_psf()
 
 utils.plot_afields(a_fields, frame.shape, os.path.join(test_dir, 'a_fields.png'))
 utils.plot_psfbasis(psf_basis, os.path.join(test_dir, 'psf_basis.png'), nbook=False)
@@ -62,7 +62,7 @@ cat = sep.extract(frame - sep.Background(frame),
 xy = [(int(row['y']), int(row['x'])) for row in cat]
 weights = 100000. * cat['flux']/max(cat['flux'])
 m = simtools.delta_point(N*2, center=False, xy=xy)#, weights=weights)
-x, y = np.mgrid[:frame.shape[0], :frame.shape[1]]
+x, y = sim.get_afield_domain()  # np.mgrid[:frame.shape[0], :frame.shape[1]]
 
 rebuild = np.zeros_like(frame)
 for i in range(len(psf_basis)):

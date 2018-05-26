@@ -245,8 +245,8 @@ def transparency(images, master=None):
 def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
-        #a = a_fields[j](x, y) * image
-        a = a_fields[j] * image
+        a = a_fields[j](x, y) * image
+        #a = a_fields[j] * image
         psf = psf_basis[j]
 
         imconvolved += convolve(a, psf, boundary='extend')
@@ -266,7 +266,8 @@ def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
     return imconvolved
 
 
-def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
+def lucy_rich(image, psf_basis, a_fields, adomain,
+              iterations=50, clip=True, fft=False):
     #~ direct_time = np.prod(image.shape + psf.shape)
     #~ fft_time =  np.sum([n*np.log(n) for n in image.shape + psf.shape])
 
@@ -281,7 +282,8 @@ def lucy_rich(image, psf_basis, a_fields, iterations=50, clip=True, fft=False):
 
     image = image.astype(np.float)
     image = np.ma.masked_invalid(image).filled(np.nan)
-    x, y = np.mgrid[:image.shape[0], :image.shape[1]]
+    #x, y = np.mgrid[:image.shape[0], :image.shape[1]]
+    x, y = adomain
 
     im_deconv = 0.5 * np.ones(image.shape)
     psf_mirror = [psf[::-1, ::-1] for psf in psf_basis]

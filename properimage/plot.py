@@ -71,7 +71,7 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     if N == 2:
         subplots = (2, 1)
     elif p == N:
-        subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
+        subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)+1))
     else:
         rows =  N // p
         rows += N % p
@@ -82,7 +82,7 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
         plt.subplot(subplots[1], subplots[0], i+1)
         plt.imshow(psf_basis[i], interpolation='none', cmap='viridis')
         labels = {'j': i+1, 'sum': np.sum(psf_basis[i])}
-        plt.title(r'$\sum p_{j} = {sum:4.3e}$'.format(**labels))  # , interpolation='linear')
+        plt.title(r'$\sum p_{j:d} = {sum:4.3e}$'.format(**labels))  # , interpolation='linear')
         plt.colorbar(shrink=0.85)
     plt.tight_layout()
     if path is not None:
@@ -102,7 +102,7 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
     if N == 2:
         subplots = (2, 1)
     elif p == N:
-        subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)))
+        subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)+1))
     else:
         rows =  N // p
         rows += N % p
