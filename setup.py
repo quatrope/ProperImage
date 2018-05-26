@@ -25,12 +25,13 @@ use_setuptools()
 # CONSTANTS
 # =============================================================================
 
-REQUIREMENTS = ["numpy>=1.6.2",
-                "scipy>=0.15",
-                "astropy>=1.0",
+REQUIREMENTS = ["numpy>=1.13.2",
+                "scipy>=1.0",
+                "astropy>=2.0",
                 "photutils>=0.2",
                 "astroML>=0.3",
-                "sep>=0.5"#,
+                "sep>=1.0",
+                "astroscrappy>=1.0.5"#,
                 #"pyFFTW>=0.10"
                 ]
 

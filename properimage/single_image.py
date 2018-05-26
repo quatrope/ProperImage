@@ -162,6 +162,9 @@ class SingleImage(object):
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
                 self.__pixeldata = ma.asarray(img[0].data).astype('<f8')
+        elif isinstance(img, fits.PrimaryHDU):
+            if img.is_image:
+                self.__pixeldata = ma.asarray(img.data).astype('<f8')
         if self.borders:
             sx, sy = self.__pixeldata.shape
             line = self.__pixeldata.data[sx // 2, :]
