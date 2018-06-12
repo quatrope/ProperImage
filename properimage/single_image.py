@@ -107,9 +107,11 @@ class SingleImage(object):
     """
 
     def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None,
-                 borders=True, crop=((0, 0), (0, 0))):
+                 borders=True, crop=((0, 0), (0, 0)), min_sources=None):
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
+	if min_sources is not None:
+             self.min_sources = min_sources
         self.__img = img
         self.attached_to = img
         self.zp = 1.
@@ -235,7 +237,7 @@ class SingleImage(object):
     @mask.setter
     def mask(self, mask):
         if isinstance(mask, str):
-            self.__pixeldata.mask = fits.getdata(mask) >= 4
+            self.__pixeldata.mask = fits.getdata(mask)
         elif isinstance(mask, np.ndarray):
             self.__pixeldata.mask = mask
         elif mask is None:
@@ -272,6 +274,7 @@ class SingleImage(object):
         numpy.array 2D
             a background estimation image is returned
         """
+        print "Background level = {}, rms = {}".format(self.__bkg.globalback, self.__bkg.globalrms)
         return self.__bkg.back()
 
     @property
@@ -341,7 +344,10 @@ class SingleImage(object):
                                    mask=self.mask)
                 except:
                     raise
-            if len(srcs) < 25:
+            if len(srcs) < self.min_sources:
+                print """found {} sources, looking for at least {}. 
+                       Trying again""".format(len(srcs), self.min_sources)
+                old_srcs = srcs
                 try:
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=3*self.__bkg.globalrms,
@@ -351,6 +357,9 @@ class SingleImage(object):
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=3*self.__bkg.globalrms,
                                        mask=self.mask)
+            if len(old_srcs) > len(srcs):
+                srcs = old_srcs
+
             if len(srcs)==0:
                 raise ValueError('Few sources detected on image')
 
@@ -486,14 +495,15 @@ class SingleImage(object):
                     continue
 
                 #~ thrs = [outl[-1] for outl in outl_cat]
-                ymax, xmax, thmax = outl_cat[0]
-                # np.where(thrs==np.max(thrs))[0][0]]
-                xcm = np.array([xmax, ymax])
-                delta = xcm - np.asarray(sub_array_data.shape)/2.
-                if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
-                    to_del.append(jj)
-                    jj +=1
-                    continue
+                if len(outl_cat) is not 0:
+                    ymax, xmax, thmax = outl_cat[0]
+                    # np.where(thrs==np.max(thrs))[0][0]]
+                    xcm = np.array([xmax, ymax])
+                    delta = xcm - np.asarray(sub_array_data.shape)/2.
+                    if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
+                        to_del.append(jj)
+                        jj +=1
+                        continue
 
                 # if everything was fine we store
                 pos.append(position)
@@ -742,6 +752,18 @@ class SingleImage(object):
                     conv += convolve_scp(a(x, y), psf_i)
                 self._normal_image = conv
         return self._normal_image
+
+    @property
+    def min_sources(self):
+        if not hasattr(self, '_min_sources'):
+            return 20
+        else:
+            return self._min_sources
+
+    @min_sources.setter
+    def min_sources(self, n):
+        self._min_sources = n
+
 
     @property
     def zp(self):
