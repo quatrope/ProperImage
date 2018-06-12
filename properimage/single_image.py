@@ -341,7 +341,7 @@ class SingleImage(object):
                                    mask=self.mask)
                 except:
                     raise
-            if len(srcs) < 20:
+            if len(srcs) < 25:
                 try:
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=3*self.__bkg.globalrms,
@@ -412,7 +412,7 @@ class SingleImage(object):
                 margs_m = np.mean(margs)
                 margs_s = np.std(margs)
 
-                if margs_m+margs_s > 2.5*rms or margs_m-margs_s < 2.5*rms:
+                if margs_m+margs_s > 3.5*rms or margs_m-margs_s < 3.5*rms:
                     check_shape = True
 
                 return check_shape
@@ -467,7 +467,12 @@ class SingleImage(object):
 
                 #  Checking if it has outliers
                 sd = np.std(sub_array_data)
-                if sd > 0.05:
+                if sd > 0.15:
+                    to_del.append(jj)
+                    jj +=1
+                    continue
+
+                if np.any(sub_array_data.flatten() > 0.5):
                     to_del.append(jj)
                     jj +=1
                     continue
