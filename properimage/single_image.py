@@ -770,7 +770,7 @@ class SingleImage(object):
     @property
     def maskthresh(self):
         if not hasattr(self, '_maskthresh'):
-            return 16
+            return 64
         else:
             return self._maskthresh
 
