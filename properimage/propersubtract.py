@@ -105,17 +105,6 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
     if dx_new < 0. or dy_new<0.:
         import ipdb; ipdb.set_trace()
 
-    #psf_ref_pad = np.pad(psf_ref[0], [10, 10],
-                         #[ref.pixeldata.shape[0]-psf_ref[0].shape[0],
-                         # ref.pixeldata.shape[1]-psf_ref[0].shape[1]],
-                         'linear_ramp', end_values=0)
-    #psf_new_pad = np.pad(psf_new[0], [10, 10],
-                         #[new.pixeldata.shape[0]-psf_new[0].shape[0],
-                         # new.pixeldata.shape[1]-psf_new[0].shape[1]],
-    #                     'linear_ramp', end_values=0)
-
-    #import ipdb; ipdb.set_trace()
-
     psf_ref_hat = _fftwn(psf_ref[0], s=ref.pixeldata.shape, norm='ortho')
     psf_new_hat = _fftwn(psf_new[0], s=new.pixeldata.shape, norm='ortho')
 
