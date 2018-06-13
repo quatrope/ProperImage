@@ -262,6 +262,7 @@ class SingleImage(object):
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+        
         self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
 
 
@@ -775,8 +776,10 @@ class SingleImage(object):
 
     @maskthresh.setter
     def maskthresh(self, thresh):
-        self._maskthresh = thresh
-
+        if thresh is not None:
+            self._maskthresh = thresh
+        else:
+            self._maskthresh = 16
 
     @property
     def zp(self):
