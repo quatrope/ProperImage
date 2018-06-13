@@ -115,10 +115,10 @@ class SingleImage(object):
         self.__img = img
         self.attached_to = img
         self.zp = 1.
+        self.maskthresh = maskthresh
         self.pixeldata = img
         self.header = img
         self.mask = mask
-        self.maskthresh = maskthresh
         self._bkg = maskthresh
         self.stamp_shape = stamp_shape
         self.inf_loss = 0.2
@@ -287,8 +287,8 @@ class SingleImage(object):
     def _bkg(self, maskthresh):
         if self.mask.any():
             if maskthresh is not None:
-                back = sep.Background(self.pixeldata.data, mask=self.mask,
-                                      maskthresh=maskthresh)
+                back = sep.Background(self.pixeldata.data, mask=self.mask)#,
+                                      #maskthresh=maskthresh)
                 self.__bkg = back
             else:
                 back = sep.Background(self.pixeldata.data,
