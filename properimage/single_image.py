@@ -238,7 +238,7 @@ class SingleImage(object):
     @mask.setter
     def mask(self, mask):
         if isinstance(mask, str):
-            self.__pixeldata.mask = fits.getdata(mask) > self.maskthresh
+            self.__pixeldata.mask = fits.getdata(mask) >= self.maskthresh
         elif isinstance(mask, np.ndarray):
             self.__pixeldata.mask = mask
         elif mask is None:
@@ -257,11 +257,12 @@ class SingleImage(object):
                 if 'EXTEND' in ff[0].header.keys():
                     if ff[0].header['EXTEND']:
                         try:
-                            self.__pixeldata.mask = ff[1].data > self.maskthresh
+                            self.__pixeldata.mask = ff[1].data >= self.maskthresh
                         except IndexError:
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+        
         self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
 
 
@@ -775,8 +776,10 @@ class SingleImage(object):
 
     @maskthresh.setter
     def maskthresh(self, thresh):
-        self._maskthresh = thresh
-
+        if thresh is not None:
+            self._maskthresh = thresh
+        else:
+            self._maskthresh = 16
 
     @property
     def zp(self):
