@@ -238,7 +238,7 @@ class SingleImage(object):
     @mask.setter
     def mask(self, mask):
         if isinstance(mask, str):
-            self.__pixeldata.mask = fits.getdata(mask) > self.maskthresh
+            self.__pixeldata.mask = fits.getdata(mask) <= self.maskthresh
         elif isinstance(mask, np.ndarray):
             self.__pixeldata.mask = mask
         elif mask is None:
@@ -257,7 +257,7 @@ class SingleImage(object):
                 if 'EXTEND' in ff[0].header.keys():
                     if ff[0].header['EXTEND']:
                         try:
-                            self.__pixeldata.mask = ff[1].data > self.maskthresh
+                            self.__pixeldata.mask = ff[1].data <= self.maskthresh
                         except IndexError:
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
@@ -769,7 +769,7 @@ class SingleImage(object):
     @property
     def maskthresh(self):
         if not hasattr(self, '_maskthresh'):
-            return 64
+            return 16
         else:
             return self._maskthresh
 
@@ -839,7 +839,7 @@ class SingleImage(object):
         if not hasattr(self, '_interped'):
             kernel = Box2DKernel(4) # Gaussian2DKernel(stddev=2.5) #
             #import ipdb; ipdb.set_trace()
-            crmask, _ = detect_cosmics(self.bkg_sub_img.data,
+            crmask, _ = detect_cosmics(np.ascontiguousarray(self.bkg_sub_img.data),
                                        self.bkg_sub_img.mask,
                                        sigclip=6.)
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,
