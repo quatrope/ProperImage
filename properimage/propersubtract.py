@@ -99,14 +99,34 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
     a_ref, psf_ref = ref.get_variable_psf(inf_loss)
     a_new, psf_new = new.get_variable_psf(inf_loss)
 
-    dx_ref, dy_ref = center_of_mass(psf_ref[0])
-    dx_new, dy_new = center_of_mass(psf_new[0])
+    ## Fit a gaussian 2D
+    from astropy.modeling import fitting, models
+    def fit_gaussian2d(b):
+
+        fitter = fitting.LevMarLSQFitter()
+
+        y2, x2 = np.mgrid[:b.shape[0], :b.shape[1]]
+        ampl = b.max()-b.min()
+        p = models.Gaussian2D(x_mean=b.shape[1]/2., y_mean=b.shape[0]/2.,
+                              x_stddev=1., y_stddev=1.,
+                              theta=np.pi/4.,
+                              amplitude=ampl)
+
+        p += models.Const2D(amplitude=b.min())
+        out = fitter(p, x2, y2, b, maxiter=5000)
+        return out
+
+    psf_fitted_ref = fit_gaussian2d(psf_ref[0])[0].render()
+    psf_fitted_new = fit_gaussian2d(psf_new[0])[0].render()
+
+    dx_ref, dy_ref = center_of_mass(psf_fitted_ref)#[0])
+    dx_new, dy_new = center_of_mass(psf_fitted_new)#[0])
     #~ print(dx_new, dy_new)
     if dx_new < 0. or dy_new<0.:
         import ipdb; ipdb.set_trace()
 
-    psf_ref_hat = _fftwn(psf_ref[0], s=ref.pixeldata.shape, norm='ortho')
-    psf_new_hat = _fftwn(psf_new[0], s=new.pixeldata.shape, norm='ortho')
+    psf_ref_hat = _fftwn(psf_fitted_ref, s=ref.pixeldata.shape, norm='ortho')
+    psf_new_hat = _fftwn(psf_fitted_new, s=new.pixeldata.shape, norm='ortho')
 
     psf_ref_hat[np.where(psf_ref_hat.real==0)] = eps
     psf_new_hat[np.where(psf_new_hat.real==0)] = eps
@@ -190,74 +210,20 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
                 #ab = ab[(np.percentile(ab, q=97)>ab)*(ab>np.percentile(ab, q=55))]
                 mean, med, std = sigma_clipped_stats(ab, iters=3, sigma=3.)
 
-                #~ import matplotlib.pyplot as plt
-                #~ plt.subplot(121)
-                #~ plt.hist(ab.flatten(), log=True, bins=150)
-                #~ plt.vlines(sigma_clipped_stats(ab, sigma=12)[1], 0, 100)
-                #~ plt.subplot(122)
-                #~ plt.imshow(ab, vmin=med-3*std, vmax=med+3*std, interpolation='none')
-                #~ plt.colorbar()
-                #~ plt.show()
-
                 #print('Sigma clip on beta values')
                 #print(mean, med, std)
                 print(mean_flux)
-                if np.abs(mean_flux-1) < 1e-2:
+                if np.abs(mean_flux-1.) < 1e-3:
                     b_next = b
                 elif mean_flux > 1:
-                    b_next = b + np.random.random()
+                    b_next = b + np.random.random()/10.
                 else:
-                    b_next = b - np.random.random()
+                    b_next = b - np.random.random()/10.
                 #~ b_next = sigma_clipped_stats(ab)[0]
                 if b_next==0.:
                     return b, std
                 #~ b_next = np.mean(b_n)
                 return b_next, std
-
-            #~ bjs = np.arange(0.01, 12., 0.1)
-            #~ bn = []
-            #~ cost_med = []
-            #~ cost_std = []
-            #~ stds = []
-            #~ for bj in bjs:
-                #~ b, stdj = beta_next(bj)
-                #~ norm  = b*b*(ref.var**2 * psf_new_hat*psf_new_hat_conj)
-                #~ norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
-
-                #~ cost = _ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') - \
-                       #~ _ifftwn((D_hat_r/np.sqrt(norm))*b, norm='ortho') #- gammap
-
-                #~ cost = np.absolute(cost.real)[50:-50, 50:-50].flatten()
-                #~ cost_stats = sigma_clipped_stats(cost, sigma=9.)
-
-                #~ cost_med.append(cost_stats[1])
-                #~ cost_std.append(cost_stats[2])
-                #~ bn.append(b)
-                #~ stds.append(stdj)
-
-            #~ from scipy import stats
-            #~ slope, intercept, r_value, p_value, std_err = stats.linregress(bjs, cost_std)
-            #~ res = cost_std - slope*bjs - intercept
-
-            #~ import matplotlib.pyplot as plt
-            #~ plt.subplot(511)
-            #~ plt.plot(bjs, bn, 'r-x', label='b med')
-            #~ plt.subplot(512)
-            #~ plt.plot(bjs, cost_med, 'r-.', label='cost med')
-            #~ plt.legend(loc='best')
-            #~ plt.subplot(513)
-            #~ plt.plot(bjs, stds, 'b-x', label='b std')
-            #~ plt.subplot(514)
-            #~ plt.plot(bjs, cost_std, 'b-.', label='cost std')
-            #~ plt.legend(loc='best')
-            #~ plt.subplot(515)
-            #~ plt.plot(bjs, res, 'b-.', label='errors')
-            #~ plt.legend(loc='best')
-            #~ plt.show()
-
-            #~ b = bjs[np.where(res == np.min(res))]
-
-            #~ import ipdb; ipdb.set_trace()
 
             bi = b # 1
             print('Start iteration')
@@ -272,6 +238,7 @@ def diff(ref, new, align=True, inf_loss=0.25, beta=True, shift=True, iterative=F
             tf = time.time()
             print(('b = {}. Finished on {} iterations, and {} time\n'.format(b, n_iter, tf-ti)))
             dx = dy = 0.
+
 
         else:
             def cost_beta(vec, gamma=gamma):
