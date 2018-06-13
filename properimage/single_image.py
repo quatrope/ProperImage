@@ -110,7 +110,7 @@ class SingleImage(object):
                  borders=True, crop=((0, 0), (0, 0)), min_sources=None):
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
-	if min_sources is not None:
+        if min_sources is not None:
              self.min_sources = min_sources
         self.__img = img
         self.attached_to = img
@@ -118,6 +118,7 @@ class SingleImage(object):
         self.pixeldata = img
         self.header = img
         self.mask = mask
+        self.maskthresh = maskthresh
         self._bkg = maskthresh
         self.stamp_shape = stamp_shape
         self.inf_loss = 0.2
@@ -158,15 +159,15 @@ class SingleImage(object):
     @pixeldata.setter
     def pixeldata(self, img):
         if isinstance(img, str):
-            self.__pixeldata = ma.asarray(fits.getdata(img)).astype('<f8')
+            self.__pixeldata = ma.asarray(fits.getdata(img)).astype('<f4')
         elif isinstance(img, np.ndarray):
-            self.__pixeldata = ma.MaskedArray(img, mask=False).astype('<f8')
+            self.__pixeldata = ma.MaskedArray(img, mask=False).astype('<f4')
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
-                self.__pixeldata = ma.asarray(img[0].data).astype('<f8')
+                self.__pixeldata = ma.asarray(img[0].data).astype('<f4')
         elif isinstance(img, fits.PrimaryHDU):
             if img.is_image:
-                self.__pixeldata = ma.asarray(img.data).astype('<f8')
+                self.__pixeldata = ma.asarray(img.data).astype('<f4')
         if self.borders:
             sx, sy = self.__pixeldata.shape
             line = self.__pixeldata.data[sx // 2, :]
@@ -237,7 +238,7 @@ class SingleImage(object):
     @mask.setter
     def mask(self, mask):
         if isinstance(mask, str):
-            self.__pixeldata.mask = fits.getdata(mask)
+            self.__pixeldata.mask = fits.getdata(mask) > self.maskthresh
         elif isinstance(mask, np.ndarray):
             self.__pixeldata.mask = mask
         elif mask is None:
@@ -256,7 +257,7 @@ class SingleImage(object):
                 if 'EXTEND' in ff[0].header.keys():
                     if ff[0].header['EXTEND']:
                         try:
-                            self.__pixeldata.mask = ff[1].data
+                            self.__pixeldata.mask = ff[1].data > self.maskthresh
                         except IndexError:
                             self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
                 else:
@@ -274,7 +275,8 @@ class SingleImage(object):
         numpy.array 2D
             a background estimation image is returned
         """
-        print "Background level = {}, rms = {}".format(self.__bkg.globalback, self.__bkg.globalrms)
+        print "Background level = {}, rms = {}".format(self.__bkg.globalback,
+                                                       self.__bkg.globalrms)
         return self.__bkg.back()
 
     @property
@@ -345,7 +347,7 @@ class SingleImage(object):
                 except:
                     raise
             if len(srcs) < self.min_sources:
-                print """found {} sources, looking for at least {}. 
+                print """found {} sources, looking for at least {}.
                        Trying again""".format(len(srcs), self.min_sources)
                 old_srcs = srcs
                 try:
@@ -357,8 +359,8 @@ class SingleImage(object):
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=3*self.__bkg.globalrms,
                                        mask=self.mask)
-            if len(old_srcs) > len(srcs):
-                srcs = old_srcs
+                if len(old_srcs) > len(srcs):
+                    srcs = old_srcs
 
             if len(srcs)==0:
                 raise ValueError('Few sources detected on image')
@@ -763,6 +765,17 @@ class SingleImage(object):
     @min_sources.setter
     def min_sources(self, n):
         self._min_sources = n
+
+    @property
+    def maskthresh(self):
+        if not hasattr(self, '_maskthresh'):
+            return 16
+        else:
+            return self._maskthresh
+
+    @maskthresh.setter
+    def maskthresh(self, thresh):
+        self._maskthresh = thresh
 
 
     @property
