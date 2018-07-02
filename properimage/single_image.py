@@ -699,9 +699,6 @@ class SingleImage(object):
                     p_i = psf_basis[i].flatten()  # starting from bottom
                     p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
-                    # for j in range(i): # subtract previous models
-                        # Pval -= measures[j, k]*psf_basis[-j-1].flatten()  # noqa
-
                     Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
                     m = np.dot(Pval, p_i)
                     m = m/(Pval_sq*p_i_sq)
@@ -829,7 +826,7 @@ class SingleImage(object):
     @property
     def s_hat_comp(self):
         if not hasattr(self, '_s_hat_comp') or \
-            self._s_hat_inf_loss != self.inf_loss:
+                self._s_hat_inf_loss != self.inf_loss:
 
             a_fields, psf_basis = self.get_variable_psf()
 
@@ -843,16 +840,15 @@ class SingleImage(object):
                                  s=self.pixeldata.shape,
                                  norm='ortho').conj()
 
-                s_hat = fourier_shift(s_hat, (+dx,+dy))
+                s_hat = fourier_shift(s_hat, (+dx, +dy))
             else:
                 s_hat = np.zeros_like(self.pixeldata.data, dtype=np.complex128)
                 x, y = self.get_afield_domain()
+                im_shape = self.pixeldata.shape
                 for a, psf in zip(a_fields, psf_basis):
-
                     conv = _fftwn(self.interped * a(x, y)/nrm, norm='ortho') *\
-                           _fftwn(psf, s=self.pixeldata.shape, norm='ortho').conj()
+                           _fftwn(psf, s=im_shape, norm='ortho').conj()
                     conv = fourier_shift(conv, (+dx, +dy))
-
                     np.add(conv, s_hat, out=s_hat)
 
             self._s_hat_comp = (self.zp/(var**2)) * s_hat
@@ -881,7 +877,8 @@ class SingleImage(object):
             kernel = Box2DKernel(5)  # Gaussian2DKernel(stddev=2.5) #
             # import ipdb
             # ipdb.set_trace()
-            crmask, _ = detect_cosmics(np.ascontiguousarray(self.bkg_sub_img.data),
+            crmask, _ = detect_cosmics(np.ascontiguousarray(
+                                           self.bkg_sub_img.data),
                                        self.bkg_sub_img.mask,
                                        sigclip=6.)
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,
@@ -926,7 +923,7 @@ class SingleImage(object):
         print(np.sum(p))
         return _ifftwn(fourier_shift(phat, (self.stamp_shape[0]/2,
                                             self.stamp_shape[1]/2)),
-                                            norm='ortho')
+                       norm='ortho')
 
 
 def chunk_it(seq, num):

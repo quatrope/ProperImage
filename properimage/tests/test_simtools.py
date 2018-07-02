@@ -5,14 +5,14 @@
 #
 #  Copyright 2016 Bruno S <bruno@oac.unc.edu.ar>
 #
-import os
-import sys
+
+# import os
+# import sys
 
 import unittest
 import numpy as np
 from scipy.ndimage.interpolation import rotate
-
-sys.path.insert(0, os.path.abspath('..'))
+# sys.path.insert(0, os.path.abspath('..'))
 import simtools as sm
 
 

@@ -47,7 +47,8 @@ def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
     1 loops, best of 3: 234 ms per loop
 
     """
-    if Y_FWHM == 0: Y_FWHM = X_FWHM
+    if Y_FWHM == 0:
+        Y_FWHM = X_FWHM
 
     a = np.zeros((int(N), int(N)))
     mu = (N-1)/2.
@@ -77,12 +78,12 @@ def astropy_Psf(N, FWHM):
     mu = (N-1)/2.
     sigma = FWHM/2.335
     model = models.Gaussian2D(amplitude=1., x_mean=mu, y_mean=mu,
-                x_stddev=sigma, y_stddev=sigma)
+                              x_stddev=sigma, y_stddev=sigma)
     tail_len = int(7*sigma)
     mu_int = int(mu)
     i = range(mu_int - tail_len, mu_int + tail_len, 1)
-    for ii,jj in cartesian_product([i,i]):
-            psf[ii, jj] = model(ii,jj)
+    for ii, jj in cartesian_product([i, i]):
+            psf[ii, jj] = model(ii, jj)
     return psf/np.sum(psf)
 
 
@@ -177,7 +178,7 @@ def cielo(N, pdf='poisson', mean=1, std=None):
         # promedio cuentas del cielo=lam
         x = np.random.poisson(mean, (N, N)).astype(np.float32)
     elif pdf == 'gaussian':
-        x = np.random.normal(mean, std, (N,N)).astype(np.float32)
+        x = np.random.normal(mean, std, (N, N)).astype(np.float32)
     return(x)
 
 
@@ -204,9 +205,9 @@ def gal_sersic(N, n):
     """
     gal = np.zeros((N, N))
     mu = (N-1)/2.       # calculo posicion del pixel central
-    R_e = ((N-1)/6.)    # radio de escala, tomado como un
-                        # sexto del ancho de la imagen
-                        # para que la galaxia no ocupe toda la imagen
+    # radio de escala, tomado como un
+    # sexto del ancho de la imagen para que la galaxia no ocupe toda la imagen
+    R_e = ((N-1)/6.)
     for i in range(N-1):
         for j in range(N-1):
             r_pix = np.sqrt((i-mu)**2 + (j-mu)**2)
@@ -236,7 +237,7 @@ def incline2(gal, theta):
 
 
 def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
-            bkg_pdf='poisson', std=None):
+          bkg_pdf='poisson', std=None):
     """
     funcion que genera una imagen con ruido y seeing a partir
     de un master frame, y la pixeliza hasta tamaño N2
@@ -261,7 +262,7 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
     else:
         image = IM
 
-    b = np.max(image) #image[int(N2/2), int(N2/2)]
+    b = np.max(image)  # image[int(N2/2), int(N2/2)]
 
     if bkg_pdf == 'poisson':
         mean = b/SN
@@ -419,7 +420,7 @@ def set_generator(n, air, FWHM, theta, N, Ntot, path='.'):
     zero = 23.5  # 12+2.5*np.log10()  #magnitud zero point
     mag_p = 16  # magnitud del pico del transitorio
     for i in range(1, Ntot+1):
-        t_exp = 60  #a + (b - a) * (np.random.random_integers(n_p) - 1) /
+        t_exp = 60  # a + (b - a) * (np.random.random_integers(n_p) - 1) /
         # (n_p - 1.)
         # defino el JD random entre c y d,
         # JD=largo * np.random.random_sample() + d
@@ -441,7 +442,7 @@ def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
     zero       :   Punto cero de la fotometria
     """
     if round_int:
-        gal =  gal.astype(int)
+        gal = gal.astype(int)
 
     file1 = fits.PrimaryHDU(gal)
     hdulist = fits.HDUList([file1])
@@ -481,7 +482,7 @@ def sim_varpsf(nstars, SN=3., thetas=[0, 45, 105, 150], N=512):
         weights = list(np.linspace(100., 10000., len(xy)))
         m = delta_point(N, center=False, xy=xy, weights=weights)
         im = image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
-                            SN=SN, bkg_pdf='gaussian')
+                   SN=SN, bkg_pdf='gaussian')
         frames.append(im+bias)
 
     frame = np.zeros((2*N, 2*N))

@@ -69,7 +69,7 @@ class TestSingleImage(object):
             x, y = np.random.randint(20, 240, size=2)
             l, h = np.random.randint(2, 6, size=2)
             self.mock_image_mask[x:x+l, y:y+h] = np.random.randint(0, 32,
-                                                                   size=(l,h))
+                                                                   size=(l, h))
 
         # a fits file
         self.mockfits_path = os.path.join(self.tempdir, 'mockfits.fits')
@@ -123,7 +123,7 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.bkg_sub_img, np.ndarray)
 
     def testMask(self):
-        np.testing.assert_allclose(self.mock_image_mask<=self.si.maskthresh,
+        np.testing.assert_allclose(self.mock_image_mask <= self.si.maskthresh,
                                    self.si.mask,
                                    rtol=0.2, atol=3)
 
