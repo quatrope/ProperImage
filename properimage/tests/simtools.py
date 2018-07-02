@@ -23,7 +23,7 @@
 """Utilities for mocking images, simulating data"""
 
 import os
-
+from functools import reduce
 import numpy as np
 
 import scipy as sp
@@ -56,8 +56,8 @@ def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
     sigma = max(sigma_x, sigma_y)
     tail_len = min(int(5*sigma), N/2)
     mu_int = int(mu)
-    for i in range(mu_int - tail_len, mu_int + tail_len, 1):
-        for j in range(mu_int - tail_len, mu_int + tail_len, 1):
+    for i in range(int(mu_int - tail_len), int(mu_int + tail_len), 1):
+        for j in range(int(mu_int - tail_len), int(mu_int + tail_len), 1):
             a[i, j] = stats.norm.pdf(i, loc=mu, scale=sigma_x) * \
                        stats.norm.pdf(j, loc=mu, scale=sigma_y)
     if theta is not 0:

@@ -42,24 +42,24 @@ class TestSingleImage(object):
         self.tempdir = tempfile.mkdtemp()
 
         # mock data
-        psf = simtools.Psf(13, 2.5, 3.)
+        psf = simtools.Psf(11, 2.5, 3.)
 
         # a numpy array
         self.mock_image_data = np.random.random((256, 256))*50. + 350
         self.mock_image_data[123, 123] = np.nan
 
-        for i in range(30):
+        for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(7, 120)
             # print x, y
-            self.mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*2000.
+            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
 
-        psf = simtools.Psf(13, 3., 1.9)
-        for i in range(30):
+        psf = simtools.Psf(11, 3., 1.9)
+        for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(122, 220)
             # print x, y
-            self.mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*2000.
+            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
 
         # a numpy array mask
         self.mock_image_mask = np.zeros((256, 256))
@@ -68,7 +68,8 @@ class TestSingleImage(object):
         for i in range(6):
             x, y = np.random.randint(20, 240, size=2)
             l, h = np.random.randint(2, 6, size=2)
-            self.mock_image_mask[x:x+l, y:y+h] = 1
+            self.mock_image_mask[x:x+l, y:y+h] = np.random.randint(0, 32,
+                                                                   size=(l,h))
 
         # a fits file
         self.mockfits_path = os.path.join(self.tempdir, 'mockfits.fits')
@@ -106,8 +107,8 @@ class TestSingleImage(object):
             pass
 
     def testPixeldata(self):
-        np.testing.assert_array_equal(self.mock_image_data,
-                                      self.si.pixeldata.data)
+        np.testing.assert_allclose(self.mock_image_data,
+                                   self.si.pixeldata.data, rtol=0.15)
 
     def testBackground(self):
         self.assertIsInstance(self.si.background, np.ndarray)
@@ -122,7 +123,8 @@ class TestSingleImage(object):
         self.assertIsInstance(self.si.bkg_sub_img, np.ndarray)
 
     def testMask(self):
-        np.testing.assert_allclose(self.mock_image_mask, self.si.mask,
+        np.testing.assert_allclose(self.mock_image_mask<=self.si.maskthresh,
+                                   self.si.mask,
                                    rtol=0.2, atol=3)
 
     def testStampPos(self):
@@ -272,7 +274,7 @@ class TestFitsMask(TestSingleImage, unittest.TestCase):
 
     def setUp(self):
         super(TestFitsMask, self).setUp()
-        self.si = s.SingleImage(self.mockfits_path, self.mockmask_path)
+        self.si = s.SingleImage(self.mockfits_path, mask=self.mockmask_path)
 
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, self.mockfits_path)

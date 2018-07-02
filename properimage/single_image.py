@@ -240,33 +240,50 @@ class SingleImage(object):
     @mask.setter
     def mask(self, mask):
         if isinstance(mask, str):
-            self.__pixeldata.mask = fits.getdata(mask) <= self.maskthresh
+            fitsmask = fits.getdata(mask)
+            if np.median(fitsmask) == 0:
+                self.__pixeldata.mask = fitsmask >= self.maskthresh
+            else:
+                self.__pixeldata.mask = fitsmask <= self.maskthresh
+        # if the mask is a separated array
         elif isinstance(mask, np.ndarray):
             self.__pixeldata.mask = mask
+        # if the mask is not given
         elif mask is None:
-            # check the fits file
+            # check the fits file and try to find it as an extension
             if self.attached_to == 'PrimaryHDU':
                 self.__pixeldata = ma.masked_invalid(self.__img.data)
+
             elif self.attached_to == 'ndarray':
                 self.__pixeldata = ma.masked_invalid(self.__img)
             elif self.attached_to == 'HDUList':
                 if self.header['EXTEND']:
-                    self.__pixeldata.mask = self.__img[1].data
+                    fitsmask = self.__img[1].data
+                    if np.median(fitsmask) == 0:
+                        self.__pixeldata.mask = fitsmask >= self.maskthresh
+                    else:
+                        self.__pixeldata.mask = fitsmask <= self.maskthresh
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__img[0].data)
-            elif isinstance(self.__img, str):
-                ff = fits.open(self.attached_to)
-                if 'EXTEND' in ff[0].header.keys():
-                    if ff[0].header['EXTEND']:
-                        try:
-                            self.__pixeldata.mask = ff[1].data<=self.maskthresh
-                        except IndexError:
-                            self.__pixeldata = ma.masked_invalid(
-                                self.__pixeldata.data)
-                else:
+            # if a path is given where we find a fits file search on extensions
+            else:
+                try:
+                    ff = fits.open(self.attached_to)
+                    if 'EXTEND' in ff[0].header.keys():
+                        if ff[0].header['EXTEND']:
+                            try:
+                                fitsmask = ff[1].data
+                                if np.median(fitsmask) == 0:
+                                    self.__pixeldata.mask = fitsmask>=self.maskthresh
+                                else:
+                                    self.__pixeldata.mask = fitsmask<=self.maskthresh
+                            except IndexError:
+                                self.__pixeldata = ma.masked_invalid(
+                                    self.__pixeldata.data)
+                except:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
-
-        self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
+        else:
+            self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
 
     @property
     def background(self):
@@ -278,8 +295,8 @@ class SingleImage(object):
         numpy.array 2D
             a background estimation image is returned
         """
-        print "Background level = {}, rms = {}".format(self.__bkg.globalback,
-                                                       self.__bkg.globalrms)
+        print("Background level = {}, rms = {}".format(self.__bkg.globalback,
+                                                       self.__bkg.globalrms))
         return self.__bkg.back()
 
     @property
@@ -351,8 +368,8 @@ class SingleImage(object):
                 except:
                     raise
             if len(srcs) < self.min_sources:
-                print """found {} sources, looking for at least {}.
-                       Trying again""".format(len(srcs), self.min_sources)
+                print("""found {} sources, looking for at least {}.
+                       Trying again""".format(len(srcs), self.min_sources))
                 old_srcs = srcs
                 try:
                     srcs = sep.extract(self.bkg_sub_img.data,
@@ -433,6 +450,7 @@ class SingleImage(object):
 
                 return check_shape
 
+            n_cand_srcs = len(self.best_sources)
             for row in self.best_sources:
                 position = (row['y'], row['x'])
                 sub_array_data = extract_array(self.interped,
@@ -516,8 +534,10 @@ class SingleImage(object):
                 pos.append(position)
                 self.db.dump(sub_array_data, len(pos)-1)
                 jj += 1
+            if n_cand_srcs - len(to_del) >= 15:
+                self._best_sources = np.delete(self._best_sources,
+                                               to_del, axis=0)
 
-            self._best_sources = np.delete(self._best_sources, to_del, axis=0)
             self.stamp_shape = (self.stamp_shape[0] + 6,
                                 self.stamp_shape[1] + 6)
             self._stamps_pos = np.array(pos)
@@ -575,7 +595,7 @@ class SingleImage(object):
             try:
                 self._eigenv = np.linalg.eigh(self.cov_matrix)
             except:
-                raise
+                import ipdb; ipdb.set_trace()
         return self._eigenv
 
     @property
@@ -645,7 +665,8 @@ class SingleImage(object):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
-        inf_loss_update = (inf_loss is not None) and (self.inf_loss!=inf_loss)
+        inf_loss_update = (inf_loss is not None) and \
+                          (self.inf_loss != inf_loss)
 
         if not hasattr(self, '_a_fields') or inf_loss_update or updating:
             if inf_loss is not None:
@@ -733,7 +754,7 @@ class SingleImage(object):
         if shape is not None:
             self._shape = shape
 
-        updating = (inf_loss is not None) and (self.inf_loss!=inf_loss)
+        updating = (inf_loss is not None) and (self.inf_loss != inf_loss)
 
         self._setup_kl_basis(inf_loss)
         self._setup_kl_a_fields(inf_loss, updating=updating)
