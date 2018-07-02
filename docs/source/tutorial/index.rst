@@ -11,4 +11,5 @@ Contents:
 
     Tutorial01.ipynb
     Tutorial02.ipynb
+    Tutorial03.ipynb
 
