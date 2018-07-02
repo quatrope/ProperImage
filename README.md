@@ -1,5 +1,4 @@
 [![Build Status](https://travis-ci.org/toros-astro/ProperImage.svg?branch=master)](https://travis-ci.org/toros-astro/ProperImage)
-
 [![Documentation Status](https://readthedocs.org/projects/properimage/badge/?version=latest)](http://properimage.readthedocs.io/en/latest/?badge=latest)
 
 # Proper image treatments.
