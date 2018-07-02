@@ -856,7 +856,7 @@ class SingleImage(object):
     @property
     def interped(self):
         if not hasattr(self, '_interped'):
-            kernel = Box2DKernel(4)  # Gaussian2DKernel(stddev=2.5) #
+            kernel = Box2DKernel(5)  # Gaussian2DKernel(stddev=2.5) #
             # import ipdb
             # ipdb.set_trace()
             crmask, _ = detect_cosmics(np.ascontiguousarray(self.bkg_sub_img.data),
