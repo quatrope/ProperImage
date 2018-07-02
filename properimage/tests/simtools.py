@@ -22,7 +22,6 @@
 
 """Utilities for mocking images, simulating data"""
 
-
 import os
 
 import numpy as np
@@ -32,7 +31,7 @@ from scipy import signal as sg
 from scipy.ndimage.interpolation import rotate
 from scipy import stats
 
-from astropy.convolution import convolve_fft
+# from astropy.convolution import convolve_fft
 from astropy.modeling import models
 from astropy.io import fits
 from astropy.time import Time
@@ -65,6 +64,7 @@ def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
         a = rotate(a, theta)
     return(a/np.sum(a))
 
+
 def astropy_Psf(N, FWHM):
     """Psf es una funcion que proporciona una matriz 2D con una gaussiana
     simétrica en ambos ejes. con N se especifica el tamaño en pixeles que
@@ -84,6 +84,7 @@ def astropy_Psf(N, FWHM):
     for ii,jj in cartesian_product([i,i]):
             psf[ii, jj] = model(ii,jj)
     return psf/np.sum(psf)
+
 
 def _airy_func(rr, width, amplitude=1.0):
     """
@@ -308,6 +309,7 @@ def inyeccion(MF, JD, largo, d, phi_0, t_decay,
     IM = convol_gal_psf_fft(transit, Air)
     return(MF + IM)
 
+
 def cartesian_product(arrays):
     """
     Creates a cartesian product array from a list of arrays.
@@ -417,7 +419,8 @@ def set_generator(n, air, FWHM, theta, N, Ntot, path='.'):
     zero = 23.5  # 12+2.5*np.log10()  #magnitud zero point
     mag_p = 16  # magnitud del pico del transitorio
     for i in range(1, Ntot+1):
-        t_exp = 60  #a + (b - a) * (np.random.random_integers(n_p) - 1) / (n_p - 1.)
+        t_exp = 60  #a + (b - a) * (np.random.random_integers(n_p) - 1) /
+        # (n_p - 1.)
         # defino el JD random entre c y d,
         # JD=largo * np.random.random_sample() + d
         JD = (largo/Ntot)*i + d
@@ -426,6 +429,7 @@ def set_generator(n, air, FWHM, theta, N, Ntot, path='.'):
                        t_decay, x, y, zero, mag_p, air)
         A = image(MF, N, t_exp, FWHM, 10)
         capsule_corp(A, JD, t_exp, i, zero, path=path)
+
 
 def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
     """
@@ -437,7 +441,7 @@ def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
     zero       :   Punto cero de la fotometria
     """
     if round_int:
-       gal =  gal.astype(int)
+        gal =  gal.astype(int)
 
     file1 = fits.PrimaryHDU(gal)
     hdulist = fits.HDUList([file1])
@@ -459,7 +463,6 @@ def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
     path_fits = os.path.join(path, ('image00'+str(i)+'.fits'))
     hdulist.writeto(path_fits, clobber=True)
     return path_fits
-
 
 
 def sim_varpsf(nstars, SN=3., thetas=[0, 45, 105, 150], N=512):
@@ -487,4 +490,3 @@ def sim_varpsf(nstars, SN=3., thetas=[0, 45, 105, 150], N=512):
             frame[i*N:(i+1)*N, j*N:(j+1)*N] = frames[i+2*j]
 
     return frame
-

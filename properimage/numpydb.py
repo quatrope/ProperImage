@@ -112,4 +112,3 @@ class NumPyDB_cPickle(NumPyDB):
             fd.seek(pos)
             a = pickle.load(fd)
         return [a, id]
-

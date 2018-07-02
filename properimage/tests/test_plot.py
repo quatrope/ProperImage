@@ -22,12 +22,9 @@
 #
 #
 
-
 import unittest
-import numpy as np
 
 from properimage import plot
-
 
 
 class TestPrimes(unittest.TestCase):

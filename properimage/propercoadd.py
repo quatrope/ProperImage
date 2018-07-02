@@ -23,17 +23,16 @@
 #
 
 from multiprocessing import Queue
-from collections import MutableSequence
+# from collections import MutableSequence
 
 import numpy as np
 
-from astropy.io import fits
 from scipy.ndimage.fourier import fourier_shift
 
 from . import utils
 from .combinator import StackCombinator
-from .single_image import SingleImage, chunk_it
-
+# from .single_image import SingleImage
+from .single_image import chunk_it
 
 try:
     import cPickle as pickle
@@ -47,7 +46,6 @@ try:
 except:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
-
 
 
 def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
@@ -71,14 +69,13 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
         an_img.zp = zps[j]
         an_img._setup_kl_a_fields(inf_loss)
 
-
-    if n_procs>1:
+    if n_procs > 1:
         queues = []
         procs = []
         for chunk in chunk_it(img_list, n_procs):
             queue = Queue()
             proc = StackCombinator(chunk, queue, shape=global_shape,
-                              stack=True, fourier=False)
+                                   stack=True, fourier=False)
             print('starting new process')
             proc.start()
 
@@ -93,8 +90,8 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
             serialized = q.get()
             print('loading pickles')
             s_hat_comp, psf_hat_sum = pickle.loads(serialized)
-            np.add(s_hat_comp, S_hat, out=S_hat)#, casting='same_kind')
-            np.add(psf_hat_sum, P_hat, out=P_hat)#, casting='same_kind')
+            np.add(s_hat_comp, S_hat, out=S_hat)  # , casting='same_kind')
+            np.add(psf_hat_sum, P_hat, out=P_hat)  # , casting='same_kind')
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, (6, 6)))
         P_r = P_r/np.sum(P_r)

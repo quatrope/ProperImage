@@ -20,7 +20,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 #
-#
+
 """single_image module from ProperImage,
 for coadding astronomical images.
 
@@ -42,20 +42,21 @@ from six.moves import range
 import numpy as np
 from numpy import ma
 
-from scipy import signal as sg
+# from scipy import signal as sg
 from scipy.ndimage import convolve as convolve_scp
 from scipy.ndimage.fourier import fourier_shift
 from scipy.ndimage import center_of_mass
 
 from astropy.io import fits
-from astropy.stats import sigma_clip
-from astropy.stats import sigma_clipped_stats
+# from astropy.stats import sigma_clip
+# from astropy.stats import sigma_clipped_stats
 
 from astropy.modeling import fitting
 from astropy.modeling import models
 from astropy.convolution import convolve  # _fft, convolve
 from astropy.convolution import interpolate_replace_nans
-from astropy.convolution import Gaussian2DKernel, Box2DKernel
+from astropy.convolution import Box2DKernel
+# from astropy.convolution import Gaussian2DKernel
 from astropy.nddata.utils import extract_array
 
 from astroscrappy import detect_cosmics
@@ -63,7 +64,7 @@ import sep
 
 from . import numpydb as npdb
 from . import utils
-from .image_stats import ImageStats
+# from .image_stats import ImageStats
 
 try:
     import pyfftw
@@ -111,7 +112,7 @@ class SingleImage(object):
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
         if min_sources is not None:
-             self.min_sources = min_sources
+            self.min_sources = min_sources
         self.__img = img
         self.attached_to = img
         self.zp = 1.
@@ -181,7 +182,7 @@ class SingleImage(object):
                 if not np.sum(self.__pixeldata.data[:dx, :])==0:
                     ldx = dx
                     break
-            pxsum=0
+            pxsum = 0
             for x, px in enumerate(np.flip(line, axis=0)):
                 pxsum += px
                 if pxsum > 0.:
@@ -192,7 +193,7 @@ class SingleImage(object):
                     rdx = sx - dx
                     break
             col = self.__pixeldata.data[:, sy // 2]
-            pxsum=0
+            pxsum = 0
             for y, px in enumerate(col):
                 pxsum += px
                 if pxsum > 0.:
@@ -202,7 +203,7 @@ class SingleImage(object):
                 if not np.sum(self.__pixeldata.data[:, :dy])==0:
                     ldy = dy
                     break
-            pxsum=0
+            pxsum = 0
             for y, px in enumerate(np.flip(line, axis=0)):
                 pxsum += px
                 if pxsum > 0.:
@@ -213,13 +214,14 @@ class SingleImage(object):
                     rdy = sy - dy
                     break
             self.__pixeldata = self.__pixeldata[ldx:rdx, ldy:rdy]
-        if not np.sum(self.crop)==0.:
+        if not np.sum(self.crop) == 0.:
             dx, dy = self.crop
             self.__pixeldata = self.__pixeldata[dx[0]:-dx[1], dy[0]:-dy[1]]
 
     @property
     def header(self):
         return self.__header
+
     @header.setter
     def header(self, img):
         if isinstance(img, str):
@@ -243,11 +245,11 @@ class SingleImage(object):
             self.__pixeldata.mask = mask
         elif mask is None:
             # check the fits file
-            if self.attached_to=='PrimaryHDU':
+            if self.attached_to == 'PrimaryHDU':
                 self.__pixeldata = ma.masked_invalid(self.__img.data)
-            elif self.attached_to=='ndarray':
+            elif self.attached_to == 'ndarray':
                 self.__pixeldata = ma.masked_invalid(self.__img)
-            elif self.attached_to=='HDUList':
+            elif self.attached_to == 'HDUList':
                 if self.header['EXTEND']:
                     self.__pixeldata.mask = self.__img[1].data
                 else:
@@ -257,14 +259,14 @@ class SingleImage(object):
                 if 'EXTEND' in ff[0].header.keys():
                     if ff[0].header['EXTEND']:
                         try:
-                            self.__pixeldata.mask = ff[1].data <= self.maskthresh
+                            self.__pixeldata.mask = ff[1].data<=self.maskthresh
                         except IndexError:
-                            self.__pixeldata = ma.masked_invalid(self.__pixeldata.data)
+                            self.__pixeldata = ma.masked_invalid(
+                                self.__pixeldata.data)
                 else:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
-        
-        self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
 
+        self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
 
     @property
     def background(self):
@@ -288,8 +290,8 @@ class SingleImage(object):
     def _bkg(self, maskthresh):
         if self.mask.any():
             if maskthresh is not None:
-                back = sep.Background(self.pixeldata.data, mask=self.mask)#,
-                                      #maskthresh=maskthresh)
+                back = sep.Background(self.pixeldata.data, mask=self.mask)  # ,
+                                      # maskthresh=maskthresh)
                 self.__bkg = back
             else:
                 back = sep.Background(self.pixeldata.data,
@@ -317,7 +319,8 @@ class SingleImage(object):
 
                 if p_sizes > 5:
                     dx = int(p_sizes)
-                    if dx % 2 != 1: dx += 1
+                    if dx % 2 != 1:
+                        dx += 1
                     shape = (dx, dx)
                 else:
                     shape = (5, 5)
@@ -343,8 +346,8 @@ class SingleImage(object):
                 try:
                     sep.set_extract_pixstack(3600000)
                     srcs = sep.extract(self.bkg_sub_img.data,
-                                   thresh=35*self.__bkg.globalrms,
-                                   mask=self.mask)
+                                       thresh=35*self.__bkg.globalrms,
+                                       mask=self.mask)
                 except:
                     raise
             if len(srcs) < self.min_sources:
@@ -363,7 +366,7 @@ class SingleImage(object):
                 if len(old_srcs) > len(srcs):
                     srcs = old_srcs
 
-            if len(srcs)==0:
+            if len(srcs) == 0:
                 raise ValueError('Few sources detected on image')
 
             p_sizes = np.percentile(srcs['npix'], q=[20, 50, 80])
@@ -376,7 +379,8 @@ class SingleImage(object):
             low_flux = srcs['flux'] >= fluxes_quartiles[0]
             hig_flux = srcs['flux'] <= fluxes_quartiles[1]
 
-            best_srcs = srcs[best_big & best_flag & best_small & hig_flux & low_flux]
+            best_srcs = srcs[best_big & best_flag & best_small &
+                             hig_flux & low_flux]
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
@@ -397,11 +401,10 @@ class SingleImage(object):
             self._best_sources = new_sources
         return
 
-
     @property
     def stamps_pos(self):
         _cond = (hasattr(self, '_shape') and
-                 self._shape!=self.stamp_shape and
+                 self._shape != self.stamp_shape and
                  self._shape is not None)
 
         if not hasattr(self, '_stamps_pos') or _cond:
@@ -412,6 +415,7 @@ class SingleImage(object):
             jj = 0
             to_del = []
             sx, sy = self.stamp_shape
+
             def check_margin(stamp, rms=self._bkg.globalrms):
                 check_shape = False
 
@@ -438,7 +442,7 @@ class SingleImage(object):
 
                 if np.any(np.isnan(sub_array_data)):
                     to_del.append(jj)
-                    jj +=1
+                    jj += 1
                     continue
 
                 # there should be some checkings on the used stamps
@@ -449,44 +453,44 @@ class SingleImage(object):
                     check_shape = check_margin(sub_array_data)
                     new_shape = (new_shape[0]+2, new_shape[1]+2)
                     sub_array_data = extract_array(self.interped,
-                                               new_shape, position,
-                                               mode='partial',
-                                               fill_value=self._bkg.globalrms)
+                                                   new_shape, position,
+                                                   mode='partial',
+                                                   fill_value=self._bkg.globalrms)
                     # print check_shape, new_shape
-                    if new_shape[0]-self.stamp_shape[0] >=6:
-                        check_shape=False
+                    if new_shape[0]-self.stamp_shape[0] >= 6:
+                        check_shape = False
 
                 # Normalize to unit sum
-                sub_array_data = sub_array_data + np.abs(np.min(sub_array_data))
+                sub_array_data += np.abs(np.min(sub_array_data))
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
 
                 pad_dim = ((self.stamp_shape[0]-new_shape[0]+6)/2,
                            (self.stamp_shape[1]-new_shape[1]+6)/2)
 
-                if not pad_dim==(0,0):
+                if not pad_dim == (0, 0):
                     sub_array_data = np.pad(sub_array_data, [pad_dim, pad_dim],
                                             'linear_ramp', end_values=0)
 
                 #  Checking if the peak is off center
                 xcm, ycm = np.where(sub_array_data==np.max(sub_array_data))
-                xcm = np.array([xcm[0],ycm[0]])
+                xcm = np.array([xcm[0], ycm[0]])
 
                 delta = xcm - np.asarray(sub_array_data.shape)/2.
                 if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
                     to_del.append(jj)
-                    jj +=1
+                    jj += 1
                     continue
 
                 #  Checking if it has outliers
                 sd = np.std(sub_array_data)
                 if sd > 0.15:
                     to_del.append(jj)
-                    jj +=1
+                    jj += 1
                     continue
 
                 if np.any(sub_array_data.flatten() > 0.5):
                     to_del.append(jj)
-                    jj +=1
+                    jj += 1
                     continue
 
                 outl_cat = utils.find_S_local_maxima(sub_array_data,
@@ -494,10 +498,10 @@ class SingleImage(object):
                                                      neighborhood_size=5)
                 if len(outl_cat) > 1:
                     to_del.append(jj)
-                    jj +=1
+                    jj += 1
                     continue
 
-                #~ thrs = [outl[-1] for outl in outl_cat]
+                # thrs = [outl[-1] for outl in outl_cat]
                 if len(outl_cat) is not 0:
                     ymax, xmax, thmax = outl_cat[0]
                     # np.where(thrs==np.max(thrs))[0][0]]
@@ -505,7 +509,7 @@ class SingleImage(object):
                     delta = xcm - np.asarray(sub_array_data.shape)/2.
                     if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
                         to_del.append(jj)
-                        jj +=1
+                        jj += 1
                         continue
 
                 # if everything was fine we store
@@ -514,7 +518,8 @@ class SingleImage(object):
                 jj += 1
 
             self._best_sources = np.delete(self._best_sources, to_del, axis=0)
-            self.stamp_shape = (self.stamp_shape[0] + 6, self.stamp_shape[1] + 6)
+            self.stamp_shape = (self.stamp_shape[0] + 6,
+                                self.stamp_shape[1] + 6)
             self._stamps_pos = np.array(pos)
             self._n_sources = len(pos)
         return self._stamps_pos
@@ -551,16 +556,18 @@ class SingleImage(object):
                             psfi_render = self.db.load(i)[0]
                             psfj_render = self.db.load(j)[0]
 
-                            inner = np.vdot(psfi_render.flatten(), #/np.sum(psfi_render),
-                                            psfj_render.flatten()) #/np.sum(psfj_render))
+                            inner = np.vdot(psfi_render.flatten(),
+                                            # /np.sum(psfi_render),
+                                            psfj_render.flatten())
+                                            # /np.sum(psfj_render))
                             if inner is np.nan:
-                                import ipdb; ipdb.set_trace()
+                                import ipdb
+                                ipdb.set_trace()
 
                             covMat[i, j] = inner
                             covMat[j, i] = inner
             self._covMat = covMat
         return self._covMat
-
 
     @property
     def eigenv(self):
@@ -633,7 +640,6 @@ class SingleImage(object):
                         :self.pixeldata.data.shape[1]]
         return x, y
 
-
     def _setup_kl_a_fields(self, inf_loss=None):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
@@ -658,8 +664,8 @@ class SingleImage(object):
             x = positions[:, 0]
             y = positions[:, 1]
 
-            #~ # Each element in patches brings information about the real PSF
-            #~ # evaluated -or measured-, giving an interpolation point for a
+            # Each element in patches brings information about the real PSF
+            # evaluated -or measured-, giving an interpolation point for a
             a_fields = []
             measures = np.zeros((n_fields, self.n_sources))
             for k in range(self.n_sources):
@@ -669,15 +675,15 @@ class SingleImage(object):
                     p_i = psf_basis[i].flatten() #starting from bottom
                     p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
-                    #~ for j in range(i): # subtract previous models
-                        #~ Pval -= measures[j, k]*psf_basis[-j-1].flatten()
+                    # for j in range(i): # subtract previous models
+                        # Pval -= measures[j, k]*psf_basis[-j-1].flatten()
 
                     Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
                     m = np.dot(Pval, p_i)
                     m = m/(Pval_sq*p_i_sq)
                     measures[i, k] = m
-                #~ else:
-                    #~ measures[i, k] = None
+                # else:
+                    # measures[i, k] = None
 
             for i in range(n_fields):
                 z = measures[i, :]
@@ -712,8 +718,8 @@ class SingleImage(object):
         Basically it returns a sequence of psf-basis elements with its
         associated coefficient.
 
-        The psf_basis elements are numpy arrays of the given fitshape (or shape)
-        size.
+        The psf_basis elements are numpy arrays of the given fitshape
+        (or shape) size.
 
         The a_fields are astropy.fitting fitted model functions, which need
         arguments to return numpy array fields (for example a_fields[0](x, y)).
@@ -724,8 +730,8 @@ class SingleImage(object):
         """
         if shape is not None:
             self._shape = shape
-        #if inf_loss is not None:
-            #self.inf_loss = inf_loss
+        # if inf_loss is not None:
+            # self.inf_loss = inf_loss
 
         self._setup_kl_basis(inf_loss)
         self._setup_kl_a_fields(inf_loss)
@@ -807,7 +813,9 @@ class SingleImage(object):
 
             if len(psf_basis) == 1:
                 s_hat = self.interped_hat * \
-                          _fftwn(psf_basis[0], s=self.pixeldata.shape, norm='ortho').conj()
+                          _fftwn(psf_basis[0],
+                                 s=self.pixeldata.shape,
+                                 norm='ortho').conj()
 
                 s_hat = fourier_shift(s_hat, (+dx,+dy))
             else:
@@ -815,9 +823,9 @@ class SingleImage(object):
                 x, y = self.get_afield_domain()
                 for a, psf in zip(a_fields, psf_basis):
 
-                    #if i>0: a = a/10.
+                    # if i>0: a = a/10.
 
-                    conv = _fftwn(self.interped * a(x, y) / nrm, norm='ortho') *\
+                    conv = _fftwn(self.interped * a(x, y)/nrm, norm='ortho') *\
                            _fftwn(psf, s=self.pixeldata.shape, norm='ortho').conj()
                     conv = fourier_shift(conv, (+dx, +dy))
 
@@ -826,11 +834,11 @@ class SingleImage(object):
             self._s_hat_comp = (self.zp/(var**2)) * s_hat
         return self._s_hat_comp
 
-
     @property
     def s_component(self):
         """Calculates the matched filter S (from propercoadd) component
-        from the image. Uses the measured psf, and is psf space variant capable.
+        from the image. Uses the measured psf, and is psf space
+        variant capable.
 
         """
         if not hasattr(self, '_s_component'):
@@ -840,8 +848,9 @@ class SingleImage(object):
     @property
     def interped(self):
         if not hasattr(self, '_interped'):
-            kernel = Box2DKernel(4) # Gaussian2DKernel(stddev=2.5) #
-            #import ipdb; ipdb.set_trace()
+            kernel = Box2DKernel(4)  # Gaussian2DKernel(stddev=2.5) #
+            # import ipdb
+            # ipdb.set_trace()
             crmask, _ = detect_cosmics(np.ascontiguousarray(self.bkg_sub_img.data),
                                        self.bkg_sub_img.mask,
                                        sigclip=6.)
@@ -856,9 +865,9 @@ class SingleImage(object):
 
             while np.any(np.isnan(img_interp)):
                 img_interp = interpolate_replace_nans(img_interp, kernel)
-            #~ clipped = sigma_clip(self.bkg_sub_img,
-                                 #~ iters=5, sigma_upper=40).filled(np.nan)
-            #~ img_interp = interpolate_replace_nans(img_interp, kernel)
+            # clipped = sigma_clip(self.bkg_sub_img,
+                # iters=5, sigma_upper=40).filled(np.nan)
+            # img_interp = interpolate_replace_nans(img_interp, kernel)
             self._interped = img_interp
         return self._interped
 
@@ -870,7 +879,7 @@ class SingleImage(object):
 
     def psf_hat_sqnorm(self):
         psf_basis = self.kl_basis
-        if len(psf_basis)==1:
+        if len(psf_basis) == 1:
             p_hat = _fftwn(psf_basis[0], s=self.pixeldata.shape, norm='ortho')
             p_hat_sqnorm = p_hat * p_hat.conj()
         else:
@@ -886,7 +895,8 @@ class SingleImage(object):
         p = _ifftwn(phat, norm='ortho')
         print(np.sum(p))
         return _ifftwn(fourier_shift(phat, (self.stamp_shape[0]/2,
-                                            self.stamp_shape[1]/2)), norm='ortho')
+                                            self.stamp_shape[1]/2)),
+                                            norm='ortho')
 
 
 def chunk_it(seq, num):

@@ -22,13 +22,10 @@
 #
 #
 
-import sys
 import os
 import shutil
 import tempfile
 import unittest
-
-#import mock
 
 import numpy as np
 
@@ -44,7 +41,7 @@ class TestSingleImage(object):
         print('setting up')
         self.tempdir = tempfile.mkdtemp()
 
-        ### mock data
+        # mock data
         psf = simtools.Psf(13, 2.5, 3.)
 
         # a numpy array
@@ -54,14 +51,14 @@ class TestSingleImage(object):
         for i in range(30):
             x = np.random.randint(7, 220)
             y = np.random.randint(7, 120)
-            #~ print x, y
+            # print x, y
             self.mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*2000.
 
         psf = simtools.Psf(13, 3., 1.9)
         for i in range(30):
             x = np.random.randint(7, 220)
             y = np.random.randint(122, 220)
-            #~ print x, y
+            # print x, y
             self.mock_image_data[x:x+13, y:y+13] += psf*float(i+1)*2000.
 
         # a numpy array mask
@@ -76,32 +73,37 @@ class TestSingleImage(object):
         # a fits file
         self.mockfits_path = os.path.join(self.tempdir, 'mockfits.fits')
         fits.writeto(self.mockfits_path, self.mock_image_data,
-                                       overwrite=True)
+                     overwrite=True)
         # a fits file mask
         self.mockmask_path = os.path.join(self.tempdir, 'mockmask.fits')
         fits.writeto(self.mockmask_path, self.mock_image_mask,
-                                       overwrite=True)
+                     overwrite=True)
 
         # a hdu
         self.mockimageHdu = fits.PrimaryHDU(self.mock_image_data)
         # a hdulist
         self.mockmaskHdu = fits.ImageHDU(self.mock_image_mask.astype('uint8'))
-        self.mock_masked_hdu = fits.HDUList([self.mockimageHdu, self.mockmaskHdu])
+        self.mock_masked_hdu = fits.HDUList([self.mockimageHdu,
+                                             self.mockmaskHdu])
 
         # a fits file with hdulist
         self.masked_hdu_path = os.path.join(self.tempdir, 'mockmasked.fits')
         self.mock_masked_hdu.writeto(self.masked_hdu_path, overwrite=True)
 
-        self.h_fitsfile = {'SIMPLE':True, 'BITPIX':-64, 'NAXIS':2,
-                      'NAXIS1':256, 'NAXIS2':256, 'EXTEND':True}
-
+        self.h_fitsfile = {'SIMPLE': True,
+                           'BITPIX': -64,
+                           'NAXIS': 2,
+                           'NAXIS1': 256,
+                           'NAXIS2': 256,
+                           'EXTEND': True}
 
     def tearDown(self):
         if os.path.isdir(self.tempdir):
             shutil.rmtree(self.tempdir)
         try:
             self.si._clean()
-        except: pass
+        except:
+            pass
 
     def testPixeldata(self):
         np.testing.assert_array_equal(self.mock_image_data,
@@ -125,7 +127,7 @@ class TestSingleImage(object):
 
     def testStampPos(self):
         self.assertIsInstance(self.si.stamps_pos, np.ndarray)
-        if self.si.n_sources!=0:
+        if self.si.n_sources != 0:
             self.assertIsInstance(self.si.stamps_pos[0], np.ndarray)
             self.assertEqual(self.si.n_sources, len(self.si.stamps_pos))
 
@@ -310,7 +312,6 @@ class TestHDUList(TestSingleImage, unittest.TestCase):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
 
-
 class TestFitsExtension(TestSingleImage, unittest.TestCase):
 
     def setUp(self):
@@ -323,6 +324,7 @@ class TestFitsExtension(TestSingleImage, unittest.TestCase):
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
+
 class TestNoSources(unittest.TestCase):
 
     def setUp(self):
@@ -333,7 +335,5 @@ class TestNoSources(unittest.TestCase):
             s.SingleImage(self.no_sources_image)
 
 
-
-
-if __name__=='__main__':
+if __name__ == '__main__':
     unittest.main()
