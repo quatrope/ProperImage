@@ -47,17 +47,13 @@ from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
 from astropy.convolution import convolve, convolve_fft
-# from astropy.convolution import interpolate_replace_nans
-# from astropy.convolution import Gaussian2DKernel
+
 from astroML import crossmatch as cx
 
 import astroalign as aa
 
 aa.PIXEL_TOL = 0.3
 aa.NUM_NEAREST_NEIGHBORS = 5
-
-# from .tests import simtools
-# from . import single_image as simg
 
 
 def encapsule_S(S, path=None):
@@ -141,11 +137,8 @@ def matching(master, cat, masteridskey=None,
         dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
         dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
 
-    # match = ~np.isinf(dist)
-    # match_ = ~np.isinf(dist_)
-
     IDs = np.zeros_like(ind_) - 13133
-    for i in xrange(len(ind_)):
+    for i in range(len(ind_)):
         if dist_[i] != np.inf:
             # dist_o = dist_[i]
             ind_o = ind_[i]
@@ -194,7 +187,7 @@ def transparency(images, master=None):
         newcat = append_fields(newcat, 'sourceid', ids,
                                usemask=False)
 
-        for i in xrange(len(mastercat)):
+        for i in range(len(mastercat)):
             if mastercat[i]['sourceid'] not in ids:
                 detect[i] = False
         newcat.sort(order='sourceid')
@@ -227,7 +220,7 @@ def transparency(images, master=None):
         ident = sparse.identity(q)
         col = np.repeat(1., q)
         sparses = []
-        for j in xrange(p):
+        for j in range(p):
             ones_col = np.zeros((q, p))
             ones_col[:, j] = col
             sparses.append([sparse.csc_matrix(ones_col), ident])
