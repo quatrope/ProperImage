@@ -40,8 +40,6 @@ from collections import MutableSequence
 
 import numpy as np
 
-from astropy.io import fits
-
 from . import utils
 from .combinator import Combinator
 from .single_image import SingleImage
@@ -63,10 +61,10 @@ except:
 
 
 class ImageEnsemble(MutableSequence):
-    """Processor for several images that uses SingleImage as an atomic processing
-    unit. It deploys the utilities provided in the mentioned class and combines
-    the results, making possible to coadd and subtract astronomical images with
-    optimal techniques.
+    """Processor for several images that uses SingleImage as an atomic
+    processing unit. It deploys the utilities provided in the mentioned
+    class and combines the results, making possible to coadd and subtract
+    astronomical images with optimal techniques.
 
     Parameters
     ----------
@@ -88,7 +86,6 @@ class ImageEnsemble(MutableSequence):
             self.masklist = np.repeat(masklist, len(imglist))
             self.imglist = zip(imglist, self.masklist)
         self.inf_loss = inf_loss
-
 
     def __setitem__(self, i, v):
         self.imglist[i] = v
@@ -130,9 +127,11 @@ class ImageEnsemble(MutableSequence):
 
         """
         if not hasattr(self, '_atoms'):
-            self._atoms = [SingleImage(im[0], mask=im[1]) for im in self.imglist]
+            self._atoms = [SingleImage(im[0], mask=im[1])
+                           for im in self.imglist]
         elif len(self._atoms) is not len(self.imglist):
-            self._atoms = [SingleImage(im[0], mask=im[1]) for im in self.imglist]
+            self._atoms = [SingleImage(im[0], mask=im[1])
+                           for im in self.imglist]
         return self._atoms
 
     @property
@@ -190,7 +189,8 @@ class ImageEnsemble(MutableSequence):
             print('loading pickles')
             s_comp = pickle.loads(serialized)
             print(s_comp.shape)
-            S = np.ma.add(s_comp[:self.global_shape[0], :self.global_shape[1]], S)
+            S = np.ma.add(s_comp[:self.global_shape[0],
+                                 :self.global_shape[1]], S)
 
         print('S calculated, now starting to join processes')
 
