@@ -41,12 +41,12 @@ from astropy.stats import sigma_clipped_stats
 
 import matplotlib.pyplot as plt
 
-font = {'family'    : 'sans-serif',
+font = {'family': 'sans-serif',
         'sans-serif': ['Computer Modern Sans serif'],
-        'weight'    : 'regular',
-        'size'      : 12}
+        'weight': 'regular',
+        'size': 12}
 
-text = {'usetex'    : True}
+text = {'usetex': True}
 
 plt.rc('font', **font)
 plt.rc('text', **text)
