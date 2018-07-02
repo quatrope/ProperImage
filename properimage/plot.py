@@ -73,7 +73,7 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)+1))
     else:
-        rows =  N // p
+        rows = N // p
         rows += N % p
         subplots = (p, rows)
 
@@ -92,7 +92,6 @@ def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
         plt.close()
 
 
-
 def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
     if a_fields[0] is None:
         print('No a_fields were calculated. Only one Psf Basis')
@@ -105,7 +104,7 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
     elif p == N:
         subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)+1))
     else:
-        rows =  N // p
+        rows = N // p
         rows += N % p
         subplots = (p, rows)
 
@@ -115,7 +114,7 @@ def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
         a = a_fields[i](x, y)
         mean, med, std = sigma_clipped_stats(a)
         plt.imshow(a, vmax=med+2*std, vmin=med-2*std, cmap='viridis')
-        labels = {'j':i+1, 'sum':np.sqrt(np.sum(a**2))}
+        labels = {'j': i+1, 'sum': np.sqrt(np.sum(a**2))}
         plt.title(r'$a_{j}$,$\sum a_{j}={sum:4.3e}$'.format(**labels))
         plt.colorbar(shrink=0.75, aspect=30)
     plt.tight_layout()

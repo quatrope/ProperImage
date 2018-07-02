@@ -179,7 +179,7 @@ class SingleImage(object):
                     ldx = x
                     break
             for dx in range(ldx):
-                if not np.sum(self.__pixeldata.data[:dx, :])==0:
+                if not np.sum(self.__pixeldata.data[:dx, :]) == 0:
                     ldx = dx
                     break
             pxsum = 0
@@ -189,7 +189,7 @@ class SingleImage(object):
                     rdx = sx - x
                     break
             for dx in range(x):
-                if not np.sum(self.__pixeldata.data[-dx-1:, :])==0:
+                if not np.sum(self.__pixeldata.data[-dx-1:, :]) == 0:
                     rdx = sx - dx
                     break
             col = self.__pixeldata.data[:, sy // 2]
@@ -200,7 +200,7 @@ class SingleImage(object):
                     ldy = y
                     break
             for dy in range(ldy):
-                if not np.sum(self.__pixeldata.data[:, :dy])==0:
+                if not np.sum(self.__pixeldata.data[:, :dy]) == 0:
                     ldy = dy
                     break
             pxsum = 0
@@ -210,7 +210,7 @@ class SingleImage(object):
                     rdy = sy - y
                     break
             for dy in range(y):
-                if not np.sum(self.__pixeldata.data[:, -dy-1:])==0:
+                if not np.sum(self.__pixeldata.data[:, -dy-1:]) == 0:
                     rdy = sy - dy
                     break
             self.__pixeldata = self.__pixeldata[ldx:rdx, ldy:rdy]
@@ -274,9 +274,11 @@ class SingleImage(object):
                             try:
                                 fitsmask = ff[1].data
                                 if np.median(fitsmask) == 0:
-                                    self.__pixeldata.mask = fitsmask>=self.maskthresh
+                                    self.__pixeldata.mask = fitsmask >= \
+                                                            self.maskthresh
                                 else:
-                                    self.__pixeldata.mask = fitsmask<=self.maskthresh
+                                    self.__pixeldata.mask = fitsmask <= \
+                                                            self.maskthresh
                             except IndexError:
                                 self.__pixeldata = ma.masked_invalid(
                                     self.__pixeldata.data)
@@ -308,7 +310,7 @@ class SingleImage(object):
         if self.mask.any():
             if maskthresh is not None:
                 back = sep.Background(self.pixeldata.data, mask=self.mask)  # ,
-                                      # maskthresh=maskthresh)
+                # maskthresh=maskthresh)
                 self.__bkg = back
             else:
                 back = sep.Background(self.pixeldata.data,
@@ -411,9 +413,9 @@ class SingleImage(object):
     def update_sources(self, new_sources=None):
         del(self._best_sources)
         if new_sources is None:
-            foo = self.best_sources
-            foo = self.stamp_shape
-            foo = self.n_sources
+            foo = self.best_sources  # noqa
+            foo = self.stamp_shape  # noqa
+            foo = self.n_sources  # noqa
         else:
             self._best_sources = new_sources
         return
@@ -473,7 +475,7 @@ class SingleImage(object):
                     sub_array_data = extract_array(self.interped,
                                                    new_shape, position,
                                                    mode='partial',
-                                                   fill_value=self._bkg.globalrms)
+                                                   fill_value=self._bkg.globalrms)  # noqa
                     # print check_shape, new_shape
                     if new_shape[0]-self.stamp_shape[0] >= 6:
                         check_shape = False
@@ -490,7 +492,7 @@ class SingleImage(object):
                                             'linear_ramp', end_values=0)
 
                 #  Checking if the peak is off center
-                xcm, ycm = np.where(sub_array_data==np.max(sub_array_data))
+                xcm, ycm = np.where(sub_array_data == np.max(sub_array_data))
                 xcm = np.array([xcm[0], ycm[0]])
 
                 delta = xcm - np.asarray(sub_array_data.shape)/2.
@@ -549,7 +551,7 @@ class SingleImage(object):
         try:
             return self._n_sources
         except AttributeError:
-            s = self.stamps_pos
+            s = self.stamps_pos  # noqa
             return self._n_sources
 
     @property
@@ -577,9 +579,7 @@ class SingleImage(object):
                             psfj_render = self.db.load(j)[0]
 
                             inner = np.vdot(psfi_render.flatten(),
-                                            # /np.sum(psfi_render),
                                             psfj_render.flatten())
-                                            # /np.sum(psfj_render))
                             if inner is np.nan:
                                 import ipdb
                                 ipdb.set_trace()
@@ -595,7 +595,7 @@ class SingleImage(object):
             try:
                 self._eigenv = np.linalg.eigh(self.cov_matrix)
             except:
-                import ipdb; ipdb.set_trace()
+                raise
         return self._eigenv
 
     @property
@@ -607,7 +607,8 @@ class SingleImage(object):
     def _setup_kl_basis(self, inf_loss=None):
         """Determines the KL psf_basis from
         stars detected in the field."""
-        inf_loss_update = (inf_loss is not None) and (self.inf_loss!=inf_loss)
+        inf_loss_update = (inf_loss is not None) and \
+                          (self.inf_loss != inf_loss)
 
         if not hasattr(self, '_kl_basis') or inf_loss_update:
             if inf_loss is not None:
@@ -682,7 +683,7 @@ class SingleImage(object):
                 return self._a_fields
 
             # get the sources for observations
-            best_srcs = self.best_sources
+            best_srcs = self.best_sources  # noqa
             positions = self.stamps_pos
             x = positions[:, 0]
             y = positions[:, 1]
@@ -695,11 +696,11 @@ class SingleImage(object):
                 Pval = self.db.load(k)[0].flatten()
                 Pval = Pval/np.sum(Pval)
                 for i in range(n_fields):
-                    p_i = psf_basis[i].flatten() #starting from bottom
+                    p_i = psf_basis[i].flatten()  # starting from bottom
                     p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
                     # for j in range(i): # subtract previous models
-                        # Pval -= measures[j, k]*psf_basis[-j-1].flatten()
+                        # Pval -= measures[j, k]*psf_basis[-j-1].flatten()  # noqa
 
                     Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
                     m = np.dot(Pval, p_i)
