@@ -32,13 +32,13 @@ REQUIREMENTS = ["numpy>=1.13.2",
                 "astroML>=0.3",
                 "sep>=1.0",
                 "astroscrappy>=1.0.5"#,
-                #"pyFFTW>=0.10"
+                # "pyFFTW>=0.10"
                 ]
 
 # =============================================================================
 # FUNCTIONS
 # =============================================================================
-print(setuptools.find_packages()) #exclude=['test*']
+print(setuptools.find_packages())  # exclude=['test*']
 
 
 def do_setup():
@@ -64,7 +64,7 @@ def do_setup():
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Scientific/Engineering",
         ),
-        packages=setuptools.find_packages(),#exclude=['test*']),
+        packages=setuptools.find_packages(),  # exclude=['test*']),
         install_requires=REQUIREMENTS
     )
 

@@ -52,7 +52,7 @@ try:
     import pyfftw
     _fftwn = pyfftw.interfaces.numpy_fft.fftn
     _ifftwn = pyfftw.interfaces.numpy_fft.ifftn
-except:
+except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
 

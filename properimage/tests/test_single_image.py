@@ -103,7 +103,7 @@ class TestSingleImage(object):
             shutil.rmtree(self.tempdir)
         try:
             self.si._clean()
-        except:
+        except OSError:
             pass
 
     def testPixeldata(self):

@@ -25,7 +25,7 @@ import os
 
 try:
     import cPickle as pickle
-except:
+except ImportError:
     import pickle
 
 

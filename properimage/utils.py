@@ -112,14 +112,14 @@ def matching(master, cat, masteridskey=None,
         try:
             masterRaDec[:, 0] = master['RA']
             masterRaDec[:, 1] = master['Dec']
-        except:
+        except KeyError:
             masterRaDec[:, 0] = master['ra']
             masterRaDec[:, 1] = master['dec']
         imRaDec = np.empty((len(cat), 2), dtype=np.float64)
         try:
             imRaDec[:, 0] = cat['RA']
             imRaDec[:, 1] = cat['Dec']
-        except:
+        except KeyError:
             imRaDec[:, 0] = cat['ra']
             imRaDec[:, 1] = cat['dec']
         radius2 = radius/3600.

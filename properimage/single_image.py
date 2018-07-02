@@ -70,7 +70,7 @@ try:
     import pyfftw
     _fftwn = pyfftw.interfaces.numpy_fft.fft2
     _ifftwn = pyfftw.interfaces.numpy_fft.ifft2
-except:
+except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
 
@@ -139,7 +139,7 @@ class SingleImage(object):
         try:
             os.remove(self.dbname+'.dat')
             os.remove(self.dbname+'.map')
-        except:
+        except OSError:
             print('Nothing to clean. (Or something has failed)')
 
     @property
@@ -282,7 +282,7 @@ class SingleImage(object):
                             except IndexError:
                                 self.__pixeldata = ma.masked_invalid(
                                     self.__pixeldata.data)
-                except:
+                except IOError:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
         else:
             self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
@@ -367,7 +367,7 @@ class SingleImage(object):
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=35*self.__bkg.globalrms,
                                        mask=self.mask)
-                except:
+                except Exception:
                     raise
             if len(srcs) < self.min_sources:
                 print("""found {} sources, looking for at least {}.
@@ -594,7 +594,7 @@ class SingleImage(object):
         if not hasattr(self, '_eigenv'):
             try:
                 self._eigenv = np.linalg.eigh(self.cov_matrix)
-            except:
+            except np.linalg.LinAlgError:
                 raise
         return self._eigenv
 

@@ -65,7 +65,7 @@ class ImageStats(object):
         if dataformat is None:
             try:
                 dataformat = image_obj.__class__.__name__
-            except:
+            except:  # noqa
                 raise TypeError('Dataformat not set nor guessable')
 
         if dataformat not in ('CCDData', 'fits_file', 'numpy_array', 'hdu',
