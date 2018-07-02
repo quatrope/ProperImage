@@ -587,7 +587,8 @@ class SingleImage(object):
     def _setup_kl_basis(self, inf_loss=None):
         """Determines the KL psf_basis from
         stars detected in the field."""
-        inf_loss_update = inf_loss is not None and self.inf_loss!=inf_loss
+        inf_loss_update = (inf_loss is not None) and (self.inf_loss!=inf_loss)
+
         if not hasattr(self, '_kl_basis') or inf_loss_update:
             if inf_loss is not None:
                 self.inf_loss = inf_loss
@@ -640,12 +641,13 @@ class SingleImage(object):
                         :self.pixeldata.data.shape[1]]
         return x, y
 
-    def _setup_kl_a_fields(self, inf_loss=None):
+    def _setup_kl_a_fields(self, inf_loss=None, updating=False):
         """Calculate the coefficients of the expansion in basis of KLoeve.
 
         """
-        inf_loss_update = (inf_loss is not None and self.inf_loss!=inf_loss)
-        if not hasattr(self, '_a_fields') or inf_loss_update:
+        inf_loss_update = (inf_loss is not None) and (self.inf_loss!=inf_loss)
+
+        if not hasattr(self, '_a_fields') or inf_loss_update or updating:
             if inf_loss is not None:
                 self._setup_kl_basis(inf_loss)
                 self.inf_loss = inf_loss
@@ -730,11 +732,11 @@ class SingleImage(object):
         """
         if shape is not None:
             self._shape = shape
-        # if inf_loss is not None:
-            # self.inf_loss = inf_loss
+
+        updating = (inf_loss is not None) and (self.inf_loss!=inf_loss)
 
         self._setup_kl_basis(inf_loss)
-        self._setup_kl_a_fields(inf_loss)
+        self._setup_kl_a_fields(inf_loss, updating=updating)
 
         a_fields = self.kl_afields
         psf_basis = self.kl_basis
@@ -804,7 +806,9 @@ class SingleImage(object):
 
     @property
     def s_hat_comp(self):
-        if not hasattr(self, '_s_hat_comp'):
+        if not hasattr(self, '_s_hat_comp') or \
+            self._s_hat_inf_loss != self.inf_loss:
+
             a_fields, psf_basis = self.get_variable_psf()
 
             var = self._bkg.globalrms
@@ -823,8 +827,6 @@ class SingleImage(object):
                 x, y = self.get_afield_domain()
                 for a, psf in zip(a_fields, psf_basis):
 
-                    # if i>0: a = a/10.
-
                     conv = _fftwn(self.interped * a(x, y)/nrm, norm='ortho') *\
                            _fftwn(psf, s=self.pixeldata.shape, norm='ortho').conj()
                     conv = fourier_shift(conv, (+dx, +dy))
@@ -832,6 +834,8 @@ class SingleImage(object):
                     np.add(conv, s_hat, out=s_hat)
 
             self._s_hat_comp = (self.zp/(var**2)) * s_hat
+            self._s_hat_inf_loss = self.inf_loss
+
         return self._s_hat_comp
 
     @property
@@ -842,6 +846,10 @@ class SingleImage(object):
 
         """
         if not hasattr(self, '_s_component'):
+            self._s_component = _ifftwn(self.s_hat_comp, norm='ortho').real
+            self._s_inf_loss = self.inf_loss
+
+        if self._s_inf_loss != self.inf_loss:
             self._s_component = _ifftwn(self.s_hat_comp, norm='ortho').real
         return self._s_component
 
