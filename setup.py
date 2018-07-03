@@ -31,7 +31,9 @@ REQUIREMENTS = ["numpy>=1.13.2",
                 "photutils>=0.2",
                 "astroML>=0.3",
                 "sep>=1.0",
-                "astroscrappy>=1.0.5"#,
+                "astroscrappy>=1.0.5",
+                "astroalign>=1.0.3",
+                "pytest>=3.6.2"
                 # "pyFFTW>=0.10"
                 ]
 

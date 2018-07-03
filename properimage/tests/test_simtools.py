@@ -10,10 +10,12 @@
 # import sys
 
 import unittest
+
 import numpy as np
+
 from scipy.ndimage.interpolation import rotate
-# sys.path.insert(0, os.path.abspath('..'))
-import simtools as sm
+
+from . import simtools as sm
 
 
 class TestSimulationSuite(unittest.TestCase):
@@ -36,7 +38,3 @@ class TestSimulationSuite(unittest.TestCase):
     def test_astropyPsf_module(self):
         module = np.sum(sm.astropy_Psf(100, 15))
         self.assertAlmostEqual(module, 1.)
-
-
-if __name__ == '__main__':
-    unittest.main()
