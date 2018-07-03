@@ -13,7 +13,7 @@ variant PSF estimation.
 
 Images need to be aligned and registered.
 
-New documentation is in progress.
+Documentation at https://properimage.readthedocs.io .
 
 ## Rerefences
 
