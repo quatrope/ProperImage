@@ -32,7 +32,7 @@ class TestPrimes(unittest.TestCase):
         self.assertEqual(plot.primes(9), 3)
 
     def test45045(self):
-        self.assertEqual(plot.primes(45045), 13)
+        self.assertEqual(plot.primes(45045), 143)
 
     def test3(self):
         self.assertEqual(plot.primes(3), 3)
