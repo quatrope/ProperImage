@@ -54,6 +54,7 @@ import astroalign as aa
 
 aa.PIXEL_TOL = 0.3
 aa.NUM_NEAREST_NEIGHBORS = 5
+aa.MIN_MATCHES_FRACTION = 0.6
 
 
 def encapsule_S(S, path=None):
