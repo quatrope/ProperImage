@@ -287,6 +287,13 @@ class SingleImage(object):
         else:
             self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
 
+        mask_lower = ma.masked_less(self.__pixeldata, -50.)
+        mask_greater = ma.masked_greater(self.__pixeldata, 48000.)
+
+        self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask, mask_lower.mask)
+        self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask, mask_greater.mask)
+
+
     @property
     def background(self):
         """Image background subtracted property of SingleImage.
@@ -360,13 +367,13 @@ class SingleImage(object):
             try:
                 srcs = sep.extract(self.bkg_sub_img.data,
                                    thresh=8*self.__bkg.globalrms,
-                                   mask=self.mask)
+                                   mask=self.mask, minarea=9)
             except Exception:
                 try:
                     sep.set_extract_pixstack(3600000)
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=35*self.__bkg.globalrms,
-                                       mask=self.mask)
+                                       mask=self.mask, minarea=9)
                 except Exception:
                     raise
             if len(srcs) < self.min_sources:
@@ -376,12 +383,12 @@ class SingleImage(object):
                 try:
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=3*self.__bkg.globalrms,
-                                       mask=self.mask)
+                                       mask=self.mask, minarea=5)
                 except Exception:
                     sep.set_extract_pixstack(900000)
                     srcs = sep.extract(self.bkg_sub_img.data,
                                        thresh=3*self.__bkg.globalrms,
-                                       mask=self.mask)
+                                       mask=self.mask, minarea=9)
                 if len(old_srcs) > len(srcs):
                     srcs = old_srcs
 
