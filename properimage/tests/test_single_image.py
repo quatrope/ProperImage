@@ -35,7 +35,7 @@ from properimage import single_image as s
 from properimage.tests import simtools
 
 
-class TestSingleImage(object):
+class SingleImageBase(object):
 
     def setUp(self):
         print('setting up')
@@ -226,7 +226,7 @@ class TestSingleImage(object):
             np.testing.assert_approx_equal(1., np.sum(apsf), significant=4)
 
 
-class TestNpArray(TestSingleImage, unittest.TestCase):
+class TestNpArray(SingleImageBase, unittest.TestCase):
 
     def setUp(self):
         super(TestNpArray, self).setUp()
@@ -242,7 +242,7 @@ class TestNpArray(TestSingleImage, unittest.TestCase):
         self.assertDictEqual(self.si.header, {})
 
 
-class TestNpArrayMask(TestSingleImage, unittest.TestCase):
+class TestNpArrayMask(SingleImageBase, unittest.TestCase):
 
     def setUp(self):
         super(TestNpArrayMask, self).setUp()
@@ -252,7 +252,7 @@ class TestNpArrayMask(TestSingleImage, unittest.TestCase):
         self.assertDictEqual(self.si.header, {})
 
 
-class TestFitsFile(TestSingleImage, unittest.TestCase):
+class TestFitsFile(SingleImageBase, unittest.TestCase):
 
     def setUp(self):
         super(TestFitsFile, self).setUp()
@@ -270,7 +270,7 @@ class TestFitsFile(TestSingleImage, unittest.TestCase):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
 
-class TestFitsMask(TestSingleImage, unittest.TestCase):
+class TestFitsMask(SingleImageBase, unittest.TestCase):
 
     def setUp(self):
         super(TestFitsMask, self).setUp()
@@ -283,7 +283,7 @@ class TestFitsMask(TestSingleImage, unittest.TestCase):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
 
-class TestHDU(TestSingleImage, unittest.TestCase):
+class TestHDU(SingleImageBase, unittest.TestCase):
 
     def setUp(self):
         super(TestHDU, self).setUp()
@@ -301,7 +301,7 @@ class TestHDU(TestSingleImage, unittest.TestCase):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
 
-class TestHDUList(TestSingleImage, unittest.TestCase):
+class TestHDUList(SingleImageBase, unittest.TestCase):
 
     def setUp(self):
         super(TestHDUList, self).setUp()
@@ -314,7 +314,7 @@ class TestHDUList(TestSingleImage, unittest.TestCase):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
 
-class TestFitsExtension(TestSingleImage, unittest.TestCase):
+class TestFitsExtension(SingleImageBase, unittest.TestCase):
 
     def setUp(self):
         super(TestFitsExtension, self).setUp()
@@ -335,7 +335,3 @@ class TestNoSources(unittest.TestCase):
     def testNoSources(self):
         with self.assertRaises(ValueError):
             s.SingleImage(self.no_sources_image)
-
-
-if __name__ == '__main__':
-    unittest.main()
