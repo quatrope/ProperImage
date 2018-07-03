@@ -293,7 +293,6 @@ class SingleImage(object):
         self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask, mask_lower.mask)
         self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask, mask_greater.mask)
 
-
     @property
     def background(self):
         """Image background subtracted property of SingleImage.

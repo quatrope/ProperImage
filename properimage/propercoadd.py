@@ -48,14 +48,14 @@ from .combinator import StackCombinator
 from .single_image import chunk_it
 
 try:
-    import cPickle as pickle
+    import cPickle as pickle  # noqa
 except ImportError:
     import pickle
 
 try:
     import pyfftw
-    _fftwn = pyfftw.interfaces.numpy_fft.fftn
-    _ifftwn = pyfftw.interfaces.numpy_fft.ifftn
+    _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
+    _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
@@ -82,6 +82,10 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
         an_img.zp = zps[j]
         an_img._setup_kl_a_fields(inf_loss)
 
+    psf_shapes = [an_img.stamp_shape[0] for an_img in img_list]
+    psf_shape = np.max(psf_shapes)
+    psf_shape = (psf_shape, psf_shape)
+
     if n_procs > 1:
         queues = []
         procs = []
@@ -106,7 +110,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
             np.add(s_hat_comp, S_hat, out=S_hat)  # , casting='same_kind')
             np.add(psf_hat_sum, P_hat, out=P_hat)  # , casting='same_kind')
         P_r_hat = np.sqrt(P_hat)
-        P_r = _ifftwn(fourier_shift(P_r_hat, (6, 6)))
+        P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r/np.sum(P_r)
         R = _ifftwn(S_hat/np.sqrt(P_hat))
 
@@ -125,7 +129,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
             np.add(((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm(), P_hat,
                    out=P_hat)
         P_r_hat = np.sqrt(P_hat)
-        P_r = _ifftwn(P_r_hat)
+        P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r/np.sum(P_r)
         R = _ifftwn(S_hat/P_r_hat)
 

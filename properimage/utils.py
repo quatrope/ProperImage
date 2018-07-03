@@ -184,9 +184,11 @@ def transparency(images, master=None):
         newcat = img.best_sources
         ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
                              angular=False, radius=2., masked=True)
-
-        newcat = append_fields(newcat, 'sourceid', ids,
-                               usemask=False)
+        try:
+            newcat = append_fields(newcat, 'sourceid', ids,
+                                   usemask=False)
+        except ValueError:
+            newcat['sourceid'] = ids
 
         for i in range(len(mastercat)):
             if mastercat[i]['sourceid'] not in ids:
