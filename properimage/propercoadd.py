@@ -21,6 +21,19 @@
 #  MA 02110-1301, USA.
 #
 #
+"""propercoadd module from ProperImage,
+for coadding astronomical images.
+
+Written by Bruno SANCHEZ
+
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
 
 from multiprocessing import Queue
 # from collections import MutableSequence

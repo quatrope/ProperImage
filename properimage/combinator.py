@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  image_stats.py
+#  combinator.py
 #
 #  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
 #
@@ -61,12 +61,14 @@ class StackCombinator(Process):
 
     Parameters
     ----------
-    ensemble: list or tuple
+    img_list: list or tuple
         list of SingleImage instances used in the combination process
 
     queue: multiprocessing.Queue instance
         an instance of multiprocessing.Queue class where to pickle the
         intermediate results.
+
+    shape: shape of the images being coadded.
 
     stack: boolean, default True
         Whether to stack the results for coadd or just obtain individual

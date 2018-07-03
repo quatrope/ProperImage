@@ -22,7 +22,7 @@
 #
 
 """single_image module from ProperImage,
-for coadding astronomical images.
+for analysis of astronomical images.
 
 Written by Bruno SANCHEZ
 
