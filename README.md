@@ -6,9 +6,7 @@
 [![Python 2.7](https://img.shields.io/badge/python-2.7-blue.svg)](https://badge.fury.io/py/feets)
 [![Python 3.5+](https://img.shields.io/badge/python-3.5+-blue.svg)](https://badge.fury.io/py/feets)
 
-
-This code is inspired on Zackay & Ofek 2015 papers *How to coadd images?*
-[I](http://arxiv.org/abs/1512.06872) and [II](http://arxiv.org/abs/1512.06879).
+This code is inspired on Zackay & Ofek 2017 papers *How to coadd images?*
 
 It can perform the statistical proper coadd of several images using a spatially
 variant PSF estimation.
@@ -16,3 +14,9 @@ variant PSF estimation.
 Images need to be aligned and registered.
 
 New documentation is in progress.
+
+## Rerefences
+
+> Zackay, B., & Ofek, E. O. (2017). How to COAAD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images. The Astrophysical Journal, 836(2), 187. http://arxiv.org/abs/1512.06872
+>
+> Zackay, B., & Ofek, E. O. (2017). How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit. The Astrophysical Journal, 836(2), 188. http://arxiv.org/abs/1512.06879
