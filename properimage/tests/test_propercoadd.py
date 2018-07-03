@@ -86,14 +86,14 @@ class PropercoaddBase(object):
                          overwrite=True)
             self.paths.append(mockfits_path)
 
-    #~ def tearDown(self):
-        #~ if os.path.isdir(self.tempdir):
-            #~ shutil.rmtree(self.tempdir)
-        #~ try:
-            #~ for animg in self.imgs:
-                #~ animg._clean()
-        #~ except OSError:
-            #~ pass
+    def tearDown(self):
+        if os.path.isdir(self.tempdir):
+            shutil.rmtree(self.tempdir)
+        try:
+            for animg in self.imgs:
+                animg._clean()
+        except OSError:
+            pass
 
 
 class TestCoaddSingleCore(PropercoaddBase, unittest.TestCase):
@@ -146,4 +146,3 @@ class TestCoaddMultCore2(PropercoaddBase, unittest.TestCase):
 
         np.testing.assert_allclose(R.real, R2.real, rtol=0.2, atol=0.5)
         np.testing.assert_allclose(P_r.real, P_r2.real, rtol=0.2, atol=0.5)
-

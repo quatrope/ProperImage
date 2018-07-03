@@ -62,4 +62,3 @@ class TestSimulationSuite(unittest.TestCase):
         gal = sm.gal_sersic(gal_size, n)
         conv = sm.convol_gal_psf_fft(gal, pattern1)
         np.testing.assert_equal(gal_size, conv.shape[1])
-

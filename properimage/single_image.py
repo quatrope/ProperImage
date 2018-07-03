@@ -290,8 +290,10 @@ class SingleImage(object):
         mask_lower = ma.masked_less(self.__pixeldata, -50.)
         mask_greater = ma.masked_greater(self.__pixeldata, 48000.)
 
-        self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask, mask_lower.mask)
-        self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask, mask_greater.mask)
+        self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask,
+                                           mask_lower.mask)
+        self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask,
+                                           mask_greater.mask)
 
     @property
     def background(self):

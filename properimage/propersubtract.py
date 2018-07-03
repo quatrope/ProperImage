@@ -60,7 +60,7 @@ aa.PIXEL_TOL = 0.5
 eps = np.finfo(np.float64).eps
 
 
-def diff(ref, new, align=True, inf_loss=0.25,
+def diff(ref, new, align=False, inf_loss=0.25,
          beta=True, shift=True, iterative=False):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
