@@ -35,7 +35,6 @@ Cordoba - Argentina
 Of 301
 """
 
-import os
 from functools import reduce
 import numpy as np
 
@@ -46,8 +45,6 @@ from scipy import stats
 
 # from astropy.convolution import convolve_fft
 from astropy.modeling import models
-from astropy.io import fits
-from astropy.time import Time
 
 
 def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
@@ -256,7 +253,7 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
     IM = convol_gal_psf_fft(MF, PSF)
 
     if N != N2:
-        image = pixelize(N/N2, IM)
+        image = IM  # pixelize(N/N2, IM)  overriden
     else:
         image = IM
 
