@@ -86,6 +86,17 @@ class PropercoaddBase(object):
                          overwrite=True)
             self.paths.append(mockfits_path)
 
+    def testChunkIt(self):
+        imgs = [si.SingleImage(img) for img in self.paths]
+
+        for i in range(len(imgs)):
+            chunks = si.chunk_it(imgs, i+1)
+
+            self.assertIsInstance(chunks, list)
+
+            flat_list = [item for sublist in chunks for item in sublist]
+            self.assertCountEqual(flat_list, imgs)
+
     def tearDown(self):
         if os.path.isdir(self.tempdir):
             shutil.rmtree(self.tempdir)

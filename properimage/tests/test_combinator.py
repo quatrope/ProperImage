@@ -22,6 +22,21 @@
 #
 #
 
+"""
+test_combinator module from ProperImage
+for analysis of astronomical images
+
+Written by Bruno SANCHEZ
+
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
+
 import tempfile
 import unittest
 

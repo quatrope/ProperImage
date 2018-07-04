@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  testings.py
+#  test_plot.py
 #
 #  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
 #
@@ -21,6 +21,21 @@
 #  MA 02110-1301, USA.
 #
 #
+
+"""
+test_plot module from ProperImage
+for analysis of astronomical images
+
+Written by Bruno SANCHEZ
+
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
 
 import unittest
 

@@ -6,11 +6,22 @@
 #  Copyright 2016 Bruno S <bruno@oac.unc.edu.ar>
 #
 
-# import os
-# import sys
+"""
+test_simtools module from ProperImage
+for analysis of astronomical images
+
+Written by Bruno SANCHEZ
+
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
 
 import unittest
-
 import numpy as np
 
 from scipy.ndimage.interpolation import rotate

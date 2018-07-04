@@ -20,7 +20,20 @@
 #
 #
 
-"""Utilities for mocking images, simulating data"""
+"""
+simtools module from ProperImage, with
+utilities for mocking images, and simulating data
+
+Written by Bruno SANCHEZ
+
+PhD of Astromoy - UNC
+bruno@oac.unc.edu.ar
+
+Instituto de Astronomia Teorica y Experimental (IATE) UNC
+Cordoba - Argentina
+
+Of 301
+"""
 
 import os
 from functools import reduce
