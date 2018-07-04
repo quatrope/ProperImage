@@ -68,8 +68,8 @@ from . import utils
 
 try:
     import pyfftw
-    _fftwn = pyfftw.interfaces.numpy_fft.fft2
-    _ifftwn = pyfftw.interfaces.numpy_fft.ifft2
+    _fftwn = pyfftw.interfaces.numpy_fft.fft2  # noqa
+    _ifftwn = pyfftw.interfaces.numpy_fft.ifft2  # noqa
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
@@ -463,6 +463,8 @@ class SingleImage(object):
                 return check_shape
 
             n_cand_srcs = len(self.best_sources)
+            if n_cand_srcs <= 20:
+                self.strict_star_pick = False
             for row in self.best_sources:
                 position = (row['y'], row['x'])
                 sub_array_data = extract_array(self.interped,
@@ -501,6 +503,7 @@ class SingleImage(object):
                 if not pad_dim == (0, 0):
                     sub_array_data = np.pad(sub_array_data, [pad_dim, pad_dim],
                                             'linear_ramp', end_values=0)
+
                 if self._strict_star_pick:
                     #  Checking if the peak is off center
                     xcm, ycm = np.where(sub_array_data ==
@@ -548,6 +551,7 @@ class SingleImage(object):
                 pos.append(position)
                 self.db.dump(sub_array_data, len(pos)-1)
                 jj += 1
+
             if n_cand_srcs - len(to_del) >= 15:
                 self._best_sources = np.delete(self._best_sources,
                                                to_del, axis=0)

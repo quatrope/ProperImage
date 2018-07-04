@@ -53,7 +53,7 @@ def primes(n):
 
 
 try:
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt   # noqa
 
     font = {
         'family': 'sans-serif',

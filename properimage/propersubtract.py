@@ -50,8 +50,8 @@ from . import utils as u
 
 try:
     import pyfftw
-    _fftwn = pyfftw.interfaces.numpy_fft.fftn
-    _ifftwn = pyfftw.interfaces.numpy_fft.ifftn
+    _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
+    _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
