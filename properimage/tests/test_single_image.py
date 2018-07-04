@@ -351,3 +351,117 @@ class TestNoSources(ProperImageTestCase):
     def testNoSources(self):
         with self.assertRaises(ValueError):
             s.SingleImage(self.no_sources_image)
+
+
+#      Test with picky star stamp strategy
+class TestNpArrayPicky(SingleImageBase, ProperImageTestCase):
+
+    def setUp(self):
+        super(TestNpArrayPicky, self).setUp()
+        print(self.mock_image_data.shape)
+        self.si = s.SingleImage(self.mock_image_data, strict_star_pick=True)
+
+    def testMask(self):
+        nanmask = np.zeros((256, 256))
+        nanmask[123, 123] = 1
+        np.testing.assert_array_equal(nanmask, self.si.mask)
+
+    def testHeader(self):
+        self.assertDictEqual(self.si.header, {})
+
+
+class TestNpArrayMaskPicky(SingleImageBase, ProperImageTestCase):
+
+    def setUp(self):
+        super(TestNpArrayMaskPicky, self).setUp()
+        self.si = s.SingleImage(self.mock_image_data, self.mock_image_mask,
+                                strict_star_pick=True)
+
+    def testHeader(self):
+        self.assertDictEqual(self.si.header, {})
+
+
+class TestFitsFilePicky(SingleImageBase, ProperImageTestCase):
+
+    def setUp(self):
+        super(TestFitsFilePicky, self).setUp()
+        self.si = s.SingleImage(self.mockfits_path, strict_star_pick=True)
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, self.mockfits_path)
+
+    def testMask(self):
+        nanmask = np.zeros((256, 256))
+        nanmask[123, 123] = 1
+        np.testing.assert_array_equal(nanmask, self.si.mask)
+
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
+
+
+class TestFitsMaskPicky(SingleImageBase, ProperImageTestCase):
+
+    def setUp(self):
+        super(TestFitsMaskPicky, self).setUp()
+        self.si = s.SingleImage(self.mockfits_path, mask=self.mockmask_path,
+                                strict_star_pick=True)
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, self.mockfits_path)
+
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
+
+
+class TestHDUPicky(SingleImageBase, ProperImageTestCase):
+
+    def setUp(self):
+        super(TestHDUPicky, self).setUp()
+        self.si = s.SingleImage(self.mockimageHdu, strict_star_pick=True)
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, 'PrimaryHDU')
+
+    def testMask(self):
+        nanmask = np.zeros((256, 256))
+        nanmask[123, 123] = 1
+        np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
+
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
+
+
+class TestHDUListPicky(SingleImageBase, ProperImageTestCase):
+
+    def setUp(self):
+        super(TestHDUListPicky, self).setUp()
+        self.si = s.SingleImage(self.mock_masked_hdu, strict_star_pick=True)
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, 'HDUList')
+
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
+
+
+class TestFitsExtensionPicky(SingleImageBase, ProperImageTestCase):
+
+    def setUp(self):
+        super(TestFitsExtensionPicky, self).setUp()
+        self.si = s.SingleImage(self.masked_hdu_path)
+
+    def testAttachedTo(self):
+        self.assertEqual(self.si.attached_to, self.masked_hdu_path)
+
+    def testHeader(self):
+        self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
+
+
+class TestNoSourcesPicky(ProperImageTestCase):
+
+    def setUp(self):
+        self.no_sources_image = np.random.random((256, 256))
+
+    def testNoSources(self):
+        with self.assertRaises(ValueError):
+            s.SingleImage(self.no_sources_image)

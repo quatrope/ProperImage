@@ -108,9 +108,11 @@ class SingleImage(object):
     """
 
     def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None,
-                 borders=True, crop=((0, 0), (0, 0)), min_sources=None):
+                 borders=True, crop=((0, 0), (0, 0)), min_sources=None,
+                 strict_star_pick=False):
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
+        self._strict_star_pick = strict_star_pick  # pick stars VERY carefully?
         if min_sources is not None:
             self.min_sources = min_sources
         self.__img = img
@@ -488,6 +490,7 @@ class SingleImage(object):
                     if new_shape[0]-self.stamp_shape[0] >= 6:
                         check_shape = False
 
+                new_shape = sub_array_data.shape
                 # Normalize to unit sum
                 sub_array_data += np.abs(np.min(sub_array_data))
                 sub_array_data = sub_array_data/np.sum(sub_array_data)
@@ -498,47 +501,48 @@ class SingleImage(object):
                 if not pad_dim == (0, 0):
                     sub_array_data = np.pad(sub_array_data, [pad_dim, pad_dim],
                                             'linear_ramp', end_values=0)
+                if self._strict_star_pick:
+                    #  Checking if the peak is off center
+                    xcm, ycm = np.where(sub_array_data ==
+                                        np.max(sub_array_data))
+                    xcm = np.array([xcm[0], ycm[0]])
 
-                #  Checking if the peak is off center
-                xcm, ycm = np.where(sub_array_data == np.max(sub_array_data))
-                xcm = np.array([xcm[0], ycm[0]])
-
-                delta = xcm - np.asarray(sub_array_data.shape)/2.
-                if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
-                    to_del.append(jj)
-                    jj += 1
-                    continue
-
-                #  Checking if it has outliers
-                sd = np.std(sub_array_data)
-                if sd > 0.15:
-                    to_del.append(jj)
-                    jj += 1
-                    continue
-
-                if np.any(sub_array_data.flatten() > 0.5):
-                    to_del.append(jj)
-                    jj += 1
-                    continue
-
-                outl_cat = utils.find_S_local_maxima(sub_array_data,
-                                                     threshold=3.5,
-                                                     neighborhood_size=5)
-                if len(outl_cat) > 1:
-                    to_del.append(jj)
-                    jj += 1
-                    continue
-
-                # thrs = [outl[-1] for outl in outl_cat]
-                if len(outl_cat) is not 0:
-                    ymax, xmax, thmax = outl_cat[0]
-                    # np.where(thrs==np.max(thrs))[0][0]]
-                    xcm = np.array([xmax, ymax])
-                    delta = xcm - np.asarray(sub_array_data.shape)/2.
-                    if np.sqrt(np.sum(delta**2)) > sub_array_data.shape[0]/5.:
+                    delta = xcm - np.asarray(new_shape)/2.
+                    if np.sqrt(np.sum(delta**2)) > new_shape[0]/5.:
                         to_del.append(jj)
                         jj += 1
                         continue
+
+                    #  Checking if it has outliers
+                    sd = np.std(sub_array_data)
+                    if sd > 0.15:
+                        to_del.append(jj)
+                        jj += 1
+                        continue
+
+                    if np.any(sub_array_data.flatten() > 0.5):
+                        to_del.append(jj)
+                        jj += 1
+                        continue
+
+                    outl_cat = utils.find_S_local_maxima(sub_array_data,
+                                                         threshold=3.5,
+                                                         neighborhood_size=5)
+                    if len(outl_cat) > 1:
+                        to_del.append(jj)
+                        jj += 1
+                        continue
+
+                    # thrs = [outl[-1] for outl in outl_cat]
+                    if len(outl_cat) is not 0:
+                        ymax, xmax, thmax = outl_cat[0]
+                        # np.where(thrs==np.max(thrs))[0][0]]
+                        xcm = np.array([xmax, ymax])
+                        delta = xcm - np.asarray(new_shape)/2.
+                        if np.sqrt(np.sum(delta**2)) > new_shape[0]/5.:
+                            to_del.append(jj)
+                            jj += 1
+                            continue
 
                 # if everything was fine we store
                 pos.append(position)
@@ -883,10 +887,9 @@ class SingleImage(object):
     def interped(self):
         if not hasattr(self, '_interped'):
             kernel = Box2DKernel(5)  # Gaussian2DKernel(stddev=2.5) #
-            # import ipdb
-            # ipdb.set_trace()
+
             crmask, _ = detect_cosmics(np.ascontiguousarray(
-                                           self.bkg_sub_img.data),
+                                           self.bkg_sub_img.filled(-9999)),
                                        self.bkg_sub_img.mask,
                                        sigclip=6.)
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,
@@ -904,6 +907,7 @@ class SingleImage(object):
                 # iters=5, sigma_upper=40).filled(np.nan)
             # img_interp = interpolate_replace_nans(img_interp, kernel)
             self._interped = img_interp
+
         return self._interped
 
     @property

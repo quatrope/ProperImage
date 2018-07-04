@@ -102,7 +102,8 @@ def _airy_func(rr, width, amplitude=1.0):
     For a simple radially symmetric airy function, returns the value at a given
     (normalized) radius
     """
-    return amplitude * (2.0 * sp.special.j1(rr/width) / (rr/width))**2
+    r = float(rr)/width
+    return amplitude * (2.0 * sp.special.j1(r)/r)**2
 
 
 def airy_patron(N, width):
