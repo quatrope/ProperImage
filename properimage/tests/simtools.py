@@ -234,6 +234,49 @@ def delta_point(N, center=True, xy=None, weights=None):
     return(m)
 
 
+def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
+          bkg_pdf='poisson', std=None):
+    """
+    funcion que genera una imagen con ruido y seeing a partir
+    de un master frame, y la pixeliza hasta tamaño N2
+
+    Parametros
+    ----------
+    IMC : imagen Master
+    FWHM : tamaño en pixeles del FWHM del seeing
+    t_exp : tiempo exposicion de la imagen
+    N2 : tamaño de la imagen final, pixelizada
+    SN : es la relacion señal ruido con el fondo del cielo
+    bkg_pdf : distribucion de probabilidad del ruido background
+    std : en caso que bkg_pdf sea gaussian, valor de std
+    """
+    N = np.shape(MF)[0]
+    FWHM = max(X_FWHM, Y_FWHM)
+    PSF = Psf(5*FWHM, X_FWHM, Y_FWHM, theta)
+    IM = convol_gal_psf_fft(MF, PSF)
+
+    if N != N2:
+        image = pixelize(N/N2, IM)
+    else:
+        image = IM
+
+    b = np.max(image)  # image[int(N2/2), int(N2/2)]
+
+    if bkg_pdf == 'poisson':
+        mean = b/SN
+        print('mean = {}, b = {}, SN = {}'.format(mean, b, SN))
+        C = np.random.poisson(mean, (N2, N2)).astype(np.float32)
+
+    elif bkg_pdf == 'gaussian':
+        mean = 0
+        std = b/SN
+        print('mean = {}, std = {}, b = {}, SN = {}'.format(mean, std, b, SN))
+        C = np.random.normal(mean, std, (N2, N2))
+    bias = 100.
+    F = C + image + bias
+    return(F)
+
+
 def sim_varpsf(nstars, SN=3., thetas=[0, 45, 105, 150], N=512):
     frames = []
     for theta in thetas:
