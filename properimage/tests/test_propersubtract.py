@@ -123,7 +123,8 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
 
     def testSubtractBetaIterative(self):
         D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
-                                         beta=True, iterative=True)
+                                         beta=True, iterative=True,
+                                         shift=False)
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
