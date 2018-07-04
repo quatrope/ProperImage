@@ -37,12 +37,12 @@ Cordoba - Argentina
 Of 301
 """
 
-import unittest
+from .. import plot
 
-from properimage import plot
+from .core import ProperImageTestCase
 
 
-class TestPrimes(unittest.TestCase):
+class TestPrimes(ProperImageTestCase):
     def test9(self):
         self.assertEqual(plot.primes(9), 3)
 
@@ -54,7 +54,3 @@ class TestPrimes(unittest.TestCase):
 
     def test1(self):
         self.assertEqual(plot.primes(1), 1)
-
-
-if __name__ == "__main__":
-    unittest.main()

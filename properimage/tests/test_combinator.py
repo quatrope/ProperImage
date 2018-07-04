@@ -35,18 +35,8 @@ Instituto de Astronomia Teorica y Experimental (IATE) UNC
 Cordoba - Argentina
 
 Of 301
+
 """
-
-import tempfile
-import unittest
-
-import numpy as np
-
-from astropy.io import fits
-
-from properimage import single_image as s
-from properimage import combinator
-from properimage.tests import simtools
 
 
 class CombinatorBase(object):

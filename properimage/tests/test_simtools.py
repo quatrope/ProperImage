@@ -21,15 +21,15 @@ Cordoba - Argentina
 Of 301
 """
 
-import unittest
 import numpy as np
 
 from scipy.ndimage.interpolation import rotate
 
 from . import simtools as sm
+from .core import ProperImageTestCase
 
 
-class TestSimulationSuite(unittest.TestCase):
+class TestSimulationSuite(ProperImageTestCase):
 
     def test_Psf_module(self):
         module = np.sum(sm.Psf(100, 15))

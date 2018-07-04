@@ -55,11 +55,14 @@ def primes(n):
 try:
     import matplotlib.pyplot as plt
 
-    font = {'family': 'sans-serif',
+    font = {
+        'family': 'sans-serif',
         'sans-serif': ['Computer Modern Sans serif'],
         'weight': 'regular',
         'size': 12}
+
     text = {'usetex': True}
+
     plt.rc('font', **font)
     plt.rc('text', **text)
 
@@ -89,7 +92,6 @@ try:
             plt.savefig(path)
         if not nbook:
             plt.close()
-
 
     def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
         if a_fields[0] is None:
@@ -123,7 +125,6 @@ try:
             plt.close()
         return
 
-
     def plot_S(S, path=None, nbook=False):
         if isinstance(S, np.ma.masked_array):
             S = S.filled()
@@ -140,7 +141,6 @@ try:
         if not nbook:
             plt.close()
         return
-
 
     def plot_R(R, path=None, nbook=False):
         if isinstance(R[0, 0], np.complex):

@@ -34,18 +34,20 @@ Instituto de Astronomia Teorica y Experimental (IATE) UNC
 Cordoba - Argentina
 
 Of 301
+
 """
+
 import os
 import tempfile
 import shutil
-import unittest
 
 import numpy as np
 from astropy.io import fits
 
-from properimage import propercoadd as pc
-from properimage import single_image as si
-from properimage.tests import simtools
+from .. import propercoadd as pc,  single_image as si
+
+from . import simtools
+from .core import ProperImageTestCase
 
 
 class PropercoaddBase(object):
@@ -107,7 +109,7 @@ class PropercoaddBase(object):
             pass
 
 
-class TestCoaddSingleCore(PropercoaddBase, unittest.TestCase):
+class TestCoaddSingleCore(PropercoaddBase, ProperImageTestCase):
 
     def setUp(self):
         super(TestCoaddSingleCore, self).setUp()
@@ -119,7 +121,7 @@ class TestCoaddSingleCore(PropercoaddBase, unittest.TestCase):
         self.assertIsInstance(P_r, np.ndarray)
 
 
-class TestCoadd2Core(PropercoaddBase, unittest.TestCase):
+class TestCoadd2Core(PropercoaddBase, ProperImageTestCase):
 
     def setUp(self):
         super(TestCoadd2Core, self).setUp()
@@ -131,7 +133,7 @@ class TestCoadd2Core(PropercoaddBase, unittest.TestCase):
         self.assertIsInstance(P_r, np.ndarray)
 
 
-class TestCoaddMultCore1(PropercoaddBase, unittest.TestCase):
+class TestCoaddMultCore1(PropercoaddBase, ProperImageTestCase):
 
     def setUp(self):
         super(TestCoaddMultCore1, self).setUp()
@@ -145,7 +147,7 @@ class TestCoaddMultCore1(PropercoaddBase, unittest.TestCase):
         np.testing.assert_allclose(P_r.real, P_r2.real, rtol=0.2, atol=0.5)
 
 
-class TestCoaddMultCore2(PropercoaddBase, unittest.TestCase):
+class TestCoaddMultCore2(PropercoaddBase, ProperImageTestCase):
 
     def setUp(self):
         super(TestCoaddMultCore2, self).setUp()
