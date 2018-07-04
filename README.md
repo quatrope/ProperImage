@@ -1,6 +1,7 @@
 # Proper image treatments.
 
 [![Build Status](https://travis-ci.org/toros-astro/ProperImage.svg?branch=master)](https://travis-ci.org/toros-astro/ProperImage)
+[![codecov](https://codecov.io/gh/toros-astro/ProperImage/branch/master/graph/badge.svg)](https://codecov.io/gh/toros-astro/ProperImage)
 [![Documentation Status](https://readthedocs.org/projects/properimage/badge/?version=latest)](http://properimage.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://tldrlegal.com/license/mit-license)
 [![Python 2.7](https://img.shields.io/badge/python-2.7-blue.svg)](https://badge.fury.io/py/feets)
