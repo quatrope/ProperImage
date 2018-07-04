@@ -962,3 +962,5 @@ def chunk_it(seq, num):
         return sorted(out, reverse=True)
     except TypeError:
         return out
+    except ValueError:
+        return out
