@@ -20,4 +20,4 @@ matrix:
           env: TOXENV=coverage
 
 after_succes:
-    - codecov
+    - codecov --token=1f6c7dfe-58e5-4eb2-a97c-d777c58d3195

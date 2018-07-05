@@ -103,6 +103,18 @@ class UtilsBase(ProperImageTestCase):
         S = self.ensemble.calculate_S(n_procs=1)
         self.assertIsInstance(S, np.ndarray)
 
+    def TestCalculateR(self):
+        R = self.ensemble.calculate_R(n_procs=1)
+        self.assertIsInstance(R, np.ndarray)
+
+    def TestCalculateS2Core(self):
+        S = self.ensemble.calculate_S(n_procs=2)
+        self.assertIsInstance(S, np.ndarray)
+
+    def TestCalculateR2Core(self):
+        R = self.ensemble.calculate_R(n_procs=2)
+        self.assertIsInstance(R, np.ndarray)
+
 
 class TestChunkIt(ProperImageTestCase):
 
