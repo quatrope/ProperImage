@@ -46,9 +46,10 @@ import numpy as np
 from astropy.io import fits
 
 from .. import single_image as s
-
 from . import simtools
 from .core import ProperImageTestCase
+
+np.warnings.filterwarnings('ignore')
 
 
 class SingleImageBase(object):

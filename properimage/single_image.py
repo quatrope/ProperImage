@@ -64,7 +64,6 @@ import sep
 
 from . import numpydb as npdb
 from . import utils
-# from .image_stats import ImageStats
 
 try:
     import pyfftw
@@ -892,10 +891,11 @@ class SingleImage(object):
         if not hasattr(self, '_interped'):
             kernel = Box2DKernel(5)  # Gaussian2DKernel(stddev=2.5) #
 
-            crmask, _ = detect_cosmics(np.ascontiguousarray(
-                                           self.bkg_sub_img.filled(-9999)),
-                                       self.bkg_sub_img.mask,
-                                       sigclip=6.)
+            crmask, _ = detect_cosmics(indat=np.ascontiguousarray(
+                                             self.bkg_sub_img.filled(-9999)),
+                                       inmask=self.bkg_sub_img.mask,
+                                       sigclip=6.,
+                                       cleantype='medmask')
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,
                                                   crmask)
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,

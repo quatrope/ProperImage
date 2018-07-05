@@ -41,9 +41,8 @@ from collections import MutableSequence
 import numpy as np
 
 from . import utils
-from .combinator import Combinator
-from .single_image import SingleImage
-from .single_image import chunk_it
+from . import combinator as cm
+from . import single_image as si
 
 
 try:
@@ -127,10 +126,10 @@ class ImageEnsemble(MutableSequence):
 
         """
         if not hasattr(self, '_atoms'):
-            self._atoms = [SingleImage(im[0], mask=im[1])
+            self._atoms = [si.SingleImage(im[0], mask=im[1])
                            for im in self.imglist]
         elif len(self._atoms) is not len(self.imglist):
-            self._atoms = [SingleImage(im[0], mask=im[1])
+            self._atoms = [si.SingleImage(im[0], mask=im[1])
                            for im in self.imglist]
         return self._atoms
 
@@ -171,10 +170,10 @@ class ImageEnsemble(MutableSequence):
         """
         queues = []
         procs = []
-        for chunk in chunk_it(self.atoms, n_procs):
+        for chunk in si.chunk_it(self.atoms, n_procs):
             queue = Queue()
-            proc = Combinator(chunk, queue, shape=self.global_shape,
-                              stack=True, fourier=False)
+            proc = cm.Combinator(chunk, queue, shape=self.global_shape,
+                                 stack=True, fourier=False)
             print('starting new process')
             proc.start()
 
@@ -221,9 +220,9 @@ class ImageEnsemble(MutableSequence):
         """
         queues = []
         procs = []
-        for chunk in chunk_it(self.atoms, n_procs):
+        for chunk in si.chunk_it(self.atoms, n_procs):
             queue = Queue()
-            proc = Combinator(chunk, queue, fourier=True, stack=False)
+            proc = cm.Combinator(chunk, queue, fourier=True, stack=False)
             print('starting new process')
             proc.start()
 
