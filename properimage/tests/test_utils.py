@@ -42,7 +42,7 @@ import numpy as np
 from .core import ProperImageTestCase
 
 from .. import single_image as si
-# from properimage import utils
+from .. import utils
 
 
 class UtilsBase(object):

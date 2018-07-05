@@ -3,6 +3,7 @@ language: python
 sudo: false
 install:
   - pip install tox
+  - pip install codecov
 script:
   - tox -r
 matrix:
@@ -17,3 +18,6 @@ matrix:
           env: TOXENV=style
         - python: 3.6
           env: TOXENV=coverage
+
+after_succes:
+    - codecov
