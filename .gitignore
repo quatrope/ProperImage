@@ -86,6 +86,7 @@ coverage.xml
 swarp.xml
 default.swarp
 profile*
+*.ipynb_checkpoints*
 
 # Fits files
 *.fits
