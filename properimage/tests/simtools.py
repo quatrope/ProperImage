@@ -35,6 +35,7 @@ Cordoba - Argentina
 Of 301
 """
 
+import os
 from functools import reduce
 import numpy as np
 
@@ -45,6 +46,8 @@ from scipy import stats
 
 # from astropy.convolution import convolve_fft
 from astropy.modeling import models
+from astropy.io import fits
+from astropy.time import Time
 
 
 def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
@@ -273,6 +276,40 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
     bias = 100.
     F = C + image + bias
     return(F)
+
+
+def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
+    """
+    funcion que encapsula las imagenes generadas en fits
+    gal        :   Imagen (matriz) a encapsular
+    t          :   Tiempo en dias julianos de esta imagen
+    t_exp      :   Tiempo de exposicion de la imagen
+    i          :   Numero de imagen
+    zero       :   Punto cero de la fotometria
+    """
+    if round_int:
+        gal = gal.astype(int)
+
+    file1 = fits.PrimaryHDU(gal)
+    hdulist = fits.HDUList([file1])
+    hdr = hdulist[0].header
+    if t.__class__.__name__ == 'Time':
+        dia = t.iso[0:10]
+        hora = t.iso[11:24]
+        jd = t.jd
+    else:
+        time = Time(t, format='jd', scale='utc')
+        dia = time.iso[0:10]
+        hora = time.iso[11:24]
+        jd = time.jd
+    hdr.set('TIME-OBS', hora)
+    hdr.set('DATE-OBS', dia)
+    hdr.set('EXPTIME', t_exp)
+    hdr.set('JD', jd)
+    hdr.set('ZERO_P', zero)
+    path_fits = os.path.join(path, ('image00'+str(i)+'.fits'))
+    hdulist.writeto(path_fits, clobber=True)
+    return path_fits
 
 
 def sim_varpsf(nstars, SN=3., thetas=[0, 45, 105, 150], N=512):

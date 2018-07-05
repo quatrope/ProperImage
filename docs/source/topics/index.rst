@@ -9,6 +9,6 @@ Contents:
 .. toctree::
     :maxdepth: 1
 
-    PSF.rst
-    Fourier.rst
-    PhotometricCalibration.rst
+    PSF.ipynb
+    Fourier.ipynb
+    PhotometricCalibration.ipynb

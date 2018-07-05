@@ -93,10 +93,6 @@ def encapsule_R(R, path=None, header=None):
         return hdu
 
 
-def sim_ref_new(x, y, SN=2.):
-    pass
-
-
 def matching(master, cat, masteridskey=None,
              angular=False, radius=1.5, masked=False):
     """Function to match stars between frames.

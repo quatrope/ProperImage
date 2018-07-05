@@ -37,16 +37,53 @@ Cordoba - Argentina
 Of 301
 """
 
+import os
 import numpy as np
+import tempfile
+from astropy.time import Time
 
 from .core import ProperImageTestCase
 
+from . import simtools as sm
 from .. import single_image as si
 from .. import utils
 
 
 class UtilsBase(object):
-    pass
+
+    def setUp(self):
+        print('setting up')
+        self.tempdir = tempfile.mkdtemp()
+
+        now = '2018-05-17T00:00:00.1234567'
+        t = Time(now)
+
+        N = 1024
+        SN = 15.
+        theta = 0
+        xfwhm = 4
+        yfwhm = 3
+        weights = np.random.random(100)*20000 + 10
+
+        zero = 10  #for zero in [5, 10, 25]:
+        filenames = []
+        x = np.random.randint(low=30, high=900, size=100)
+        y = np.random.randint(low=30, high=900, size=100)
+
+        xy = [(x[i], y[i]) for i in range(100)]
+        m = sm.delta_point(N, center=False, xy=xy, weights=weights)
+
+        img_dir = os.path.join(self.tempdir, 'zp={}'.format(zero))
+
+        for i in range(50):
+            im = sm.image(m, N, t_exp=2*i+1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
+                          theta=theta, SN=SN, bkg_pdf='gaussian')
+            filenames.append(sm.capsule_corp(im, t, t_exp=i+1, i=i,
+                            zero=zero+i, path=img_dir))
+
+        self.filenames = filenames
+
+
 
 
 class TestChunkIt(ProperImageTestCase):
