@@ -16,11 +16,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
 
-
+ON_RTD = os.environ.get('READTHEDOCS', None) == 'True'
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -201,3 +201,22 @@ epub_copyright = copyright
 epub_exclude_files = ['search.html']
 
 
+import subs
+
+if not ON_RTD:  # only import and set the theme if we're building docs locally
+    import sphinx_rtd_theme
+    html_theme = 'sphinx_rtd_theme'
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+else:
+    from mock import Mock as MagicMock
+    class Mock(MagicMock):
+        @classmethod
+        def __getattr__(cls, name):
+                return Mock()
+    sys.modules.update((mod_name, Mock()) for mod_name in subs.MOCK_MODULES)
+
+
+rst_epilog = "\n".join(
+    [".. _{}: {}".format(k, v) for k, v in subs.TARGETS.items()]
+    #~ [".. |{}| replace:: {}".format(k, v) for k, v in subs.SUBSTITUTIONS.items()]
+)
