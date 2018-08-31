@@ -108,7 +108,7 @@ class SingleImage(object):
 
     def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None,
                  borders=True, crop=((0, 0), (0, 0)), min_sources=None,
-                 strict_star_pick=False):
+                 strict_star_pick=False, smooth_psf=True):
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
         self._strict_star_pick = strict_star_pick  # pick stars VERY carefully?
@@ -124,6 +124,7 @@ class SingleImage(object):
         self._bkg = maskthresh
         self.stamp_shape = stamp_shape
         self.inf_loss = 0.2
+        self._smooth_autopsf = smooth_psf
         self.dbname = os.path.abspath('._'+str(id(self))+'SingleImage')
 
     def __enter__(self):
@@ -664,6 +665,13 @@ class SingleImage(object):
                     psf_basis.append(base)
                     del(base)
             psf_basis.reverse()
+            if self._smooth_autopsf:
+                from skimage import filters
+                new_psfs = []
+                for a_psf in psf_basis:
+                    new_psfs.append(filters.gaussian(a_psf, sigma=1.5,
+                                                     preserve_range=True))
+                psf_basis = new_psfs
             self._kl_basis = psf_basis
 
     @property

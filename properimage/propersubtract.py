@@ -60,17 +60,17 @@ aa.PIXEL_TOL = 0.5
 eps = np.finfo(np.float64).eps
 
 
-def diff(ref, new, align=False, inf_loss=0.25,
-         beta=True, shift=True, iterative=False):
+def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
+         beta=True, shift=True, iterative=False, fitted_psf=True):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
     """
 
     if not isinstance(ref, s.SingleImage):
-        ref = s.SingleImage(ref)
+        ref = s.SingleImage(ref, smooth_psf=smooth_psf)
 
     if not isinstance(new, s.SingleImage):
-        new = s.SingleImage(new)
+        new = s.SingleImage(new, smooth_psf=smooth_psf)
 
     if align:
         registered = aa.register(new.pixeldata, ref.pixeldata)
@@ -102,36 +102,61 @@ def diff(ref, new, align=False, inf_loss=0.25,
     a_ref, psf_ref = ref.get_variable_psf(inf_loss)
     a_new, psf_new = new.get_variable_psf(inf_loss)
 
-    # Fit a gaussian 2D
-    from astropy.modeling import fitting, models
+    if fitted_psf:
+        # Fit a gaussian 2D
+        from astropy.modeling import fitting, models
 
-    def fit_gaussian2d(b):
+        def fit_gaussian2d(b):
 
-        fitter = fitting.LevMarLSQFitter()
+            fitter = fitting.LevMarLSQFitter()
 
-        y2, x2 = np.mgrid[:b.shape[0], :b.shape[1]]
-        ampl = b.max()-b.min()
-        p = models.Gaussian2D(x_mean=b.shape[1]/2., y_mean=b.shape[0]/2.,
-                              x_stddev=1., y_stddev=1.,
-                              theta=np.pi/4.,
-                              amplitude=ampl)
+            y2, x2 = np.mgrid[:b.shape[0], :b.shape[1]]
+            ampl = b.max()-b.min()
+            p = models.Gaussian2D(x_mean=b.shape[1]/2., y_mean=b.shape[0]/2.,
+                                  x_stddev=1., y_stddev=1.,
+                                  theta=np.pi/4.,
+                                  amplitude=ampl)
 
-        p += models.Const2D(amplitude=b.min())
-        out = fitter(p, x2, y2, b, maxiter=5000)
-        return out
+            p += models.Const2D(amplitude=b.min())
+            out = fitter(p, x2, y2, b, maxiter=1000)
+            return out
 
-    psf_fitted_ref = fit_gaussian2d(psf_ref[0])[0].render()
-    psf_fitted_new = fit_gaussian2d(psf_new[0])[0].render()
+        p_r = fit_gaussian2d(psf_ref[0])[0]
+        # p_r.bounding_box = ((p_r.y_mean-10*p_r.y_stddev,
+                             # p_r.y_mean+10*p_r.y_stddev),
+                            # (p_r.x_mean-10*p_r.x_stddev,
+                             # p_r.x_mean+10*p_r.x_stddev))
+        psf_fitted_ref = p_r.render()
 
-    dx_ref, dy_ref = center_of_mass(psf_fitted_ref)  # [0])
-    dx_new, dy_new = center_of_mass(psf_fitted_new)  # [0])
-    # print(dx_new, dy_new)
-    if dx_new < 0. or dy_new < 0.:
-        import ipdb
-        ipdb.set_trace()
+        p_n = fit_gaussian2d(psf_new[0])[0]
+        # p_n.bounding_box = ((p_n.y_mean-10*p_n.y_stddev,
+                             # p_n.y_mean+10*p_n.y_stddev),
+                            # (p_n.x_mean-10*p_n.x_stddev,
+                             # p_n.x_mean+10*p_n.x_stddev))
+        psf_fitted_new = p_n.render()
 
-    psf_ref_hat = _fftwn(psf_fitted_ref, s=ref.pixeldata.shape, norm='ortho')
-    psf_new_hat = _fftwn(psf_fitted_new, s=new.pixeldata.shape, norm='ortho')
+        dx_ref, dy_ref = center_of_mass(psf_fitted_ref)  # [0])
+        dx_new, dy_new = center_of_mass(psf_fitted_new)  # [0])
+        # print(dx_new, dy_new)
+        if dx_new < 0. or dy_new < 0.:
+            import ipdb
+            ipdb.set_trace()
+        p_r = psf_fitted_ref
+        p_n = psf_fitted_new
+    else:
+        p_r = psf_ref[0]
+        p_n = psf_new[0]
+
+        dx_ref, dy_ref = center_of_mass(p_r)  # [0])
+        dx_new, dy_new = center_of_mass(p_n)  # [0])
+        # print(dx_new, dy_new)
+        if dx_new < 0. or dy_new < 0.:
+            import ipdb
+            ipdb.set_trace()
+
+
+    psf_ref_hat = _fftwn(p_r, s=ref.pixeldata.shape, norm='ortho')
+    psf_new_hat = _fftwn(p_n, s=new.pixeldata.shape, norm='ortho')
 
     psf_ref_hat[np.where(psf_ref_hat.real == 0)] = eps
     psf_new_hat[np.where(psf_new_hat.real == 0)] = eps
@@ -328,7 +353,7 @@ def diff(ref, new, align=False, inf_loss=0.25,
     S_corr = _ifftwn(S_hat, norm='ortho')/np.sqrt(V_en + V_er)
     print('S_corr sigma_clipped_stats ')
     print(('mean = {}, median = {}, std = {}\n'.format(*sigma_clipped_stats(
-        S_corr.real.flatten(), sigma=200))))
+        S_corr.real.flatten(), sigma=6.))))
     print(('Subtraction performed in {} seconds\n\n'.format(time.time()-t0)))
 
     # import ipdb; ipdb.set_trace()
