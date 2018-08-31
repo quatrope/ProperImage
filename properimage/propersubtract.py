@@ -67,10 +67,16 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     """
 
     if not isinstance(ref, s.SingleImage):
-        ref = s.SingleImage(ref, smooth_psf=smooth_psf)
+        try:
+            ref = s.SingleImage(ref, smooth_psf=smooth_psf)
+        except ValueError:
+            raise
 
     if not isinstance(new, s.SingleImage):
-        new = s.SingleImage(new, smooth_psf=smooth_psf)
+        try:
+            new = s.SingleImage(new, smooth_psf=smooth_psf)
+        except:
+            raise
 
     if align:
         registered = aa.register(new.pixeldata, ref.pixeldata)
