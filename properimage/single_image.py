@@ -411,6 +411,12 @@ class SingleImage(object):
             best_srcs = srcs[best_big & best_flag & best_small &
                              hig_flux & low_flux]
 
+            if len(best_srcs) == 0:
+                print('Best sources are too few- Using everything we have!')
+                best_srcs = srcs
+                #raise ValueError('Few sources detected on image')
+
+
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
                 best_srcs = best_srcs[jj]
