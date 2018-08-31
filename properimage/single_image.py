@@ -403,6 +403,8 @@ class SingleImage(object):
                     raise ValueError('Image is constant, possible saturated')
                 if m >= 65535.:
                     raise ValueError('Image is saturated')
+                else:
+                    raise ValueError('only one sources. Possible saturation')
 
             p_sizes = np.percentile(srcs['npix'], q=[20, 50, 80])
 
