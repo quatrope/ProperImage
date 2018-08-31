@@ -49,7 +49,7 @@ from scipy.ndimage import center_of_mass
 
 from astropy.io import fits
 # from astropy.stats import sigma_clip
-# from astropy.stats import sigma_clipped_stats
+from astropy.stats import sigma_clipped_stats
 
 from astropy.modeling import fitting
 from astropy.modeling import models
@@ -397,6 +397,12 @@ class SingleImage(object):
 
             if len(srcs) == 0:
                 raise ValueError('Few sources detected on image')
+            elif len(srcs) == 1:
+                m, med, st = sigma_clipped_stats(self.bkg_sub_img.data.flatten())
+                if st <= 0.1:
+                    raise ValueError('Image is constant, possible saturated')
+                if m >= 65535.:
+                    raise ValueError('Image is saturated')
 
             p_sizes = np.percentile(srcs['npix'], q=[20, 50, 80])
 
