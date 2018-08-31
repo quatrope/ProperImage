@@ -589,12 +589,12 @@ class SingleImage(object):
                 self._m = m
             else:
                 for i in range(self.n_sources):
+                    psfi_render = self.db.load(i)[0].flatten()
                     for j in range(self.n_sources):
                         if i <= j:
-                            psfi_render = self.db.load(i)[0]
                             psfj_render = self.db.load(j)[0]
 
-                            inner = np.vdot(psfi_render.flatten(),
+                            inner = np.vdot(psfi_render,  #.flatten(),
                                             psfj_render.flatten())
                             if inner is np.nan:
                                 import ipdb
