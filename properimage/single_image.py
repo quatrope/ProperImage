@@ -287,10 +287,12 @@ class SingleImage(object):
                 except IOError:
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
         else:
-            self.__pixeldata = ma.masked_greater(self.__pixeldata, 48000.)
+            masked = ma.masked_greater(self.__pixeldata, 65000.)
+            if not np.sum(~masked.mask) <1000.:
+                self.__pixeldata = masked
 
         mask_lower = ma.masked_less(self.__pixeldata, -50.)
-        mask_greater = ma.masked_greater(self.__pixeldata, 48000.)
+        mask_greater = ma.masked_greater(self.__pixeldata, 65000.)
 
         self.__pixeldata.mask = ma.mask_or(self.__pixeldata.mask,
                                            mask_lower.mask)
@@ -404,6 +406,7 @@ class SingleImage(object):
                 if m >= 65535.:
                     raise ValueError('Image is saturated')
                 else:
+                    import ipdb; ipdb.set_trace()
                     raise ValueError('only one sources. Possible saturation')
 
             p_sizes = np.percentile(srcs['npix'], q=[20, 50, 80])

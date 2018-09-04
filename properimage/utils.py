@@ -60,7 +60,7 @@ aa.MIN_MATCHES_FRACTION = 0.6
 def encapsule_S(S, path=None):
     if isinstance(S, np.ma.core.MaskedArray):
         mask = S.mask.astype('int')
-        data = S.data
+        data = S.data.astype('float16')
         hdu_data = fits.PrimaryHDU(data)
         hdu_mask = fits.ImageHDU(mask, uint='uint8')
         hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
@@ -78,7 +78,7 @@ def encapsule_R(R, path=None, header=None):
         R = R.real
     if isinstance(R, np.ma.core.MaskedArray):
         mask = R.mask.astype('int')
-        data = R.data
+        data = R.data.astype('float16')
         hdu_data = fits.PrimaryHDU(data)
         hdu_mask = fits.ImageHDU(mask, uint='uint8')
         hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
