@@ -334,8 +334,9 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
         D_hat = (D_hat_n - fourier_shift(b*D_hat_r, (dx, dy)))/np.sqrt(norm)
     D = _ifftwn(D_hat, norm='ortho')
     if np.any(np.isnan(D.real)):
-        import ipdb
-        ipdb.set_trace()
+        #import ipdb
+        #ipdb.set_trace()
+        pass
     d_zp = new.zp/np.sqrt(ref.var**2 * b**2 + new.var**2)
     P_hat = (psf_ref_hat * psf_new_hat * b)/(np.sqrt(norm)*d_zp)
 
