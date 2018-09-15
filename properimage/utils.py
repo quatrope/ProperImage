@@ -60,8 +60,9 @@ aa.MIN_MATCHES_FRACTION = 0.6
 def encapsule_S(S, path=None):
     if isinstance(S, np.ma.core.MaskedArray):
         mask = S.mask.astype('int')
-        data = S.data.astype('float16')
+        data = S.data
         hdu_data = fits.PrimaryHDU(data)
+        hdu_data.scale(type='float32')
         hdu_mask = fits.ImageHDU(mask, uint='uint8')
         hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
         hdu = fits.HDUList([hdu_data, hdu_mask])
@@ -78,8 +79,9 @@ def encapsule_R(R, path=None, header=None):
         R = R.real
     if isinstance(R, np.ma.core.MaskedArray):
         mask = R.mask.astype('int')
-        data = R.data.astype('float16')
-        hdu_data = fits.PrimaryHDU(data)
+        data = R.data
+        hdu_data = fits.PrimaryHDU(data, uint='int16')
+        hdu_data.scale(type='int16')
         hdu_mask = fits.ImageHDU(mask, uint='uint8')
         hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
         hdu = fits.HDUList([hdu_data, hdu_mask])
@@ -145,8 +147,8 @@ def matching(master, cat, masteridskey=None,
                 if ind_s == i:
                     IDs[i] = master[idkey][ind_o]
 
-    print((len(IDs), len(ind_), len(ind)))
-    print(("Matching result::  IDs > 0. => {}".format(sum(IDs > 0))))
+    # print((len(IDs), len(ind_), len(ind)))
+    # print(("Matching result::  IDs > 0. => {}".format(sum(IDs > 0))))
     if masked:
         mask = IDs > 0
         return(IDs, mask)
@@ -215,7 +217,7 @@ def transparency(images, master=None):
         # print mastercat['detected']
         master.update_sources(mastercat)
 
-        print("p={}, q={}".format(p, q))
+        # print("p={}, q={}".format(p, q))
         ident = sparse.identity(q)
         col = np.repeat(1., q)
         sparses = []

@@ -309,8 +309,8 @@ class SingleImage(object):
         numpy.array 2D
             a background estimation image is returned
         """
-        print("Background level = {}, rms = {}".format(self.__bkg.globalback,
-                                                       self.__bkg.globalrms))
+        # print("Background level = {}, rms = {}".format(self.__bkg.globalback,
+        #                                                self.__bkg.globalrms))
         return self.__bkg.back()
 
     @property
@@ -355,7 +355,7 @@ class SingleImage(object):
                     shape = (dx, dx)
                 else:
                     shape = (5, 5)
-                print(('stamps will be {} x {}'.format(*shape)))
+                # print(('stamps will be {} x {}'.format(*shape)))
         self.__stamp_shape = shape
 
     @property
@@ -382,8 +382,8 @@ class SingleImage(object):
                 except Exception:
                     raise
             if len(srcs) < self.min_sources:
-                print("""found {} sources, looking for at least {}.
-                       Trying again""".format(len(srcs), self.min_sources))
+                # print("""found {} sources, looking for at least {}.
+                #        Trying again""".format(len(srcs), self.min_sources))
                 old_srcs = srcs
                 try:
                     srcs = sep.extract(self.bkg_sub_img.data,
@@ -423,7 +423,7 @@ class SingleImage(object):
                              hig_flux & low_flux]
 
             if len(best_srcs) == 0:
-                print('Best sources are too few- Using everything we have!')
+                # print('Best sources are too few- Using everything we have!')
                 best_srcs = srcs
                 #raise ValueError('Few sources detected on image')
 
@@ -432,7 +432,7 @@ class SingleImage(object):
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
                 best_srcs = best_srcs[jj]
 
-            print(('Sources found = {}'.format(len(best_srcs))))
+            # print(('Sources found = {}'.format(len(best_srcs))))
             self._best_sources = best_srcs
 
         return self._best_sources
@@ -926,7 +926,7 @@ class SingleImage(object):
             self.bkg_sub_img.mask = np.ma.mask_or(self.bkg_sub_img.mask,
                                                   np.isnan(self.bkg_sub_img))
 
-            print(('Masked pixels: ', np.sum(self.bkg_sub_img.mask)))
+            # print(('Masked pixels: ', np.sum(self.bkg_sub_img.mask)))
             img = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img, kernel)
 
@@ -961,7 +961,7 @@ class SingleImage(object):
     def p_sqnorm(self):
         phat = self.psf_hat_sqnorm()
         p = _ifftwn(phat, norm='ortho')
-        print(np.sum(p))
+        # print(np.sum(p))
         return _ifftwn(fourier_shift(phat, (self.stamp_shape[0]/2,
                                             self.stamp_shape[1]/2)),
                        norm='ortho')
