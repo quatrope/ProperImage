@@ -52,9 +52,11 @@ try:
     import pyfftw
     _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
     _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
+    print('using pyfftw interfaces API')
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
+    print('using numpy fft API')
 
 aa.PIXEL_TOL = 0.5
 eps = np.finfo(np.float64).eps
@@ -129,16 +131,16 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
 
         p_r = fit_gaussian2d(psf_ref[0])[0]
         # p_r.bounding_box = ((p_r.y_mean-10*p_r.y_stddev,
-                             # p_r.y_mean+10*p_r.y_stddev),
-                            # (p_r.x_mean-10*p_r.x_stddev,
-                             # p_r.x_mean+10*p_r.x_stddev))
+        # p_r.y_mean+10*p_r.y_stddev),
+        # (p_r.x_mean-10*p_r.x_stddev,
+        # p_r.x_mean+10*p_r.x_stddev))
         psf_fitted_ref = p_r.render()
 
         p_n = fit_gaussian2d(psf_new[0])[0]
         # p_n.bounding_box = ((p_n.y_mean-10*p_n.y_stddev,
-                             # p_n.y_mean+10*p_n.y_stddev),
-                            # (p_n.x_mean-10*p_n.x_stddev,
-                             # p_n.x_mean+10*p_n.x_stddev))
+        # p_n.y_mean+10*p_n.y_stddev),
+        # (p_n.x_mean-10*p_n.x_stddev,
+        # p_n.x_mean+10*p_n.x_stddev))
         psf_fitted_new = p_n.render()
 
         dx_ref, dy_ref = center_of_mass(psf_fitted_ref)  # [0])
@@ -159,7 +161,6 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
         if dx_new < 0. or dy_new < 0.:
             import ipdb
             ipdb.set_trace()
-
 
     psf_ref_hat = _fftwn(p_r, s=ref.pixeldata.shape, norm='ortho')
     psf_new_hat = _fftwn(p_n, s=new.pixeldata.shape, norm='ortho')
@@ -332,11 +333,11 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
         D_hat = (D_hat_n - b * D_hat_r)/np.sqrt(norm)
     else:
         D_hat = (D_hat_n - fourier_shift(b*D_hat_r, (dx, dy)))/np.sqrt(norm)
+
     D = _ifftwn(D_hat, norm='ortho')
     if np.any(np.isnan(D.real)):
-        #import ipdb
-        #ipdb.set_trace()
         pass
+
     d_zp = new.zp/np.sqrt(ref.var**2 * b**2 + new.var**2)
     P_hat = (psf_ref_hat * psf_new_hat * b)/(np.sqrt(norm)*d_zp)
 

@@ -240,7 +240,7 @@ class SingleImageBase(object):
     def testPsfBasisNorm(self):
         afields, psfs = self.si.get_variable_psf()
         for apsf in psfs:
-            np.testing.assert_approx_equal(1., np.sum(apsf), significant=4)
+            np.testing.assert_approx_equal(1., np.sum(apsf), significant=2)
 
 
 class TestNpArray(SingleImageBase, ProperImageTestCase):

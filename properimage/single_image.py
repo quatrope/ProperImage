@@ -398,7 +398,7 @@ class SingleImage(object):
             if len(srcs) == 0:
                 raise ValueError('Few sources detected on image')
             elif len(srcs) == 1:
-                m, med, st = sigma_clipped_stats(self.bkg_sub_img.data.flatten())
+                m, med, st = sigma_clipped_stats(self.bkg_sub_img.data.flatten())  # noqa
                 if st <= 0.1:
                     raise ValueError('Image is constant, possible saturated')
                 if m >= 65535.:
@@ -422,8 +422,7 @@ class SingleImage(object):
             if len(best_srcs) == 0:
                 print('Best sources are too few- Using everything we have!')
                 best_srcs = srcs
-                #raise ValueError('Few sources detected on image')
-
+                # raise ValueError('Few sources detected on image')
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
@@ -608,7 +607,7 @@ class SingleImage(object):
                         if i <= j:
                             psfj_render = self.db.load(j)[0]
 
-                            inner = np.vdot(psfi_render,  #.flatten(),
+                            inner = np.vdot(psfi_render,  # .flatten(),
                                             psfj_render.flatten())
                             if inner is np.nan:
                                 import ipdb
