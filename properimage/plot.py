@@ -66,8 +66,10 @@ try:
     plt.rc('font', **font)
     plt.rc('text', **text)
 
-    def plot_psfbasis(psf_basis, path=None, nbook=False, size=4, **kwargs):
+    def plot_psfbasis(psf_basis, path=None, nbook=False,
+                      size=4, iso=False, **kwargs):
         # psf_basis.reverse()
+        xsh, ysh = psf_basis[1].shape
         N = len(psf_basis)
         p = primes(N)
         if N == 2:
@@ -87,6 +89,9 @@ try:
             plt.title(r'$\sum p_{j:d} = {sum:4.3e}$'.format(**labels))
             # , interpolation='linear')
             plt.colorbar(shrink=0.85)
+            if iso:
+                plt.contour(np.arange(xsh), np.arange(ysh),
+                            psf_basis[i], colors='red', alpha=0.4)
         plt.tight_layout()
         if path is not None:
             plt.savefig(path)
