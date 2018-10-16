@@ -45,7 +45,7 @@ from astropy.stats import sigma_clipped_stats
 import astroalign as aa
 import sep
 import time
-from . import single_image as s
+#  from .single_image import SingleImage as SI
 from . import utils as u
 
 try:
@@ -67,26 +67,40 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
     """
-
-    if not isinstance(ref, s.SingleImage):
+    if fitted_psf:
         try:
-            ref = s.SingleImage(ref, smooth_psf=smooth_psf)
-        except ValueError:
-            raise
+            from .single_image_psfs import SingleImageGaussPSF as SI
+            print('using single psf, gaussian modeled')
+        except ImportError:
+            from .single_image import SingleImage as SI
+    else:
+        from .single_image import SingleImage as SI
 
-    if not isinstance(new, s.SingleImage):
+    if not isinstance(ref, SI):
         try:
-            new = s.SingleImage(new, smooth_psf=smooth_psf)
-        except:
-            raise
+            ref = SI(ref, smooth_psf=smooth_psf)
+        except: # noqa
+            try:
+                ref = SI(ref.pixeldata, smooth_psf=smooth_psf)
+            except:  # noqa
+                raise
+
+    if not isinstance(new, SI):
+        try:
+            new = SI(new, smooth_psf=smooth_psf)
+        except:  # noqa
+            try:
+                new = SI(new.pixeldata, smooth_psf=smooth_psf)
+            except:  # noqa
+                raise
 
     if align:
         registered = aa.register(new.pixeldata, ref.pixeldata)
         new._clean()
         registered = registered[:ref.pixeldata.shape[0],
                                 :ref.pixeldata.shape[1]]
-        new = s.SingleImage(registered.data, mask=registered.mask,
-                            borders=False)
+        new = SI(registered.data, mask=registered.mask,
+                 borders=False, smooth_psf=smooth_psf)
         # new.pixeldata = registered
         # new.pixeldata.mask = registered.mask
 
@@ -111,46 +125,26 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     a_new, psf_new = new.get_variable_psf(inf_loss)
 
     if fitted_psf:
-        # Fit a gaussian 2D
-        from astropy.modeling import fitting, models
+        #  I already know that a_ref and a_new are None, both of them
+        #  And each psf is a list, first element a render,
+        #  second element a model
 
-        def fit_gaussian2d(b):
+        p_r = psf_ref[1]
+        p_n = psf_new[1]
 
-            fitter = fitting.LevMarLSQFitter()
+        p_r.x_mean = ref.pixeldata.data.shape[0]/2.
+        p_r.y_mean = ref.pixeldata.data.shape[1]/2.
+        p_n.x_mean = new.pixeldata.data.shape[0]/2.
+        p_n.y_mean = new.pixeldata.data.shape[1]/2.
+        p_r.bounding_box = None
+        p_n.bounding_box = None
 
-            y2, x2 = np.mgrid[:b.shape[0], :b.shape[1]]
-            ampl = b.max()-b.min()
-            p = models.Gaussian2D(x_mean=b.shape[1]/2., y_mean=b.shape[0]/2.,
-                                  x_stddev=1., y_stddev=1.,
-                                  theta=np.pi/4.,
-                                  amplitude=ampl)
+        p_n = p_n.render(np.zeros(new.pixeldata.data.shape))
+        p_r = p_r.render(np.zeros(ref.pixeldata.data.shape))
+        #  import ipdb; ipdb.set_trace()
 
-            p += models.Const2D(amplitude=b.min())
-            out = fitter(p, x2, y2, b, maxiter=1000)
-            return out
-
-        p_r = fit_gaussian2d(psf_ref[0])[0]
-        # p_r.bounding_box = ((p_r.y_mean-10*p_r.y_stddev,
-        # p_r.y_mean+10*p_r.y_stddev),
-        # (p_r.x_mean-10*p_r.x_stddev,
-        # p_r.x_mean+10*p_r.x_stddev))
-        psf_fitted_ref = p_r.render()
-
-        p_n = fit_gaussian2d(psf_new[0])[0]
-        # p_n.bounding_box = ((p_n.y_mean-10*p_n.y_stddev,
-        # p_n.y_mean+10*p_n.y_stddev),
-        # (p_n.x_mean-10*p_n.x_stddev,
-        # p_n.x_mean+10*p_n.x_stddev))
-        psf_fitted_new = p_n.render()
-
-        dx_ref, dy_ref = center_of_mass(psf_fitted_ref)  # [0])
-        dx_new, dy_new = center_of_mass(psf_fitted_new)  # [0])
-        # print(dx_new, dy_new)
-        if dx_new < 0. or dy_new < 0.:
-            import ipdb
-            ipdb.set_trace()
-        p_r = psf_fitted_ref
-        p_n = psf_fitted_new
+        dx_ref, dy_ref = center_of_mass(p_r)  # [0])
+        dx_new, dy_new = center_of_mass(p_n)  # [0])
     else:
         p_r = psf_ref[0]
         p_n = psf_new[0]

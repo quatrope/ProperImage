@@ -147,3 +147,12 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
         self.assertIsInstance(mix_mask, np.ndarray)
+
+    def testSubtractNoFitPSF(self):
+        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
+                                         beta=True, iterative=False,
+                                         shift=False, fitted_psf=False)
+        self.assertIsInstance(D, np.ndarray)
+        self.assertIsInstance(P, np.ndarray)
+        self.assertIsInstance(S_corr, np.ndarray)
+        self.assertIsInstance(mix_mask, np.ndarray)

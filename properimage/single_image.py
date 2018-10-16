@@ -870,7 +870,7 @@ class SingleImage(object):
             nrm = self.normal_image
             dx, dy = center_of_mass(psf_basis[0])
 
-            if len(psf_basis) == 1:
+            if a_fields[0] is None:
                 s_hat = self.interped_hat * \
                           _fftwn(psf_basis[0],
                                  s=self.pixeldata.shape,
@@ -943,7 +943,8 @@ class SingleImage(object):
 
     def psf_hat_sqnorm(self):
         psf_basis = self.kl_basis
-        if len(psf_basis) == 1:
+        a_fields = self.kl_afields
+        if a_fields is None:
             p_hat = _fftwn(psf_basis[0], s=self.pixeldata.shape, norm='ortho')
             p_hat_sqnorm = p_hat * p_hat.conj()
         else:
