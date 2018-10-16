@@ -53,7 +53,7 @@ from astropy.stats import sigma_clipped_stats
 
 from astropy.modeling import fitting
 from astropy.modeling import models
-from astropy.convolution import convolve  # _fft, convolve
+from astropy.convolution import convolve_fft, convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.convolution import Box2DKernel
 # from astropy.convolution import Gaussian2DKernel
@@ -72,6 +72,9 @@ try:
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
+
+def conv(*arg, **kwargs):
+    return(convolve_fft(fftn=_fftwn, ifftn=_ifftwn, *arg, **kwargs))
 
 
 class Bunch(dict):
@@ -810,7 +813,7 @@ class SingleImage(object):
 
             if a_fields[0] is None:
                 a = np.ones_like(self.pixeldata.data)
-                self._normal_image = convolve(a, psf_basis[0])
+                self._normal_image = convolve_fft(a, psf_basis[0])
 
             else:
                 x, y = self.get_afield_domain()
@@ -925,10 +928,11 @@ class SingleImage(object):
 
             print(('Masked pixels: ', np.sum(self.bkg_sub_img.mask)))
             img = self.bkg_sub_img.filled(np.nan)
-            img_interp = interpolate_replace_nans(img, kernel)
+            img_interp = interpolate_replace_nans(img, kernel, convolve=conv)
 
             while np.any(np.isnan(img_interp)):
-                img_interp = interpolate_replace_nans(img_interp, kernel)
+                img_interp = interpolate_replace_nans(img_interp, kernel,
+                    convolve=conv)
             # clipped = sigma_clip(self.bkg_sub_img,
                 # iters=5, sigma_upper=40).filled(np.nan)
             # img_interp = interpolate_replace_nans(img_interp, kernel)

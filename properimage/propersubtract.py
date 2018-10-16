@@ -79,7 +79,7 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     if not isinstance(ref, SI):
         try:
             ref = SI(ref, smooth_psf=smooth_psf)
-        except: # noqa
+        except:  # noqa
             try:
                 ref = SI(ref.pixeldata, smooth_psf=smooth_psf)
             except:  # noqa
@@ -156,6 +156,9 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
             import ipdb
             ipdb.set_trace()
 
+    rad_ref_sq = dx_ref*dx_ref + dy_ref*dy_ref
+    # rad_new_sq = dx_new*dx_new + dy_new*dy_new
+
     psf_ref_hat = _fftwn(p_r, s=ref.pixeldata.shape, norm='ortho')
     psf_new_hat = _fftwn(p_n, s=new.pixeldata.shape, norm='ortho')
 
@@ -191,12 +194,25 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
                             norm='ortho')  # -\
                 # _ifftwn(fourier_shift(_fftwn(gammap), (dx, dy)))
                 cost = np.absolute(cost)
-                flux, _, _ = sep.sum_circle(np.ascontiguousarray(cost),
-                                            ref.best_sources['x'],
-                                            ref.best_sources['y'],
-                                            0.5*np.sqrt(dx_ref**2 + dy_ref**2))
-                mean_flux = np.mean(flux/(np.pi*(dx_ref**2 + dy_ref**2)))
-                return np.absolute(mean_flux)
+
+                # flux, _, _ = sep.sum_circle(np.ascontiguousarray(cost),
+                # ref.best_sources['x'],
+                # ref.best_sources['y'],
+                # 0.5*np.sqrt(rad_ref_sq))
+                # mean_flux = np.mean(flux/(np.pi*rad_ref_sq))
+
+                # cost =np.absolute(cost*cost.conj())[50:-50, 50:-50].flatten()
+
+                # return sigma_clipped_stats(cost, sigma=9.)[2]
+                # return np.absolute(mean_flux)
+                # return np.std(cost[50:-50, 50:-50].flatten())
+
+                # testing new approach
+                hist, edg = np.histogram(cost)
+                costs = 0
+                costs += np.abs(hist[0]*(edg[1]-edg[0]))
+                costs += np.abs(hist[-1]*(edg[-2]-edg[-1]))
+                return(costs)
 
             tbeta0 = time.time()
             vec0 = [b, 0., 0.]
@@ -237,8 +253,8 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
                 flux, _, _ = sep.sum_circle(np.ascontiguousarray(ab),
                                             ref.best_sources['x'],
                                             ref.best_sources['y'],
-                                            0.5*np.sqrt(dx_ref**2 + dy_ref**2))
-                mean_flux = np.mean(flux/(np.pi*(dx_ref**2 + dy_ref**2)))
+                                            0.5*np.sqrt(rad_ref_sq))
+                mean_flux = np.mean(flux/(np.pi*rad_ref_sq))
                 # ab = ab[(np.percentile(ab, q=97)>ab)*
                 # (ab>np.percentile(ab, q=55))]
                 mean, med, std = sigma_clipped_stats(ab, iters=3, sigma=3.)
@@ -284,16 +300,27 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
                 cost = _ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') - \
                     _ifftwn((D_hat_r/np.sqrt(norm))*b, norm='ortho')  # gammap
                 cost = np.absolute(cost)
-                flux, _, _ = sep.sum_circle(np.ascontiguousarray(cost),
-                                            ref.best_sources['x'],
-                                            ref.best_sources['y'],
-                                            0.5*np.sqrt(dx_ref**2 + dy_ref**2))
-                mean_flux = np.mean(flux/(np.pi*(dx_ref**2 + dy_ref**2)))
+
+                # this is computationally really expensive
+
+                # flux, _, _ = sep.sum_circle(np.ascontiguousarray(cost),
+                # ref.best_sources['x'],
+                # ref.best_sources['y'],
+                # 0.5*np.sqrt(rad_ref_sq))
+                # mean_flux = np.mean(flux/(np.pi*rad_ref_sq))
+
                 # cost =np.absolute(cost*cost.conj())[50:-50, 50:-50].flatten()
 
                 # return sigma_clipped_stats(cost, sigma=9.)[2]
-                return np.absolute(mean_flux)
+                # return np.absolute(mean_flux)
                 # return np.std(cost[50:-50, 50:-50].flatten())
+
+                # testing new approach
+                hist, edg = np.histogram(cost)
+                costs = 0
+                costs += np.abs(hist[0]*(edg[1]-edg[0]))
+                costs += np.abs(hist[-1]*(edg[-2]-edg[-1]))
+                return(costs)
 
             dx = 0
             dy = 0
