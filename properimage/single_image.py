@@ -684,6 +684,7 @@ class SingleImage(object):
                 for a_psf in psf_basis:
                     new_psfs.append(filters.gaussian(a_psf, sigma=1.5,
                                                      preserve_range=True))
+                    new_psfs[-1] = new_psfs[-1]/np.sum(new_psfs[-1])
                 psf_basis = new_psfs
             self._kl_basis = psf_basis
 

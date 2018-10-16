@@ -100,9 +100,9 @@ class SingleImageGaussPSF(si.SingleImage):
 
         """
 
-        def fit_gaussian2d(b):
-
-            fitter = fitting.LevMarLSQFitter()
+        def fit_gaussian2d(b, fitter=None):
+            if fitter is None:
+                fitter = fitting.LevMarLSQFitter()
 
             y2, x2 = np.mgrid[:b.shape[0], :b.shape[1]]
             ampl = b.max()-b.min()
@@ -119,9 +119,10 @@ class SingleImageGaussPSF(si.SingleImage):
         p_yw = []
         p_th = []
         p_am = []
+        fitter = fitting.LevMarLSQFitter()
         for i in range(self.n_sources):
             psfi_render = self.db.load(i)[0]
-            p = fit_gaussian2d(psfi_render)
+            p = fit_gaussian2d(psfi_render, fitter=fitter)
             #  room for p checking
             gaussian = p[0]
             #  back = p[1]
