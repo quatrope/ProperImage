@@ -53,7 +53,8 @@ from astropy.stats import sigma_clipped_stats
 
 from astropy.modeling import fitting
 from astropy.modeling import models
-from astropy.convolution import convolve_fft, convolve
+from astropy.convolution import convolve_fft
+# from astropy.convolution import convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.convolution import Box2DKernel
 # from astropy.convolution import Gaussian2DKernel
@@ -72,6 +73,7 @@ try:
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
+
 
 def conv(*arg, **kwargs):
     return(convolve_fft(fftn=_fftwn, ifftn=_ifftwn, *arg, **kwargs))
@@ -932,7 +934,7 @@ class SingleImage(object):
 
             while np.any(np.isnan(img_interp)):
                 img_interp = interpolate_replace_nans(img_interp, kernel,
-                    convolve=conv)
+                                                      convolve=conv)
             # clipped = sigma_clip(self.bkg_sub_img,
                 # iters=5, sigma_upper=40).filled(np.nan)
             # img_interp = interpolate_replace_nans(img_interp, kernel)
