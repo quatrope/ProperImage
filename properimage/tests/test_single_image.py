@@ -239,8 +239,12 @@ class SingleImageBase(object):
 
     def testPsfBasisNorm(self):
         afields, psfs = self.si.get_variable_psf()
-        for apsf in psfs:
-            np.testing.assert_approx_equal(1., np.sum(apsf), significant=2)
+        xs, ys = self.si.pixeldata.shape
+        for i in range(10):
+            xc = np.random.randint(xs-30)
+            yc = np.random.randint(ys-30)
+            psfxy = self.si.get_psf_xy(xc, yc)
+            np.testing.assert_approx_equal(1., np.sum(psfxy), significant=2)
 
 
 class TestNpArray(SingleImageBase, ProperImageTestCase):

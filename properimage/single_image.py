@@ -113,7 +113,7 @@ class SingleImage(object):
 
     def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None,
                  borders=True, crop=((0, 0), (0, 0)), min_sources=None,
-                 strict_star_pick=False, smooth_psf=True):
+                 strict_star_pick=False, smooth_psf=False):
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
         self._strict_star_pick = strict_star_pick  # pick stars VERY carefully?
@@ -513,7 +513,9 @@ class SingleImage(object):
                 new_shape = sub_array_data.shape
                 # Normalize to unit sum
                 sub_array_data += np.abs(np.min(sub_array_data))
-                sub_array_data = sub_array_data/np.sum(sub_array_data)
+                star_bg = np.where(sub_array_data < np.percentile(
+                                    np.abs(sub_array_data), q=70))
+                sub_array_data -= np.median(sub_array_data[star_bg])
 
                 pad_dim = ((self.stamp_shape[0]-new_shape[0]+6)/2,
                            (self.stamp_shape[1]-new_shape[1]+6)/2)
@@ -521,6 +523,7 @@ class SingleImage(object):
                 if not pad_dim == (0, 0):
                     sub_array_data = np.pad(sub_array_data, [pad_dim, pad_dim],
                                             'linear_ramp', end_values=0)
+                sub_array_data = sub_array_data/np.sum(sub_array_data)
 
                 if self._strict_star_pick:
                     #  Checking if the peak is off center
@@ -573,9 +576,11 @@ class SingleImage(object):
             if n_cand_srcs - len(to_del) >= 15:
                 self._best_sources = np.delete(self._best_sources,
                                                to_del, axis=0)
-
+            # Adding extra border to ramp to 0
             self.stamp_shape = (self.stamp_shape[0] + 6,
                                 self.stamp_shape[1] + 6)
+            print('updating stamp shape to ({},{})'.format(
+                self.stamp_shape[0], self.stamp_shape[1]))
             self._stamps_pos = np.array(pos)
             self._n_sources = len(pos)
         return self._stamps_pos
@@ -597,7 +602,7 @@ class SingleImage(object):
         if not hasattr(self, '_covMat'):
             covMat = np.zeros(shape=(self.n_sources, self.n_sources))
 
-            if self.n_sources < 120:
+            if self.n_sources <= 250:
                 m = np.zeros((self.stamp_shape[0] * self.stamp_shape[1],
                               self.n_sources))
                 for i in range(self.n_sources):
@@ -664,13 +669,19 @@ class SingleImage(object):
             xs = vech[:, -cut:]
             psf_basis = []
             if hasattr(self, '_m'):
-                for i in range(n_basis):
-                    eig = xs[:, i]
-                    base = np.matmul(self._m, eig).reshape(self.stamp_shape)
-                    base = base/np.sum(base)
-                    base = base - np.abs(np.min(base))
-                    base = base/np.sum(base)
-                    psf_basis.append(base)
+                print(vech.shape, self._m.shape)
+                self._full_bases = np.dot(self._m, vech)
+                self._bases = self._full_bases[:, -cut:]
+                psf_basis = [self._bases[:, i].reshape(self.stamp_shape)
+                             for i in range(self._bases.shape[1])]
+
+                # for i in range(n_basis):
+                    # eig = xs[:, i]
+                    # base = np.matmul(self._m, eig).reshape(self.stamp_shape)
+                    # base = base/np.sum(base)
+                    # base = base - np.abs(np.min(base))
+                    # base = base/np.sum(base)
+                    # psf_basis.append(base)
             else:
                 for i in range(n_basis):
                     base = np.zeros(self.stamp_shape)
@@ -733,21 +744,21 @@ class SingleImage(object):
             # Each element in patches brings information about the real PSF
             # evaluated -or measured-, giving an interpolation point for a
             a_fields = []
-            measures = np.zeros((n_fields, self.n_sources))
-            for k in range(self.n_sources):
-                Pval = self.db.load(k)[0].flatten()
-                Pval = Pval/np.sum(Pval)
-                for i in range(n_fields):
-                    p_i = psf_basis[i].flatten()  # starting from bottom
-                    p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
+            # measures = np.zeros((n_fields, self.n_sources))
+            # for k in range(self.n_sources):
+                # Pval = self.db.load(k)[0].flatten()
+                # Pval = Pval/np.sum(Pval)
+                # for i in range(n_fields):
+                    # p_i = psf_basis[i].flatten()  # starting from bottom
+                    # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
-                    Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
-                    m = np.dot(Pval, p_i)
-                    m = m/(Pval_sq*p_i_sq)
-                    measures[i, k] = m
+                    # Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
+                    # m = np.dot(Pval, p_i)
+                    # m = m/(Pval_sq*p_i_sq)
+                    # measures[i, k] = m
                 # else:
                     # measures[i, k] = None
-
+            measures = np.flip(self.eigenv[1][:, -n_fields:].T, 0)
             for i in range(n_fields):
                 z = measures[i, :]
                 a_field_model = models.Polynomial2D(degree=3)
@@ -969,6 +980,25 @@ class SingleImage(object):
         return _ifftwn(fourier_shift(phat, (self.stamp_shape[0]/2,
                                             self.stamp_shape[1]/2)),
                        norm='ortho')
+
+    def get_psf_xy(self, x, y):
+        psf_basis = self.kl_basis
+        a_fields = self.kl_afields
+
+        if a_fields[0] is not None:
+            psf_at_xy = np.zeros_like(psf_basis[0])
+            delta = int((psf_at_xy.shape[0]-1)/2)
+            xp, yp = np.int(np.round(x)), np.int(np.round(y))
+            xmin = xp-delta
+            xmax = xp+delta+1
+            ymin = yp-delta
+            ymax = yp+delta+1
+            for apsf, afield in zip(psf_basis, a_fields):
+                psf_at_xy += apsf*afield(*np.mgrid[xmin:xmax, ymin:ymax])/ \
+                    self.normal_image[xmin:xmax, ymin:ymax]  # afield(x, y) #
+            return(psf_at_xy)
+        else:
+            return(psf_basis[0])
 
 
 def chunk_it(seq, num):
