@@ -116,9 +116,10 @@ class TestCoaddSingleCore(PropercoaddBase, ProperImageTestCase):
         self.imgs = [si.SingleImage(img) for img in self.paths]
 
     def testCoaddSingleCore(self):
-        R, P_r = pc.stack_R(self.imgs, align=False, n_procs=1)
+        R, P_r, mask = pc.stack_R(self.imgs, align=False, n_procs=1)
         self.assertIsInstance(R, np.ndarray)
         self.assertIsInstance(P_r, np.ndarray)
+        self.assertIsInstance(mask, np.ndarray)
 
 
 class TestCoadd2Core(PropercoaddBase, ProperImageTestCase):
@@ -128,9 +129,10 @@ class TestCoadd2Core(PropercoaddBase, ProperImageTestCase):
         self.imgs = [si.SingleImage(img) for img in self.paths]
 
     def testCoadd2Core(self):
-        R, P_r = pc.stack_R(self.imgs, align=False, n_procs=2)
+        R, P_r, mask = pc.stack_R(self.imgs, align=False, n_procs=2)
         self.assertIsInstance(R, np.ndarray)
         self.assertIsInstance(P_r, np.ndarray)
+        self.assertIsInstance(mask, np.ndarray)
 
 
 class TestCoaddMultCore1(PropercoaddBase, ProperImageTestCase):
@@ -140,11 +142,12 @@ class TestCoaddMultCore1(PropercoaddBase, ProperImageTestCase):
         self.imgs = [si.SingleImage(img) for img in self.paths]
 
     def testCoaddMultipleCores(self):
-        R2, P_r2 = pc.stack_R(self.imgs, align=False, n_procs=2)
-        R, P_r = pc.stack_R(self.imgs, align=False, n_procs=1)
+        R2, P_r2, mask2 = pc.stack_R(self.imgs, align=False, n_procs=2)
+        R, P_r, mask = pc.stack_R(self.imgs, align=False, n_procs=1)
 
         np.testing.assert_allclose(R.real, R2.real, rtol=0.2, atol=0.5)
         np.testing.assert_allclose(P_r.real, P_r2.real, rtol=0.2, atol=0.5)
+        np.testing.assert_allclose(mask, mask2, rtol=0.2, atol=1)
 
 
 class TestCoaddMultCore2(PropercoaddBase, ProperImageTestCase):
@@ -154,8 +157,9 @@ class TestCoaddMultCore2(PropercoaddBase, ProperImageTestCase):
         self.imgs = [si.SingleImage(img) for img in self.paths]
 
     def testCoaddMultipleCores(self):
-        R2, P_r2 = pc.stack_R(self.imgs, align=False, n_procs=4)
-        R, P_r = pc.stack_R(self.imgs, align=False, n_procs=2)
+        R2, P_r2, mask2 = pc.stack_R(self.imgs, align=False, n_procs=4)
+        R, P_r, mask = pc.stack_R(self.imgs, align=False, n_procs=2)
 
         np.testing.assert_allclose(R.real, R2.real, rtol=0.2, atol=0.5)
         np.testing.assert_allclose(P_r.real, P_r2.real, rtol=0.2, atol=0.5)
+        np.testing.assert_allclose(mask, mask2, rtol=0.2, atol=1)
