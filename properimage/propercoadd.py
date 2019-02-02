@@ -44,7 +44,7 @@ from scipy.ndimage.fourier import fourier_shift
 
 from . import utils
 from .combinator import StackCombinator
-# from .single_image import SingleImage
+from .single_image import SingleImage as si
 from .single_image import chunk_it
 
 try:
@@ -66,6 +66,11 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
     and performs a stacking using properimage R estimator
 
     """
+
+    for i_img, animg in enumerate(si_list):
+        if not isinstance(animg, si):
+            si_list[i_img] = si(animg)
+
     if align:
         img_list = utils.align_for_coadd(si_list)
         for an_img in img_list:
@@ -103,12 +108,15 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
 
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
+        mix_mask = np.zeros(global_shape, dtype=np.bool)
         for q in queues:
             serialized = q.get()
             print('loading pickles')
-            s_hat_comp, psf_hat_sum = pickle.loads(serialized)
+            s_hat_comp, psf_hat_sum, mask = pickle.loads(serialized)
             np.add(s_hat_comp, S_hat, out=S_hat)  # , casting='same_kind')
             np.add(psf_hat_sum, P_hat, out=P_hat)  # , casting='same_kind')
+            mix_mask = np.ma.mask_or(mix_mask, mask)
+
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r/np.sum(P_r)
@@ -124,13 +132,16 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
     else:
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
+        mix_mask = img_list[0].pixeldata.mask
+
         for an_img in img_list:
             np.add(an_img.s_hat_comp, S_hat, out=S_hat)
             np.add(((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm(), P_hat,
                    out=P_hat)
+            mix_mask = np.ma.mask_or(mix_mask, an_img.pixeldata.mask)
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r/np.sum(P_r)
         R = _ifftwn(S_hat/P_r_hat)
 
-    return R, P_r
+    return R, P_r, mix_mask

@@ -113,7 +113,7 @@ class SingleImage(object):
 
     def __init__(self, img=None, mask=None, maskthresh=None, stamp_shape=None,
                  borders=True, crop=((0, 0), (0, 0)), min_sources=None,
-                 strict_star_pick=False, smooth_psf=False):
+                 strict_star_pick=False, smooth_psf=False, gain=None):
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
         self._strict_star_pick = strict_star_pick  # pick stars VERY carefully?
@@ -122,9 +122,10 @@ class SingleImage(object):
         self.__img = img
         self.attached_to = img
         self.zp = 1.
+        self.header = img
+        self.gain = gain
         self.maskthresh = maskthresh
         self.pixeldata = img
-        self.header = img
         self.mask = mask
         self._bkg = maskthresh
         self.stamp_shape = stamp_shape
@@ -224,6 +225,21 @@ class SingleImage(object):
         if not np.sum(self.crop) == 0.:
             dx, dy = self.crop
             self.__pixeldata = self.__pixeldata[dx[0]:-dx[1], dy[0]:-dy[1]]
+        self.__pixeldata = self.__pixeldata * self.__gain
+
+    @property
+    def gain(self):
+        return self.__gain
+
+    @gain.setter
+    def gain(self, imggain):
+        if imggain is None:
+            try:
+                self.__gain = self.header['GAIN']
+            except KeyError:
+                self.__gain = 1.
+        else:
+            self.__gain = imggain
 
     @property
     def header(self):
@@ -558,7 +574,7 @@ class SingleImage(object):
                         continue
 
                     # thrs = [outl[-1] for outl in outl_cat]
-                    if len(outl_cat) is not 0:
+                    if len(outl_cat) != 0:
                         ymax, xmax, thmax = outl_cat[0]
                         # np.where(thrs==np.max(thrs))[0][0]]
                         xcm = np.array([xmax, ymax])
@@ -676,12 +692,12 @@ class SingleImage(object):
                              for i in range(self._bases.shape[1])]
 
                 # for i in range(n_basis):
-                    # eig = xs[:, i]
-                    # base = np.matmul(self._m, eig).reshape(self.stamp_shape)
-                    # base = base/np.sum(base)
-                    # base = base - np.abs(np.min(base))
-                    # base = base/np.sum(base)
-                    # psf_basis.append(base)
+                #    # eig = xs[:, i]
+                #    # base = np.matmul(self._m, eig).reshape(self.stamp_shape)
+                #    # base = base/np.sum(base)
+                #    # base = base - np.abs(np.min(base))
+                #    # base = base/np.sum(base)
+                #    # psf_basis.append(base)
             else:
                 for i in range(n_basis):
                     base = np.zeros(self.stamp_shape)
@@ -702,6 +718,8 @@ class SingleImage(object):
                                                      preserve_range=True))
                     new_psfs[-1] = new_psfs[-1]/np.sum(new_psfs[-1])
                 psf_basis = new_psfs
+            if len(psf_basis) == 1:
+                psf_basis[0] = psf_basis[0]/np.sum(psf_basis[0])
             self._kl_basis = psf_basis
 
     @property
@@ -746,18 +764,18 @@ class SingleImage(object):
             a_fields = []
             # measures = np.zeros((n_fields, self.n_sources))
             # for k in range(self.n_sources):
-                # Pval = self.db.load(k)[0].flatten()
-                # Pval = Pval/np.sum(Pval)
-                # for i in range(n_fields):
-                    # p_i = psf_basis[i].flatten()  # starting from bottom
-                    # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
+            #    # Pval = self.db.load(k)[0].flatten()
+            #    # Pval = Pval/np.sum(Pval)
+            #    # for i in range(n_fields):
+            #        # p_i = psf_basis[i].flatten()  # starting from bottom
+            #        # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
 
-                    # Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
-                    # m = np.dot(Pval, p_i)
-                    # m = m/(Pval_sq*p_i_sq)
-                    # measures[i, k] = m
-                # else:
-                    # measures[i, k] = None
+            #        # Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
+            #        # m = np.dot(Pval, p_i)
+            #        # m = m/(Pval_sq*p_i_sq)
+            #        # measures[i, k] = m
+            #    # else:
+            #        # measures[i, k] = None
             measures = np.flip(self.eigenv[1][:, -n_fields:].T, 0)
             for i in range(n_fields):
                 z = measures[i, :]
@@ -813,6 +831,8 @@ class SingleImage(object):
         a_fields = self.kl_afields
         psf_basis = self.kl_basis
 
+        if a_fields[0] is None:
+            psf_basis[0] = psf_basis[0]/np.sum(psf_basis[0])
         return [a_fields, psf_basis]
 
     @property
@@ -994,9 +1014,12 @@ class SingleImage(object):
             ymin = yp-delta
             ymax = yp+delta+1
             for apsf, afield in zip(psf_basis, a_fields):
-                psf_at_xy += apsf*afield(*np.mgrid[xmin:xmax, ymin:ymax])/ \
+                psf_at_xy += apsf * afield(*np.mgrid[xmin:xmax, ymin:ymax]) / \
                     self.normal_image[xmin:xmax, ymin:ymax]  # afield(x, y) #
-            return(psf_at_xy)
+            # for apsf, afield in zip(psf_basis, a_fields):
+            #    psf_at_xy += apsf * afield(x, y)/self.normal_image[xp, yp]
+
+            return(psf_at_xy/np.sum(psf_at_xy))
         else:
             return(psf_basis[0])
 

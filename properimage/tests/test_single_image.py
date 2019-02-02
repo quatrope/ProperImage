@@ -181,14 +181,14 @@ class SingleImageBase(object):
     def testAFields(self):
         self.assertIsInstance(self.si.kl_afields, list)
         self.assertGreaterEqual(len(self.si.kl_basis), 1)
-        if len(self.si.kl_basis) is 1:
+        if len(self.si.kl_basis) == 1:
             self.assertIsNone(self.si.kl_afields[0], None)
 
     def testAFieldsLowInfLoss(self):
         self.si.inf_loss = 0.0002
         self.assertIsInstance(self.si.kl_afields, list)
         self.assertGreaterEqual(len(self.si.kl_basis), 1)
-        if len(self.si.kl_basis) is 1:
+        if len(self.si.kl_basis) == 1:
             self.assertIsNone(self.si.kl_afields[0], None)
 
     def testGetAFieldDomain(self):
@@ -238,13 +238,15 @@ class SingleImageBase(object):
         self.assertIsInstance(self.si.p_sqnorm(), np.ndarray)
 
     def testPsfBasisNorm(self):
-        afields, psfs = self.si.get_variable_psf()
-        xs, ys = self.si.pixeldata.shape
-        for i in range(10):
-            xc = np.random.randint(xs-30)
-            yc = np.random.randint(ys-30)
-            psfxy = self.si.get_psf_xy(xc, yc)
-            np.testing.assert_approx_equal(1., np.sum(psfxy), significant=2)
+        for an_inf_loss in [0.1, 0.2, 0.05, 0.15]:
+            afields, psfs = self.si.get_variable_psf(an_inf_loss)
+            xs, ys = self.si.pixeldata.shape
+            for i in range(10):
+                xc = np.random.randint(xs-60) + 30
+                yc = np.random.randint(ys-60) + 30
+                psfxy = self.si.get_psf_xy(xc, yc)
+                np.testing.assert_approx_equal(np.sum(psfxy), 1.,
+                                               significant=2)
 
 
 class TestNpArray(SingleImageBase, ProperImageTestCase):

@@ -39,6 +39,7 @@ Of 301
 import numpy as np
 
 from scipy import optimize
+# from scipy import stats
 from scipy.ndimage import center_of_mass
 from scipy.ndimage.fourier import fourier_shift
 from astropy.stats import sigma_clipped_stats
@@ -156,7 +157,7 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
             import ipdb
             ipdb.set_trace()
 
-    rad_ref_sq = dx_ref*dx_ref + dy_ref*dy_ref
+    # rad_ref_sq = dx_ref*dx_ref + dy_ref*dy_ref
     # rad_new_sq = dx_new*dx_new + dy_new*dy_new
 
     psf_ref_hat = _fftwn(p_r, s=ref.pixeldata.shape, norm='ortho')
@@ -173,59 +174,44 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     # D_hat_r = psf_new_hat * ref.interped_hat
     # D_hat_n = psf_ref_hat * new.interped_hat
 
+    norm_b = ref.var**2 * psf_new_hat * psf_new_hat_conj
+    norm_a = new.var**2 * psf_ref_hat * psf_ref_hat_conj
+
+    new_back = sep.Background(new.interped).back()
+    ref_back = sep.Background(ref.interped).back()
+    gamma = new_back - ref_back
+    b = n_zp/r_zp
+    norm = np.sqrt(norm_a + norm_b * b**2)
     if beta:
-        new_back = sep.Background(new.interped).back()
-        ref_back = sep.Background(ref.interped).back()
-        gamma = new_back - ref_back
-        b = n_zp/r_zp
         # start with beta=1
-
         if shift:
-            def cost_beta(vec, gamma=gamma):
-                b, dx, dy = vec[:]
+            def cost(vec):
+                b, dx, dy = vec
+                gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
+                norm = np.sqrt(norm_a + norm_b * b**2)
+                dhn = D_hat_n/norm
+                dhr = D_hat_r/norm
+                b_n = _ifftwn(dhn, norm='ortho') - \
+                    _ifftwn(fourier_shift(dhr, (dx, dy)), norm='ortho')*b - \
+                    np.roll(gammap, (int(round(dx)), int(round(dy))))
 
-                # gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
+                cost = b_n.real[100:-100, 100:-100]
+                cost = np.sum(np.abs(cost/(cost.shape[0]*cost.shape[1])))
 
-                norm = b**2 * ref.var**2 * psf_new_hat * psf_new_hat_conj
-                norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
+                return(cost)
 
-                cost = _ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') - \
-                    _ifftwn(fourier_shift((D_hat_r/np.sqrt(norm))*b, (dx, dy)),
-                            norm='ortho')  # -\
-                # _ifftwn(fourier_shift(_fftwn(gammap), (dx, dy)))
-                cost = np.absolute(cost)
-
-                # flux, _, _ = sep.sum_circle(np.ascontiguousarray(cost),
-                # ref.best_sources['x'],
-                # ref.best_sources['y'],
-                # 0.5*np.sqrt(rad_ref_sq))
-                # mean_flux = np.mean(flux/(np.pi*rad_ref_sq))
-
-                # cost =np.absolute(cost*cost.conj())[50:-50, 50:-50].flatten()
-
-                # return sigma_clipped_stats(cost, sigma=9.)[2]
-                # return np.absolute(mean_flux)
-                # return np.std(cost[50:-50, 50:-50].flatten())
-
-                # testing new approach
-                hist, edg = np.histogram(cost)
-                costs = 0
-                costs += np.abs(hist[0]*(edg[1]-edg[0]))
-                costs += np.abs(hist[-1]*(edg[-2]-edg[-1]))
-                return(costs)
-
-            tbeta0 = time.time()
+            ti = time.time()
             vec0 = [b, 0., 0.]
-            bounds = ([0.1, -2.9, -2.9], [25., 2.9, 2.9])
-            solv_beta = optimize.least_squares(cost_beta,
-                                               vec0, ftol=1e-10,
-                                               jac='3-point',
+            bounds = ([0.1, -.9, -.9], [10., .9, .9])
+            solv_beta = optimize.least_squares(cost, vec0,
+                                               xtol=1e-5, jac='3-point',
+                                               method='trf',
                                                bounds=bounds)
-            tbeta1 = time.time()
+            tf = time.time()
 
             if solv_beta.success:
                 print(('Found that beta = {}'.format(solv_beta.x)))
-                print(('Took only {} awesome seconds'.format(tbeta1-tbeta0)))
+                print(('Took only {} awesome seconds'.format(tf-ti)))
                 print(('The solution was with cost {}'.format(solv_beta.cost)))
                 b, dx, dy = solv_beta.x
             else:
@@ -236,119 +222,103 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
                 dy = 0.
 
         elif iterative:
-            def beta_next(b, gamma=gamma):
-                # gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
+            bi = b
 
-                norm = b**2 * ref.var**2 * psf_new_hat * psf_new_hat_conj
-                norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
+            def F(b):
+                gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
+                norm = np.sqrt(norm_a + norm_b * b**2)
+                b_n = _ifftwn(D_hat_n/norm, norm='ortho') - gammap\
+                    - b * _ifftwn(D_hat_r/norm, norm='ortho')
+                # robust_stats = lambda b: sigma_clipped_stats(
+                #    b_n(b).real[100:-100, 100:-100])
 
-                b_n = _ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') / \
-                    _ifftwn(D_hat_r/np.sqrt(norm), norm='ortho')
-                # - gammap)
+                return(np.sum(np.abs(b_n.real)))
 
-                # b_n = _ifftwn(D_hat_n/np.sqrt(norm)) / \
-                # _ifftwn(D_hat_r/np.sqrt(norm))
-
-                ab = b_n.real
-                flux, _, _ = sep.sum_circle(np.ascontiguousarray(ab),
-                                            ref.best_sources['x'],
-                                            ref.best_sources['y'],
-                                            0.5*np.sqrt(rad_ref_sq))
-                mean_flux = np.mean(flux/(np.pi*rad_ref_sq))
-                # ab = ab[(np.percentile(ab, q=97)>ab)*
-                # (ab>np.percentile(ab, q=55))]
-                mean, med, std = sigma_clipped_stats(ab, iters=3, sigma=3.)
-
-                # print('Sigma clip on beta values')
-                # print(mean, med, std)
-                print(mean_flux)
-                if np.abs(mean_flux-1.) < 1e-3:
-                    b_next = b
-                elif mean_flux > 1:
-                    b_next = b + np.random.random()/10.
-                else:
-                    b_next = b - np.random.random()/10.
-                # b_next = sigma_clipped_stats(ab)[0]
-                if b_next == 0.:
-                    return b, std
-                # b_next = np.mean(b_n)
-                return b_next, std
-
-            bi = b  # 1
-            print('Start iteration')
             ti = time.time()
-            bf, std = beta_next(bi)
-            n_iter = 1
-            while np.abs(bf-bi) > 0.01 and n_iter < 45:
-                bi = bf
-                bf, std = beta_next(bi)
-                n_iter += 1
-            b = bf
+            solv_beta = optimize.minimize_scalar(F, method='bounded',
+                                                 bounds=[0.1, 10.],
+                                                 options={'maxiter': 1000})
+
             tf = time.time()
-            print(('b = {}. Finished on {} iterations, and {} time\n'.format(
-                b, n_iter, tf-ti)))
-            dx = dy = 0.
-
-        else:
-            def cost_beta(vec, gamma=gamma):
-                b = vec[0]
-                # gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
-
-                norm = b**2 * ref.var**2 * psf_new_hat * psf_new_hat_conj
-                norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
-
-                cost = _ifftwn(D_hat_n/np.sqrt(norm), norm='ortho') - \
-                    _ifftwn((D_hat_r/np.sqrt(norm))*b, norm='ortho')  # gammap
-                cost = np.absolute(cost)
-
-                # this is computationally really expensive
-
-                # flux, _, _ = sep.sum_circle(np.ascontiguousarray(cost),
-                # ref.best_sources['x'],
-                # ref.best_sources['y'],
-                # 0.5*np.sqrt(rad_ref_sq))
-                # mean_flux = np.mean(flux/(np.pi*rad_ref_sq))
-
-                # cost =np.absolute(cost*cost.conj())[50:-50, 50:-50].flatten()
-
-                # return sigma_clipped_stats(cost, sigma=9.)[2]
-                # return np.absolute(mean_flux)
-                # return np.std(cost[50:-50, 50:-50].flatten())
-
-                # testing new approach
-                hist, edg = np.histogram(cost)
-                costs = 0
-                costs += np.abs(hist[0]*(edg[1]-edg[0]))
-                costs += np.abs(hist[-1]*(edg[-2]-edg[-1]))
-                return(costs)
-
-            dx = 0
-            dy = 0
-            tbeta0 = time.time()
-            vec0 = [new.zp/ref.zp]
-            bounds = ([0.01], [25.])
-            solv_beta = optimize.least_squares(cost_beta,
-                                               vec0, ftol=1e-9,
-                                               jac='3-point',
-                                               bounds=bounds)
-            tbeta1 = time.time()
             if solv_beta.success:
                 print(('Found that beta = {}'.format(solv_beta.x)))
-                print(('Took only {} awesome seconds'.format(tbeta1-tbeta0)))
+                print(('Took only {} awesome seconds'.format(tf-tf)))
+                b = solv_beta.x
+            else:
+                print('Least squares could not find our beta  :(')
+                print('Beta is overriden to be the zp ratio again')
+
+            dx = dy = 0.
+        else:
+            bi = b
+
+            def F(b):
+                gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
+                norm = np.sqrt(norm_a + norm_b * b**2)
+                b_n = _ifftwn(D_hat_n/norm, norm='ortho') - gammap \
+                    - b * _ifftwn(D_hat_r/norm, norm='ortho')
+                # robust_stats = lambda b: sigma_clipped_stats(
+                #    b_n(b).real[100:-100, 100:-100])
+
+                return(np.sum(np.abs(b_n.real)))
+
+            ti = time.time()
+            solv_beta = optimize.least_squares(F, bi, ftol=1e-8,
+                                               bounds=[0.1, 10.],
+                                               jac='2-point')
+
+            tf = time.time()
+            if solv_beta.success:
+                print(('Found that beta = {}'.format(solv_beta.x)))
+                print(('Took only {} awesome seconds'.format(tf-tf)))
                 print(('The solution was with cost {}'.format(solv_beta.cost)))
                 b = solv_beta.x
             else:
                 print('Least squares could not find our beta  :(')
                 print('Beta is overriden to be the zp ratio again')
-                b = n_zp/r_zp
 
+            dx = dy = 0.
     else:
-        b = new.zp/ref.zp
-        dx = 0.
-        dy = 0.
+        if shift:
+            bi = n_zp/r_zp
+            gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
+            norm = np.sqrt(norm_a + norm_b * b**2)
+            dhn = D_hat_n/norm
+            dhr = D_hat_r/norm
 
-    norm = b**2 * ref.var**2 * psf_new_hat * psf_new_hat_conj
-    norm += new.var**2 * psf_ref_hat * psf_ref_hat_conj
+            def cost(vec):
+                dx, dy = vec
+                b_n = _ifftwn(dhn, norm='ortho') - \
+                    _ifftwn(fourier_shift(dhr, (dx, dy)), norm='ortho')*b - \
+                    np.roll(gammap, (int(round(dx)), int(round(dy))))
+                cost = b_n.real[100:-100, 100:-100]
+                cost = np.sum(np.abs(cost/(cost.shape[0]*cost.shape[1])))
+                return(cost)
+
+            ti = time.time()
+            vec0 = [0., 0.]
+            bounds = ([-.9, -.9], [.9, .9])
+            solv_beta = optimize.least_squares(cost, vec0, xtol=1e-4,
+                                               jac='2-point',
+                                               method='trf',
+                                               bounds=bounds)
+            tf = time.time()
+
+            if solv_beta.success:
+                print(('Found that shift = {}'.format(solv_beta.x)))
+                print(('Took only {} awesome seconds'.format(tf-ti)))
+                print(('The solution was with cost {}'.format(solv_beta.cost)))
+                dx, dy = solv_beta.x
+            else:
+                print('Least squares could not find our shift  :(')
+                dx = 0.
+                dy = 0.
+        else:
+            b = new.zp/ref.zp
+            dx = 0.
+            dy = 0.
+
+    norm = norm_a + norm_b * b**2
 
     if dx == 0. and dy == 0.:
         D_hat = (D_hat_n - b * D_hat_r)/np.sqrt(norm)
@@ -359,7 +329,7 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     if np.any(np.isnan(D.real)):
         pass
 
-    d_zp = new.zp/np.sqrt(ref.var**2 * b**2 + new.var**2)
+    d_zp = b/np.sqrt(ref.var**2 * b**2 + new.var**2)
     P_hat = (psf_ref_hat * psf_new_hat * b)/(np.sqrt(norm)*d_zp)
 
     P = _ifftwn(P_hat, norm='ortho').real
@@ -367,10 +337,10 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
 
     S_hat = fourier_shift(d_zp * D_hat * P_hat.conj(), (dx_p, dy_p))
 
-    kr = _ifftwn(b * new.zp * psf_ref_hat_conj *
+    kr = _ifftwn(new.zp * psf_ref_hat_conj * b *
                  psf_new_hat * psf_new_hat_conj / norm, norm='ortho')
 
-    kn = _ifftwn(b * new.zp * psf_new_hat_conj *
+    kn = _ifftwn(new.zp * psf_new_hat_conj *
                  psf_ref_hat * psf_ref_hat_conj / norm, norm='ortho')
 
     V_en = _ifftwn(_fftwn(new.pixeldata.filled(0)+1., norm='ortho') *
