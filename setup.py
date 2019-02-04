@@ -52,7 +52,7 @@ print(setuptools.find_packages())  # exclude=['test*']
 def do_setup():
     setuptools.setup(
         name='properimage',
-        version='0.6.0.dev4',
+        version='0.6.1.dev1',
         description='Proper astronomic image analysis',
         long_description=LONG_DESCRIPTION,
         author='Bruno Sanchez',

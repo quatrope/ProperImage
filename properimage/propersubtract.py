@@ -64,7 +64,7 @@ eps = np.finfo(np.float64).eps
 
 
 def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
-         beta=True, shift=True, iterative=False, fitted_psf=True):
+         beta=False, shift=False, iterative=False, fitted_psf=True):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
     """
@@ -270,7 +270,7 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
             tf = time.time()
             if solv_beta.success:
                 print(('Found that beta = {}'.format(solv_beta.x)))
-                print(('Took only {} awesome seconds'.format(tf-tf)))
+                print(('Took only {} awesome seconds'.format(tf-ti)))
                 print(('The solution was with cost {}'.format(solv_beta.cost)))
                 b = solv_beta.x
             else:
@@ -333,9 +333,12 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     P_hat = (psf_ref_hat * psf_new_hat * b)/(np.sqrt(norm)*d_zp)
 
     P = _ifftwn(P_hat, norm='ortho').real
-    dx_p, dy_p = center_of_mass(P)
-
-    S_hat = fourier_shift(d_zp * D_hat * P_hat.conj(), (dx_p, dy_p))
+    xc, yc = np.where(P==np.max(P))
+    if xc[0]==0 and yc[0]==0:
+        S_hat = d_zp * D_hat * P_hat.conj()
+    else:
+        dx_p, dy_p = center_of_mass(P)
+        S_hat = fourier_shift(d_zp * D_hat * P_hat.conj(), (dx_p, dy_p))
 
     kr = _ifftwn(new.zp * psf_ref_hat_conj * b *
                  psf_new_hat * psf_new_hat_conj / norm, norm='ortho')
@@ -359,8 +362,7 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
     return D, P, S_corr.real, mix_mask
 
 
-def get_transients(self, threshold=2.5, neighborhood_size=5.):
-    S = self.subtract()[2]
+def get_transients(S, threshold=2.5, neighborhood_size=5.):
     threshold = np.std(S) * threshold
     cat = u.find_S_local_maxima(S, threshold=threshold,
                                 neighborhood_size=neighborhood_size)
