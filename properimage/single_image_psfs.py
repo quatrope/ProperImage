@@ -140,5 +140,8 @@ class SingleImageGaussPSF(si.SingleImage):
         mean_model = models.Gaussian2D(x_mean=0, y_mean=0,
                                        x_stddev=mean_xw, y_stddev=mean_yw,
                                        theta=mean_th, amplitude=1.)
+        render = mean_model.render()
+        render = render/np.sum(render)
+        return [[None], [render, mean_model]]
 
-        return [[None], [mean_model.render(), mean_model]]
+

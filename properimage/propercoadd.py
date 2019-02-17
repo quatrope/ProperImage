@@ -45,6 +45,7 @@ from scipy.ndimage.fourier import fourier_shift
 from . import utils
 from .combinator import StackCombinator
 from .single_image import SingleImage as si
+from .single_image_psfs import SingleImageGaussPSF as sigp
 from .single_image import chunk_it
 
 try:
@@ -61,15 +62,20 @@ except ImportError:
     _ifftwn = np.fft.ifft2
 
 
-def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
+def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2, fitted_psf=True):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
 
     """
 
     for i_img, animg in enumerate(si_list):
-        if not isinstance(animg, si):
-            si_list[i_img] = si(animg)
+        if fitted_psf:
+            print('Using Gaussian PSF')
+            if not isinstance(animg, sigp):
+                si_list[i_img] = sigp(animg)
+        else:
+            if not isinstance(animg, si):
+                si_list[i_img] = si(animg)
 
     if align:
         img_list = utils.align_for_coadd(si_list)
@@ -97,6 +103,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
         for chunk in chunk_it(img_list, n_procs):
             queue = Queue()
             proc = StackCombinator(chunk, queue, shape=global_shape,
+                                   # fitted_psf=fitted_psf,
                                    stack=True, fourier=False)
             print('starting new process')
             proc.start()
@@ -120,7 +127,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r/np.sum(P_r)
-        R = _ifftwn(S_hat/np.sqrt(P_hat))
+        R = _ifftwn(S_hat/P_r_hat)
 
         print('S calculated, now starting to join processes')
 
