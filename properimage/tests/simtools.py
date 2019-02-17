@@ -74,7 +74,7 @@ def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
         for j in range(int(mu_int - tail_len), int(mu_int + tail_len), 1):
             a[i, j] = stats.norm.pdf(i, loc=mu, scale=sigma_x) * \
                        stats.norm.pdf(j, loc=mu, scale=sigma_y)
-    if theta is not 0:
+    if theta != 0:
         a = rotate(a, theta)
     return(a/np.sum(a))
 
@@ -96,7 +96,7 @@ def astropy_Psf(N, FWHM):
     mu_int = int(mu)
     i = range(mu_int - tail_len, mu_int + tail_len, 1)
     for ii, jj in cartesian_product([i, i]):
-            psf[ii, jj] = model(ii, jj)
+        psf[ii, jj] = model(ii, jj)
     return psf/np.sum(psf)
 
 

@@ -25,17 +25,23 @@ use_setuptools()
 # CONSTANTS
 # =============================================================================
 
-REQUIREMENTS = ["numpy>=1.13.2",
-                "scipy>=1.0",
-                "astropy>=2.0",
-                "photutils>=0.2",
-                "astroML>=0.3",
-                "sep>=1.0",
+REQUIREMENTS = ["numpy >= 1.13.2",
+                "scipy >= 1.0",
+                "astropy >= 2.0",
+                "photutils",
+                "astroML",
+                "sep",
                 "astroscrappy>=1.0.5",
                 "astroalign>=1.0.3",
                 "pytest>=3.6.2"
                 # "pyFFTW>=0.10"
                 ]
+
+# =============================================================================
+# DESCRIPTION
+# =============================================================================
+with open('README.md') as fp:
+    LONG_DESCRIPTION = fp.read()
 
 # =============================================================================
 # FUNCTIONS
@@ -46,8 +52,9 @@ print(setuptools.find_packages())  # exclude=['test*']
 def do_setup():
     setuptools.setup(
         name='properimage',
-        version='0.5.0.dev1',
+        version='0.6.0.dev4',
         description='Proper astronomic image analysis',
+        long_description=LONG_DESCRIPTION,
         author='Bruno Sanchez',
         author_email='bruno@oac.unc.edu.ar',
         url='https://github.com/toros-astro/ProperImage',
@@ -55,7 +62,7 @@ def do_setup():
         license="BSD 3",
         keywords="astronomy image",
         classifiers=(
-            "Development Status :: 4 - Alpha",
+            "Development Status :: 4 - Beta",
             "Intended Audience :: Education",
             "Intended Audience :: Science/Research",
             "License :: OSI Approved :: BSD License",
@@ -63,6 +70,7 @@ def do_setup():
             "Programming Language :: Python",
             "Programming Language :: Python :: 2",
             "Programming Language :: Python :: 2.7",
+            "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Scientific/Engineering",
         ),
