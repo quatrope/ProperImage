@@ -309,7 +309,7 @@ class SingleImage(object):
                     self.__pixeldata = ma.masked_invalid(self.__pixeldata)
         else:
             masked = ma.masked_greater(self.__pixeldata, 65000.)
-            if not np.sum(~masked.mask) <1000.:
+            if not np.sum(~masked.mask) < 1000.:
                 self.__pixeldata = masked
 
         mask_lower = ma.masked_less(self.__pixeldata, -50.)
@@ -427,8 +427,8 @@ class SingleImage(object):
                 if m >= 65535.:
                     raise ValueError('Image is saturated')
                 else:
-                    import ipdb; ipdb.set_trace()
-                    raise ValueError('only one sources. Possible saturation')
+                    # import ipdb; ipdb.set_trace()
+                    raise ValueError('Only one source. Possible saturation')
 
             p_sizes = np.percentile(srcs['npix'], q=[20, 50, 80])
 
@@ -998,7 +998,7 @@ class SingleImage(object):
 
     def p_sqnorm(self):
         phat = self.psf_hat_sqnorm()
-        p = _ifftwn(phat, norm='ortho')
+        # p = _ifftwn(phat, norm='ortho')
         # print(np.sum(p))
         return _ifftwn(fourier_shift(phat, (self.stamp_shape[0]/2,
                                             self.stamp_shape[1]/2)),

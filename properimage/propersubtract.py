@@ -216,14 +216,10 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
                 b, dx, dy = solv_beta.x
             else:
                 print('Least squares could not find our beta  :(')
-                b, dx, dy = solv_beta.x
-            else:
-                print('Least squares could not find our beta  :(')
                 print('Beta is overriden to be the zp ratio again')
                 b = n_zp/r_zp
                 dx = 0.
                 dy = 0.
-
         elif iterative:
             bi = b
 
@@ -250,36 +246,7 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
             else:
                 print('Least squares could not find our beta  :(')
                 print('Beta is overriden to be the zp ratio again')
-
-            dx = dy = 0.
-        else:
-            bi = b
-
-            def F(b):
-                gammap = gamma/np.sqrt(new.var**2 + b**2 * ref.var**2)
-                norm = np.sqrt(norm_a + norm_b * b**2)
-                b_n = _ifftwn(D_hat_n/norm, norm='ortho') - gammap \
-                    - b * _ifftwn(D_hat_r/norm, norm='ortho')
-                # robust_stats = lambda b: sigma_clipped_stats(
-                #    b_n(b).real[100:-100, 100:-100])
-
-                return(np.sum(np.abs(b_n.real)))
-
-
-            ti = time.time()
-            solv_beta = optimize.minimize_scalar(F, method='bounded',
-                                                 bounds=[0.1, 10.],
-                                                 options={'maxiter': 1000})
-
-            tf = time.time()
-            if solv_beta.success:
-                print(('Found that beta = {}'.format(solv_beta.x)))
-                print(('Took only {} awesome seconds'.format(tf-tf)))
-                b = solv_beta.x
-            else:
-                print('Least squares could not find our beta  :(')
-                print('Beta is overriden to be the zp ratio again')
-
+                b = n_zp/r_zp
             dx = dy = 0.
         else:
             bi = b
@@ -308,7 +275,7 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
             else:
                 print('Least squares could not find our beta  :(')
                 print('Beta is overriden to be the zp ratio again')
-
+                b = n_zp/r_zp
             dx = dy = 0.
     else:
         if shift:
@@ -325,6 +292,16 @@ def diff(ref, new, align=False, inf_loss=0.25, smooth_psf=False,
                     np.roll(gammap, (int(round(dx)), int(round(dy))))
                 cost = b_n.real[100:-100, 100:-100]
                 cost = np.sum(np.abs(cost/(cost.shape[0]*cost.shape[1])))
+                return(cost)
+
+            ti = time.time()
+            vec0 = [0., 0.]
+            bounds = ([-.9, -.9], [.9, .9])
+            solv_beta = optimize.least_squares(cost, vec0,
+                                               xtol=1e-5, jac='3-point',
+                                               method='trf',
+                                               bounds=bounds)
+            tf = time.time()
 
             if solv_beta.success:
                 print(('Found that shift = {}'.format(solv_beta.x)))
