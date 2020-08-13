@@ -1,4 +1,1 @@
-#!/usr/bin/env python
-
-
-# __package__ = 'propercoadd'
+__version__ = "0.6"

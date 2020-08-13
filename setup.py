@@ -15,11 +15,30 @@
 # =============================================================================
 
 import sys
+import os
 import setuptools
 
 from ez_setup import use_setuptools
 use_setuptools()
 
+
+# =============================================================================
+# PATH TO THIS MODULE
+# =============================================================================
+
+PATH = os.path.abspath(os.path.dirname(__file__))
+
+# =============================================================================
+# Get the version from properimage file itself (not imported)
+# =============================================================================
+
+PROPERIMAGE_INIT_PATH = os.path.join(PATH, "properimage", "__init__.py")
+
+with open(PROPERIMAGE_INIT_PATH, 'r') as f:
+    for line in f:
+        if line.startswith('__version__'):
+            _, _, PI_VERSION = line.replace('"', "").split()
+            break
 
 # =============================================================================
 # CONSTANTS
@@ -52,8 +71,8 @@ print(setuptools.find_packages())  # exclude=['test*']
 def do_setup():
     setuptools.setup(
         name='properimage',
-        version='0.6.0.dev4',
-        description='Proper astronomic image analysis',
+        version=PI_VERSION,
+        description='Proper Astronomic Image Analysis',
         long_description=LONG_DESCRIPTION,
         author='Bruno Sanchez',
         author_email='bruno@oac.unc.edu.ar',
@@ -70,7 +89,9 @@ def do_setup():
             "Programming Language :: Python",
             "Programming Language :: Python :: 2",
             "Programming Language :: Python :: 2.7",
+            "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
+            "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Scientific/Engineering",
         ),
