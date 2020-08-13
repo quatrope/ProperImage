@@ -1,14 +1,14 @@
 
 language: python
-sudo: false
-before_install:
-  - pip install --upgrade pip
+
 install:
   - pip install tox
   - pip install codecov
+
 script:
   - tox -r
-matrix:
+
+jobs:
     include:
         - python: 3.7
           env: TOXENV=py3
@@ -22,6 +22,3 @@ matrix:
           env: TOXENV=style
         - python: 3.7
           env: TOXENV=coverage
-
-after_succes:
-    - codecov --token=1f6c7dfe-58e5-4eb2-a97c-d777c58d3195
