@@ -1,4 +1,5 @@
-
+dist: xenial
+os: linux
 language: python
 
 install:
