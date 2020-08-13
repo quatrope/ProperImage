@@ -28,7 +28,9 @@ To install from PyPI
 
 ### PSF estimation
 
-    >>> ... # TBD
+    >>> from properimage import singleimage as si
+    >>> with si.SingleImage(frame, smooth_psf=False) as sim:
+    >>>     a_fields, psf_basis = sim.get_variable_psf(inf_loss=0.15)
 
 ### Proper-subtraction of images
 

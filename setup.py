@@ -27,7 +27,7 @@ use_setuptools()
 
 REQUIREMENTS = ["numpy >= 1.13.2",
                 "scipy >= 1.0",
-                "astropy >= 2.0 <3.1",
+                "astropy >= 2.0, <= 3.1",
                 "photutils",
                 "astroML",
                 "sep",
