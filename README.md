@@ -1,4 +1,4 @@
-# Proper image treatments.
+# Proper image treatments
 
 [![Build Status](https://travis-ci.org/toros-astro/ProperImage.svg?branch=master)](https://travis-ci.org/toros-astro/ProperImage)
 [![codecov](https://codecov.io/gh/toros-astro/ProperImage/branch/master/graph/badge.svg)](https://codecov.io/gh/toros-astro/ProperImage)
@@ -14,7 +14,7 @@ This code is inspired on [Zackay & Ofek 2017](http://arxiv.org/abs/1512.06872)  
 
 * It can also perform a proper-subtraction of images.
 
-* Images need to be aligned and registered, or at least [astroalign](github.com/toros-astro/astroalign) must be installed.
+* Images need to be aligned and registered, or at least [astroalign](https://github.com/toros-astro/astroalign) must be installed.
 
 * Contains a nice plot module for PSF visualization (_needs matplotlib_)
 
