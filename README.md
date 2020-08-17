@@ -46,10 +46,10 @@ For the full documentation refer to [readthedocs](https://properimage.readthedoc
 
 ## Rerefences
 
-> Zackay, B., & Ofek, E. O. (2017). How to COAAD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images. The Astrophysical Journal, 836(2), 187. [Arxiv version](http://arxiv.org/abs/1512.06872)
+> Zackay, B., & Ofek, E. O. (2017). How to Coadd Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images. The Astrophysical Journal, 836(2), 187. [Arxiv version](http://arxiv.org/abs/1512.06872)
 >
-> Zackay, B., & Ofek, E. O. (2017). How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit. The Astrophysical Journal, 836(2), 188. [Arxiv version](http://arxiv.org/abs/1512.06879)
+> Zackay, B., & Ofek, E. O. (2017). How to Coadd Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit. The Astrophysical Journal, 836(2), 188. [Arxiv version](http://arxiv.org/abs/1512.06879)
 >
->Zackay, B., Ofek, E. O., & Gal-Yam, A. (2016). PROPER IMAGE SUBTRACTION—OPTIMAL TRANSIENT DETECTION, PHOTOMETRY, AND HYPOTHESIS TESTING. [The Astrophysical Journal, 830(1), 27.](https://iopscience.iop.org/article/10.3847/0004-637X/830/1/27/meta)
+>Zackay, B., Ofek, E. O., & Gal-Yam, A. (2016). Proper Image Subtrraction-Optimal Transient Detection, Photometry, and Hypothesis Testing. [The Astrophysical Journal, 830(1), 27.](https://iopscience.iop.org/article/10.3847/0004-637X/830/1/27/meta)
 >
 >Lauer, T. (2002, December). Deconvolution with a spatially-variant PSF. In [Astronomical Data Analysis II (Vol. 4847, pp. 167-174). International Society for Optics and Photonics.](https://doi.org/10.1117/12.461035)
