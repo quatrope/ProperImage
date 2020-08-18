@@ -37,7 +37,7 @@ Cordoba - Argentina
 Of 301
 """
 
-from .. import plot
+from properimage import plot
 
 from .core import ProperImageTestCase
 

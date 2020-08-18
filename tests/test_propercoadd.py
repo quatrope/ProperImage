@@ -44,7 +44,7 @@ import shutil
 import numpy as np
 from astropy.io import fits
 
-from .. import propercoadd as pc,  single_image as si
+from properimage import propercoadd as pc,  single_image as si
 
 from . import simtools
 from .core import ProperImageTestCase

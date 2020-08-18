@@ -47,7 +47,8 @@ from astropy.io import fits
 
 from properimage import propersubtract as ps
 from properimage import single_image as si
-from properimage.tests import simtools
+
+from . import simtools
 
 
 class PropersubtractBase(object):

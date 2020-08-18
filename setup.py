@@ -52,7 +52,7 @@ REQUIREMENTS = ["numpy >= 1.13.2",
                 "sep",
                 "astroscrappy>=1.0.5",
                 "astroalign>=1.0.3",
-                "pytest>=3.6.2"
+                # "pytest>=3.6.2"
                 # "pyFFTW>=0.10"
                 ]
 
