@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/toros-astro/ProperImage/branch/master/graph/badge.svg)](https://codecov.io/gh/toros-astro/ProperImage)
 [![Documentation Status](https://readthedocs.org/projects/properimage/badge/?version=latest)](http://properimage.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://tldrlegal.com/license/mit-license)
-[![Python 3.5+](https://img.shields.io/badge/python-3.5+-blue.svg)](https://badge.fury.io/py/feets)
+[![Python 3.5+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://badge.fury.io/py/feets)
 
 This code is inspired on [Zackay & Ofek 2017](http://arxiv.org/abs/1512.06872)  papers *How to coadd images?* (see References below).
 
