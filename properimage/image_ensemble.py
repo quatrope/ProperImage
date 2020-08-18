@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  image_stats.py
+#  image_ensemble.py
 #
 #  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
 #

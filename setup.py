@@ -74,6 +74,7 @@ def do_setup():
         version=PI_VERSION,
         description='Proper Astronomic Image Analysis',
         long_description=LONG_DESCRIPTION,
+        long_description_content_type='text/markdown',
         author='Bruno Sanchez',
         author_email='bruno@oac.unc.edu.ar',
         url='https://github.com/toros-astro/ProperImage',
