@@ -30,7 +30,3 @@ class ProperImageTestCase(unittest.TestCase):
 
     def assertAll(self, arr, **kwargs):
         assert np.all(arr), "'{}' is not all True".format(arr)
-
-    if six.PY2:
-        assertRaisesRegex = six.assertRaisesRegex
-        assertCountEqual = six.assertCountEqual

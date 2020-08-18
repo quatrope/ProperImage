@@ -41,12 +41,13 @@ import os
 import numpy as np
 import tempfile
 
+from properimage import single_image as si
+from properimage import image_ensemble as en
+from properimage import utils
+
 from .core import ProperImageTestCase
 
 from . import simtools as sm
-from .. import single_image as si
-from .. import image_ensemble as en
-from .. import utils
 
 
 class UtilsBase(ProperImageTestCase):

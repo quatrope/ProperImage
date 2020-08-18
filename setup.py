@@ -52,7 +52,7 @@ REQUIREMENTS = ["numpy >= 1.13.2",
                 "sep",
                 "astroscrappy>=1.0.5",
                 "astroalign>=1.0.3",
-                "pytest>=3.6.2"
+                # "pytest>=3.6.2"
                 # "pyFFTW>=0.10"
                 ]
 
@@ -88,11 +88,10 @@ def do_setup():
             "License :: OSI Approved :: BSD License",
             "Operating System :: OS Independent",
             "Programming Language :: Python",
-            "Programming Language :: Python :: 2",
-            "Programming Language :: Python :: 2.7",
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Scientific/Engineering",
         ),
