@@ -45,6 +45,7 @@ except ImportError:
 
 try:
     import pyfftw  # noqa
+
     _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
     _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
 except ImportError:
@@ -110,8 +111,17 @@ class StackCombinator(Process):
     p2.join()
 
     """
-    def __init__(self, img_list, queue, shape, stack=True, fourier=False,
-                 *args, **kwargs):
+
+    def __init__(
+        self,
+        img_list,
+        queue,
+        shape,
+        stack=True,
+        fourier=False,
+        *args,
+        **kwargs,
+    ):
         super(StackCombinator, self).__init__(*args, **kwargs)
         self.list_to_combine = img_list
         self.queue = queue
@@ -125,9 +135,12 @@ class StackCombinator(Process):
         mix_mask = self.list_to_combine[0].pixeldata.mask
 
         for an_img in self.list_to_combine:
-            np.add(an_img.s_hat_comp, S_hat, out=S_hat, casting='same_kind')
-            np.add(((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm(),
-                   psf_hat_sum, out=psf_hat_sum)  # , casting='same_kind')
+            np.add(an_img.s_hat_comp, S_hat, out=S_hat, casting="same_kind")
+            np.add(
+                ((an_img.zp / an_img.var) ** 2) * an_img.psf_hat_sqnorm(),
+                psf_hat_sum,
+                out=psf_hat_sum,
+            )  # , casting='same_kind')
             # psf_hat_sum = ((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm()
             mix_mask = np.ma.mask_or(mix_mask, an_img.pixeldata.mask)
 

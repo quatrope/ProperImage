@@ -51,20 +51,19 @@ from . import simtools as sm
 
 
 class UtilsBase(ProperImageTestCase):
-
     def setUp(self):
-        print('setting up')
+        print("setting up")
         self.tempdir = tempfile.mkdtemp()
 
-        now = '2018-05-17T00:00:00.1234567'
+        now = "2018-05-17T00:00:00.1234567"
         t = sm.Time(now)
 
         N = 1024
-        SN = 15.
+        SN = 15.0
         theta = 0
         xfwhm = 4
         yfwhm = 3
-        weights = np.random.random(100)*20000 + 10
+        weights = np.random.random(100) * 20000 + 10
 
         zero = 10  # for zero in [5, 10, 25]:
         filenames = []
@@ -74,13 +73,24 @@ class UtilsBase(ProperImageTestCase):
         xy = [(x[i], y[i]) for i in range(100)]
         m = sm.delta_point(N, center=False, xy=xy, weights=weights)
 
-        img_dir = os.path.join(self.tempdir, 'zp={}'.format(zero))
+        img_dir = os.path.join(self.tempdir, "zp={}".format(zero))
 
         for i in range(50):
-            im = sm.image(m, N, t_exp=2*i+1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
-                          theta=theta, SN=SN, bkg_pdf='gaussian')
-            filenames.append(sm.capsule_corp(im, t, t_exp=i+1, i=i,
-                             zero=zero+i, path=img_dir))
+            im = sm.image(
+                m,
+                N,
+                t_exp=2 * i + 1,
+                X_FWHM=xfwhm,
+                Y_FWHM=yfwhm,
+                theta=theta,
+                SN=SN,
+                bkg_pdf="gaussian",
+            )
+            filenames.append(
+                sm.capsule_corp(
+                    im, t, t_exp=i + 1, i=i, zero=zero + i, path=img_dir
+                )
+            )
 
         self.filenames = filenames
         self.ensemble = en.ImageEnsemble(filenames)
@@ -118,13 +128,12 @@ class UtilsBase(ProperImageTestCase):
 
 
 class TestChunkIt(ProperImageTestCase):
-
     def setUp(self):
         self.data = np.random.random(20)
 
     def testChunks(self):
         for i in range(len(self.data)):
-            chunks = si.chunk_it(self.data, i+1)
+            chunks = si.chunk_it(self.data, i + 1)
             self.assertIsInstance(chunks, list)
 
             flat_list = [item for sublist in chunks for item in sublist]

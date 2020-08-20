@@ -50,34 +50,37 @@ from properimage import single_image as s
 from . import simtools
 from .core import ProperImageTestCase
 
-np.warnings.filterwarnings('ignore')
+np.warnings.filterwarnings("ignore")
 
 
 class SingleImageBase(object):
-
     def setUp(self):
-        print('setting up')
+        print("setting up")
         self.tempdir = tempfile.mkdtemp()
 
         # mock data
-        psf = simtools.Psf(11, 2.5, 3.)
+        psf = simtools.Psf(11, 2.5, 3.0)
 
         # a numpy array
-        self.mock_image_data = np.random.random((256, 256))*50. + 350
+        self.mock_image_data = np.random.random((256, 256)) * 50.0 + 350
         self.mock_image_data[123, 123] = np.nan
 
         for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(7, 120)
             # print x, y
-            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
+            self.mock_image_data[x : x + 11, y : y + 11] += (
+                psf * float(i + 1) * 2000.0
+            )
 
-        psf = simtools.Psf(11, 3., 1.9)
+        psf = simtools.Psf(11, 3.0, 1.9)
         for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(122, 220)
             # print x, y
-            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
+            self.mock_image_data[x : x + 11, y : y + 11] += (
+                psf * float(i + 1) * 2000.0
+            )
 
         # a numpy array mask
         self.mock_image_mask = np.zeros((256, 256))
@@ -86,35 +89,37 @@ class SingleImageBase(object):
         for i in range(6):
             x, y = np.random.randint(20, 240, size=2)
             l, h = np.random.randint(2, 6, size=2)
-            self.mock_image_mask[x:x+l, y:y+h] = np.random.randint(0, 32,
-                                                                   size=(l, h))
+            self.mock_image_mask[x : x + l, y : y + h] = np.random.randint(
+                0, 32, size=(l, h)
+            )
 
         # a fits file
-        self.mockfits_path = os.path.join(self.tempdir, 'mockfits.fits')
-        fits.writeto(self.mockfits_path, self.mock_image_data,
-                     overwrite=True)
+        self.mockfits_path = os.path.join(self.tempdir, "mockfits.fits")
+        fits.writeto(self.mockfits_path, self.mock_image_data, overwrite=True)
         # a fits file mask
-        self.mockmask_path = os.path.join(self.tempdir, 'mockmask.fits')
-        fits.writeto(self.mockmask_path, self.mock_image_mask,
-                     overwrite=True)
+        self.mockmask_path = os.path.join(self.tempdir, "mockmask.fits")
+        fits.writeto(self.mockmask_path, self.mock_image_mask, overwrite=True)
 
         # a hdu
         self.mockimageHdu = fits.PrimaryHDU(self.mock_image_data)
         # a hdulist
-        self.mockmaskHdu = fits.ImageHDU(self.mock_image_mask.astype('uint8'))
-        self.mock_masked_hdu = fits.HDUList([self.mockimageHdu,
-                                             self.mockmaskHdu])
+        self.mockmaskHdu = fits.ImageHDU(self.mock_image_mask.astype("uint8"))
+        self.mock_masked_hdu = fits.HDUList(
+            [self.mockimageHdu, self.mockmaskHdu]
+        )
 
         # a fits file with hdulist
-        self.masked_hdu_path = os.path.join(self.tempdir, 'mockmasked.fits')
+        self.masked_hdu_path = os.path.join(self.tempdir, "mockmasked.fits")
         self.mock_masked_hdu.writeto(self.masked_hdu_path, overwrite=True)
 
-        self.h_fitsfile = {'SIMPLE': True,
-                           'BITPIX': -64,
-                           'NAXIS': 2,
-                           'NAXIS1': 256,
-                           'NAXIS2': 256,
-                           'EXTEND': True}
+        self.h_fitsfile = {
+            "SIMPLE": True,
+            "BITPIX": -64,
+            "NAXIS": 2,
+            "NAXIS1": 256,
+            "NAXIS2": 256,
+            "EXTEND": True,
+        }
 
     def tearDown(self):
         if os.path.isdir(self.tempdir):
@@ -125,8 +130,9 @@ class SingleImageBase(object):
             pass
 
     def testPixeldata(self):
-        np.testing.assert_allclose(self.mock_image_data,
-                                   self.si.pixeldata.data, rtol=0.15)
+        np.testing.assert_allclose(
+            self.mock_image_data, self.si.pixeldata.data, rtol=0.15
+        )
 
     def testBackground(self):
         self.assertIsInstance(self.si.background, np.ndarray)
@@ -135,15 +141,18 @@ class SingleImageBase(object):
         self.assertNotEqual(self.si.n_sources, 0)
 
     def testAttachedTo(self):
-        self.assertEqual(self.si.attached_to, 'ndarray')
+        self.assertEqual(self.si.attached_to, "ndarray")
 
     def testBkgSubImg(self):
         self.assertIsInstance(self.si.bkg_sub_img, np.ndarray)
 
     def testMask(self):
-        np.testing.assert_allclose(self.mock_image_mask <= self.si.maskthresh,
-                                   self.si.mask,
-                                   rtol=0.2, atol=3)
+        np.testing.assert_allclose(
+            self.mock_image_mask <= self.si.maskthresh,
+            self.si.mask,
+            rtol=0.2,
+            atol=3,
+        )
 
     def testStampPos(self):
         self.assertIsInstance(self.si.stamps_pos, np.ndarray)
@@ -162,8 +171,7 @@ class SingleImageBase(object):
 
     def testCovMat(self):
         self.assertIsInstance(self.si.cov_matrix, np.ndarray)
-        np.testing.assert_array_equal(self.si.cov_matrix,
-                                      self.si.cov_matrix.T)
+        np.testing.assert_array_equal(self.si.cov_matrix, self.si.cov_matrix.T)
 
     def testEigenV(self):
         self.assertIsInstance(self.si.eigenv, tuple)
@@ -221,7 +229,7 @@ class SingleImageBase(object):
         self.assertEqual(self.si.zp, 1)
 
     def testSetZP(self):
-        self.si.zp = 12.
+        self.si.zp = 12.0
         self.assertEqual(self.si.zp, 12)
 
     def testVar(self):
@@ -243,15 +251,15 @@ class SingleImageBase(object):
             afields, psfs = self.si.get_variable_psf(an_inf_loss)
             xs, ys = self.si.pixeldata.shape
             for i in range(10):
-                xc = np.random.randint(xs-60) + 30
-                yc = np.random.randint(ys-60) + 30
+                xc = np.random.randint(xs - 60) + 30
+                yc = np.random.randint(ys - 60) + 30
                 psfxy = self.si.get_psf_xy(xc, yc)
-                np.testing.assert_approx_equal(np.sum(psfxy), 1.,
-                                               significant=2)
+                np.testing.assert_approx_equal(
+                    np.sum(psfxy), 1.0, significant=2
+                )
 
 
 class TestNpArray(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestNpArray, self).setUp()
         print(self.mock_image_data.shape)
@@ -267,7 +275,6 @@ class TestNpArray(SingleImageBase, ProperImageTestCase):
 
 
 class TestNpArrayMask(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestNpArrayMask, self).setUp()
         self.si = s.SingleImage(self.mock_image_data, self.mock_image_mask)
@@ -277,7 +284,6 @@ class TestNpArrayMask(SingleImageBase, ProperImageTestCase):
 
 
 class TestFitsFile(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestFitsFile, self).setUp()
         self.si = s.SingleImage(self.mockfits_path)
@@ -295,7 +301,6 @@ class TestFitsFile(SingleImageBase, ProperImageTestCase):
 
 
 class TestFitsMask(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestFitsMask, self).setUp()
         self.si = s.SingleImage(self.mockfits_path, mask=self.mockmask_path)
@@ -308,13 +313,12 @@ class TestFitsMask(SingleImageBase, ProperImageTestCase):
 
 
 class TestHDU(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestHDU, self).setUp()
         self.si = s.SingleImage(self.mockimageHdu)
 
     def testAttachedTo(self):
-        self.assertEqual(self.si.attached_to, 'PrimaryHDU')
+        self.assertEqual(self.si.attached_to, "PrimaryHDU")
 
     def testMask(self):
         nanmask = np.zeros((256, 256))
@@ -326,20 +330,18 @@ class TestHDU(SingleImageBase, ProperImageTestCase):
 
 
 class TestHDUList(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestHDUList, self).setUp()
         self.si = s.SingleImage(self.mock_masked_hdu)
 
     def testAttachedTo(self):
-        self.assertEqual(self.si.attached_to, 'HDUList')
+        self.assertEqual(self.si.attached_to, "HDUList")
 
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
 
 class TestFitsExtension(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestFitsExtension, self).setUp()
         self.si = s.SingleImage(self.masked_hdu_path)
@@ -352,7 +354,6 @@ class TestFitsExtension(SingleImageBase, ProperImageTestCase):
 
 
 class TestNoSources(ProperImageTestCase):
-
     def setUp(self):
         self.no_sources_image = np.random.random((256, 256))
 
@@ -363,7 +364,6 @@ class TestNoSources(ProperImageTestCase):
 
 #      Test with picky star stamp strategy
 class TestNpArrayPicky(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestNpArrayPicky, self).setUp()
         print(self.mock_image_data.shape)
@@ -379,18 +379,17 @@ class TestNpArrayPicky(SingleImageBase, ProperImageTestCase):
 
 
 class TestNpArrayMaskPicky(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestNpArrayMaskPicky, self).setUp()
-        self.si = s.SingleImage(self.mock_image_data, self.mock_image_mask,
-                                strict_star_pick=True)
+        self.si = s.SingleImage(
+            self.mock_image_data, self.mock_image_mask, strict_star_pick=True
+        )
 
     def testHeader(self):
         self.assertDictEqual(self.si.header, {})
 
 
 class TestFitsFilePicky(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestFitsFilePicky, self).setUp()
         self.si = s.SingleImage(self.mockfits_path, strict_star_pick=True)
@@ -408,11 +407,11 @@ class TestFitsFilePicky(SingleImageBase, ProperImageTestCase):
 
 
 class TestFitsMaskPicky(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestFitsMaskPicky, self).setUp()
-        self.si = s.SingleImage(self.mockfits_path, mask=self.mockmask_path,
-                                strict_star_pick=True)
+        self.si = s.SingleImage(
+            self.mockfits_path, mask=self.mockmask_path, strict_star_pick=True
+        )
 
     def testAttachedTo(self):
         self.assertEqual(self.si.attached_to, self.mockfits_path)
@@ -422,13 +421,12 @@ class TestFitsMaskPicky(SingleImageBase, ProperImageTestCase):
 
 
 class TestHDUPicky(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestHDUPicky, self).setUp()
         self.si = s.SingleImage(self.mockimageHdu, strict_star_pick=True)
 
     def testAttachedTo(self):
-        self.assertEqual(self.si.attached_to, 'PrimaryHDU')
+        self.assertEqual(self.si.attached_to, "PrimaryHDU")
 
     def testMask(self):
         nanmask = np.zeros((256, 256))
@@ -440,20 +438,18 @@ class TestHDUPicky(SingleImageBase, ProperImageTestCase):
 
 
 class TestHDUListPicky(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestHDUListPicky, self).setUp()
         self.si = s.SingleImage(self.mock_masked_hdu, strict_star_pick=True)
 
     def testAttachedTo(self):
-        self.assertEqual(self.si.attached_to, 'HDUList')
+        self.assertEqual(self.si.attached_to, "HDUList")
 
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
 
 
 class TestFitsExtensionPicky(SingleImageBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestFitsExtensionPicky, self).setUp()
         self.si = s.SingleImage(self.masked_hdu_path)
@@ -466,7 +462,6 @@ class TestFitsExtensionPicky(SingleImageBase, ProperImageTestCase):
 
 
 class TestNoSourcesPicky(ProperImageTestCase):
-
     def setUp(self):
         self.no_sources_image = np.random.random((256, 256))
 

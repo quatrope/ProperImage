@@ -59,12 +59,12 @@ aa.MIN_MATCHES_FRACTION = 0.6
 
 def encapsule_S(S, path=None):
     if isinstance(S, np.ma.core.MaskedArray):
-        mask = S.mask.astype('int')
+        mask = S.mask.astype("int")
         data = S.data
         hdu_data = fits.PrimaryHDU(data)
-        hdu_data.scale(type='float32')
-        hdu_mask = fits.ImageHDU(mask, uint='uint8')
-        hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
+        hdu_data.scale(type="float32")
+        hdu_mask = fits.ImageHDU(mask, uint="uint8")
+        hdu_mask.header["IMG_TYPE"] = "BAD_PIXEL_MASK"
         hdu = fits.HDUList([hdu_data, hdu_mask])
     else:
         hdu = fits.PrimaryHDU(S)
@@ -78,12 +78,12 @@ def encapsule_R(R, path=None, header=None):
     if isinstance(R[0, 0], np.complex):
         R = R.real
     if isinstance(R, np.ma.core.MaskedArray):
-        mask = R.mask.astype('int')
+        mask = R.mask.astype("int")
         data = R.data
-        hdu_data = fits.PrimaryHDU(data, uint='int16')
-        hdu_data.scale(type='int16')
-        hdu_mask = fits.ImageHDU(mask, uint='uint8')
-        hdu_mask.header['IMG_TYPE'] = 'BAD_PIXEL_MASK'
+        hdu_data = fits.PrimaryHDU(data, uint="int16")
+        hdu_data.scale(type="int16")
+        hdu_mask = fits.ImageHDU(mask, uint="uint8")
+        hdu_mask.header["IMG_TYPE"] = "BAD_PIXEL_MASK"
         hdu = fits.HDUList([hdu_data, hdu_mask])
     else:
         hdu = fits.PrimaryHDU(R)
@@ -95,44 +95,47 @@ def encapsule_R(R, path=None, header=None):
         return hdu
 
 
-def matching(master, cat, masteridskey=None,
-             angular=False, radius=1.5, masked=False):
+def matching(
+    master, cat, masteridskey=None, angular=False, radius=1.5, masked=False
+):
     """Function to match stars between frames.
     """
     if masteridskey is None:
         masterids = np.arange(len(master))
-        master['masterindex'] = masterids
-        idkey = 'masterindex'
+        master["masterindex"] = masterids
+        idkey = "masterindex"
     else:
         idkey = masteridskey
 
     if angular:
         masterRaDec = np.empty((len(master), 2), dtype=np.float64)
         try:
-            masterRaDec[:, 0] = master['RA']
-            masterRaDec[:, 1] = master['Dec']
+            masterRaDec[:, 0] = master["RA"]
+            masterRaDec[:, 1] = master["Dec"]
         except KeyError:
-            masterRaDec[:, 0] = master['ra']
-            masterRaDec[:, 1] = master['dec']
+            masterRaDec[:, 0] = master["ra"]
+            masterRaDec[:, 1] = master["dec"]
         imRaDec = np.empty((len(cat), 2), dtype=np.float64)
         try:
-            imRaDec[:, 0] = cat['RA']
-            imRaDec[:, 1] = cat['Dec']
+            imRaDec[:, 0] = cat["RA"]
+            imRaDec[:, 1] = cat["Dec"]
         except KeyError:
-            imRaDec[:, 0] = cat['ra']
-            imRaDec[:, 1] = cat['dec']
-        radius2 = radius/3600.
-        dist, ind = cx.crossmatch_angular(masterRaDec, imRaDec,
-                                          max_distance=radius2/2.)
-        dist_, ind_ = cx.crossmatch_angular(imRaDec, masterRaDec,
-                                            max_distance=radius2/2.)
+            imRaDec[:, 0] = cat["ra"]
+            imRaDec[:, 1] = cat["dec"]
+        radius2 = radius / 3600.0
+        dist, ind = cx.crossmatch_angular(
+            masterRaDec, imRaDec, max_distance=radius2 / 2.0
+        )
+        dist_, ind_ = cx.crossmatch_angular(
+            imRaDec, masterRaDec, max_distance=radius2 / 2.0
+        )
     else:
         masterXY = np.empty((len(master), 2), dtype=np.float64)
-        masterXY[:, 0] = master['x']
-        masterXY[:, 1] = master['y']
+        masterXY[:, 0] = master["x"]
+        masterXY[:, 1] = master["y"]
         imXY = np.empty((len(cat), 2), dtype=np.float64)
-        imXY[:, 0] = cat['x']
-        imXY[:, 1] = cat['y']
+        imXY[:, 0] = cat["x"]
+        imXY[:, 1] = cat["y"]
         dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
         dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
 
@@ -151,8 +154,8 @@ def matching(master, cat, masteridskey=None,
     # print(("Matching result::  IDs > 0. => {}".format(sum(IDs > 0))))
     if masked:
         mask = IDs > 0
-        return(IDs, mask)
-    return(IDs)
+        return (IDs, mask)
+    return IDs
 
 
 def transparency(images, master=None):
@@ -169,10 +172,13 @@ def transparency(images, master=None):
 
     mastercat = master.best_sources
     try:
-        mastercat = append_fields(mastercat, 'sourceid',
-                                  np.arange(len(mastercat)),
-                                  usemask=False,
-                                  dtypes=int)
+        mastercat = append_fields(
+            mastercat,
+            "sourceid",
+            np.arange(len(mastercat)),
+            usemask=False,
+            dtypes=int,
+        )
     except ValueError:
         pass
 
@@ -180,46 +186,54 @@ def transparency(images, master=None):
     #  Matching the sources
     for img in imglist:
         newcat = img.best_sources
-        ids, mask = matching(mastercat, newcat, masteridskey='sourceid',
-                             angular=False, radius=2., masked=True)
+        ids, mask = matching(
+            mastercat,
+            newcat,
+            masteridskey="sourceid",
+            angular=False,
+            radius=2.0,
+            masked=True,
+        )
         try:
-            newcat = append_fields(newcat, 'sourceid', ids,
-                                   usemask=False)
+            newcat = append_fields(newcat, "sourceid", ids, usemask=False)
         except ValueError:
-            newcat['sourceid'] = ids
+            newcat["sourceid"] = ids
 
         for i in range(len(mastercat)):
-            if mastercat[i]['sourceid'] not in ids:
+            if mastercat[i]["sourceid"] not in ids:
                 detect[i] = False
-        newcat.sort(order='sourceid')
+        newcat.sort(order="sourceid")
         img.update_sources(newcat)
     try:
-        mastercat = append_fields(mastercat, 'detected', detect, usemask=False,
-                                  dtypes=bool)
+        mastercat = append_fields(
+            mastercat, "detected", detect, usemask=False, dtypes=bool
+        )
     except ValueError:
-        mastercat['detected'] = detect
+        mastercat["detected"] = detect
 
     # Now populating the vector of magnitudes
-    q = sum(mastercat['detected'])
+    q = sum(mastercat["detected"])
 
     if q != 0:
-        m = np.zeros(p*q)
+        m = np.zeros(p * q)
         # here 20 is a common value for a zp, and is only for weighting
-        m[:q] = -2.5*np.log10(mastercat[mastercat['detected']]['flux']) + 20.
+        m[:q] = (
+            -2.5 * np.log10(mastercat[mastercat["detected"]]["flux"]) + 20.0
+        )
 
         j = 0
-        for row in mastercat[mastercat['detected']]:
+        for row in mastercat[mastercat["detected"]]:
             for img in imglist:
                 cat = img.best_sources
-                imgrow = cat[cat['sourceid'] == row['sourceid']]
-                m[q+j] = -2.5*np.log10(imgrow['flux']) + 20.
+                imgrow = cat[cat["sourceid"] == row["sourceid"]]
+                m[q + j] = -2.5 * np.log10(imgrow["flux"]) + 20.0
                 j += 1
         # print mastercat['detected']
         master.update_sources(mastercat)
 
         # print("p={}, q={}".format(p, q))
         ident = sparse.identity(q)
-        col = np.repeat(1., q)
+        col = np.repeat(1.0, q)
         sparses = []
         for j in range(p):
             ones_col = np.zeros((q, p))
@@ -245,7 +259,7 @@ def convolve_psf_basis(image, psf_basis, a_fields, x, y):
         # a = a_fields[j] * image
         psf = psf_basis[j]
 
-        imconvolved += convolve(a, psf, boundary='extend')
+        imconvolved += convolve(a, psf, boundary="extend")
 
     return imconvolved
 
@@ -256,14 +270,16 @@ def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
         a = a_fields[j](x, y) * image
         psf = psf_basis[j]
 
-        imconvolved += convolve_fft(a, psf, interpolate_nan=True,
-                                    allow_huge=True)
+        imconvolved += convolve_fft(
+            a, psf, interpolate_nan=True, allow_huge=True
+        )
 
     return imconvolved
 
 
-def lucy_rich(image, psf_basis, a_fields, adomain,
-              iterations=50, clip=True, fft=False):
+def lucy_rich(
+    image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
+):
     # direct_time = np.prod(image.shape + psf.shape)
     # fft_time =  np.sum([n*np.log(n) for n in image.shape + psf.shape])
 
@@ -285,11 +301,13 @@ def lucy_rich(image, psf_basis, a_fields, adomain,
     psf_mirror = [psf[::-1, ::-1] for psf in psf_basis]
 
     for _ in range(iterations):
-        rela_blur = image/convolve_method(im_deconv, psf_basis, a_fields, x, y)
+        rela_blur = image / convolve_method(
+            im_deconv, psf_basis, a_fields, x, y
+        )
         im_deconv *= convolve_method(rela_blur, psf_mirror, a_fields, x, y)
 
     if clip:
-        im_deconv = np.ma.masked_invalid(im_deconv).filled(-1.)
+        im_deconv = np.ma.masked_invalid(im_deconv).filled(-1.0)
 
     return im_deconv
 
@@ -308,7 +326,7 @@ def align_for_diff(refpath, newpath, newmask=None):
     else:
         new = np.ma.masked_invalid(new)
 
-    dest_file = 'aligned_'+os.path.basename(newpath)
+    dest_file = "aligned_" + os.path.basename(newpath)
     dest_file = os.path.join(os.path.dirname(newpath), dest_file)
 
     try:
@@ -318,10 +336,14 @@ def align_for_diff(refpath, newpath, newmask=None):
         new = new.astype(float)
         new2 = aa.register(new, ref)
 
-    hdr.set('comment', 'aligned img '+newpath+' to '+refpath)
+    hdr.set("comment", "aligned img " + newpath + " to " + refpath)
     if isinstance(new2, np.ma.masked_array):
-        hdu = fits.HDUList([fits.PrimaryHDU(new2.data, header=hdr),
-                            fits.ImageHDU(new2.mask.astype('uint8'))])
+        hdu = fits.HDUList(
+            [
+                fits.PrimaryHDU(new2.data, header=hdr),
+                fits.ImageHDU(new2.mask.astype("uint8")),
+            ]
+        )
         hdu.writeto(dest_file, overwrite=True)
     else:
         fits.writeto(dest_file, new2, hdr, overwrite=True)
@@ -341,17 +363,17 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
     ref = fits.getdata(refpath)
     hdr_ref = fits.getheader(refpath)
 
-    dest_file_ref = 'cropped_'+os.path.basename(refpath)
+    dest_file_ref = "cropped_" + os.path.basename(refpath)
     dest_file_ref = os.path.join(os.path.dirname(refpath), dest_file_ref)
 
-    hdr_ref.set('comment', 'cropped img '+refpath+' to '+newpath)
+    hdr_ref.set("comment", "cropped img " + refpath + " to " + newpath)
     ref2 = ref[bordersize:-bordersize, bordersize:-bordersize]
     fits.writeto(dest_file_ref, ref2, hdr_ref, overwrite=True)
 
     new = fits.getdata(newpath)
     hdr_new = fits.getheader(newpath)
 
-    dest_file_new = 'aligned_'+os.path.basename(newpath)
+    dest_file_new = "aligned_" + os.path.basename(newpath)
     dest_file_new = os.path.join(os.path.dirname(newpath), dest_file_new)
 
     try:
@@ -361,7 +383,7 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
         new = new.astype(float)
         new2 = aa.align_image(ref, new)
 
-    hdr_new.set('comment', 'aligned img '+newpath+' to '+refpath)
+    hdr_new.set("comment", "aligned img " + newpath + " to " + refpath)
     new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
     fits.writeto(dest_file_new, new2, hdr_new, overwrite=True)
 
@@ -374,7 +396,7 @@ def align_for_coadd(imglist):
     """
     ref = imglist[0]
     for animg in imglist[1:]:
-        aa.estimate_transform('affine', animg.pixeldata, ref.pixeldata)
+        aa.estimate_transform("affine", animg.pixeldata, ref.pixeldata)
 
     pass
 
@@ -390,14 +412,14 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
     # diff = ((data_max - data_min) > threshold)
     # maxima[diff == 0] = 0
 
-    labeled, num_objects = ndimage.label((S_image-mean)/std > threshold)
-    xy = np.array(ndimage.center_of_mass(S_image,
-                                         labeled,
-                                         range(1, num_objects+1)))
+    labeled, num_objects = ndimage.label((S_image - mean) / std > threshold)
+    xy = np.array(
+        ndimage.center_of_mass(S_image, labeled, range(1, num_objects + 1))
+    )
     # x = xy[:, 0]
     # y = xy[:, 1]
     cat = []
     for x, y in xy:
-        cat.append((y, x, (S_image[int(x), int(y)]-mean)/std))
+        cat.append((y, x, (S_image[int(x), int(y)] - mean) / std))
 
     return cat

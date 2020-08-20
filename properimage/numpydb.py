@@ -30,29 +30,31 @@ except ImportError:
 
 
 class NumPyDB:
-    def __init__(self, database_name, mode='store'):
+    def __init__(self, database_name, mode="store"):
         self.filename = database_name
-        self.dn = self.filename + '.dat'  # NumPy array data
-        self.pn = self.filename + '.map'  # positions & identifiers
+        self.dn = self.filename + ".dat"  # NumPy array data
+        self.pn = self.filename + ".map"  # positions & identifiers
 
-        if mode == 'store':
+        if mode == "store":
             # bring files into existence:
-            fd = open(self.dn, 'w')
+            fd = open(self.dn, "w")
             fd.close()
 
-            fm = open(self.pn, 'w')
+            fm = open(self.pn, "w")
             fm.close()
 
             self.positions = []
 
-        elif mode == 'load':
+        elif mode == "load":
             # check if files are there:
-            if not os.path.isfile(self.dn) or \
-               not os.path.isfile(self.pn):
-                raise IOError("Could not find the files {} and {}".format(
-                              self.dn, self.pn))
+            if not os.path.isfile(self.dn) or not os.path.isfile(self.pn):
+                raise IOError(
+                    "Could not find the files {} and {}".format(
+                        self.dn, self.pn
+                    )
+                )
             # load mapfile into list of tuples:
-            with open(self.pn, 'r') as fm:
+            with open(self.pn, "r") as fm:
                 self.positions = []
                 for line in fm:
                     # first column contains file positions in the
@@ -60,7 +62,7 @@ class NumPyDB:
                     # line is an identifier
                     c = line.split()
                     # append tuple (position, identifier):
-                    self.positions.append((int(c[0]), ' '.join(c[1:]).strip()))
+                    self.positions.append((int(c[0]), " ".join(c[1:]).strip()))
 
     def locate(self, identifier):  # base class
         """
@@ -85,14 +87,15 @@ class NumPyDB:
 
 class NumPyDB_cPickle(NumPyDB):
     """Use basic cPickle class."""
-    def __init__(self, database_name, mode='store'):
+
+    def __init__(self, database_name, mode="store"):
         NumPyDB.__init__(self, database_name, mode)
 
     def dump(self, a, identifier):
         """Dump NumPy array a with identifier."""
         # fd: datafile, fm: mapfile
-        with open(self.dn, 'ab') as fd:
-            with open(self.pn, 'a') as fm:
+        with open(self.dn, "ab") as fd:
+            with open(self.pn, "a") as fm:
                 # fd.tell(): return current position in datafile
                 fm.write("%d\t\t %s\n" % (fd.tell(), identifier))
                 self.positions.append((fd.tell(), identifier))
@@ -108,7 +111,7 @@ class NumPyDB_cPickle(NumPyDB):
         pos, id = self.locate(identifier)
         if pos < 0:
             return [None, "not found"]
-        with open(self.dn, 'rb') as fd:
+        with open(self.dn, "rb") as fd:
             fd.seek(pos)
             a = pickle.load(fd)
         return [a, id]

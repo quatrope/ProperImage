@@ -41,11 +41,12 @@ from astropy.stats import sigma_clipped_stats
 
 
 def primes(n):
-    divisors = [d for d in range(2, n//2+1) if n % d == 0]
-    prims = [d for d in divisors if
-             all(d % od != 0 for od in divisors if od != d)]
+    divisors = [d for d in range(2, n // 2 + 1) if n % d == 0]
+    prims = [
+        d for d in divisors if all(d % od != 0 for od in divisors if od != d)
+    ]
     if len(prims) >= 4:
-        return prims[-1]*prims[-2]
+        return prims[-1] * prims[-2]
     elif len(prims) == 0:
         return n
 
@@ -53,21 +54,23 @@ def primes(n):
 
 
 try:
-    import matplotlib.pyplot as plt   # noqa
+    import matplotlib.pyplot as plt  # noqa
 
     font = {
-        'family': 'sans-serif',
-        'sans-serif': ['Computer Modern Sans serif'],
-        'weight': 'regular',
-        'size': 12}
+        "family": "sans-serif",
+        "sans-serif": ["Computer Modern Sans serif"],
+        "weight": "regular",
+        "size": 12,
+    }
 
-    text = {'usetex': True}
+    text = {"usetex": True}
 
-    plt.rc('font', **font)
-    plt.rc('text', **text)
+    plt.rc("font", **font)
+    plt.rc("text", **text)
 
-    def plot_psfbasis(psf_basis, path=None, nbook=False,
-                      size=4, iso=False, **kwargs):
+    def plot_psfbasis(
+        psf_basis, path=None, nbook=False, size=4, iso=False, **kwargs
+    ):
         # psf_basis.reverse()
         xsh, ysh = psf_basis[1].shape
         N = len(psf_basis)
@@ -75,23 +78,28 @@ try:
         if N == 2:
             subplots = (2, 1)
         elif p == N:
-            subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)+1))
+            subplots = (np.rint(np.sqrt(N)), np.rint(np.sqrt(N) + 1))
         else:
             rows = N // p
             rows += N % p
             subplots = (p, rows)
 
-        plt.figure(figsize=(size*subplots[0], size*subplots[1]))
+        plt.figure(figsize=(size * subplots[0], size * subplots[1]))
         for i in range(len(psf_basis)):
-            plt.subplot(subplots[1], subplots[0], i+1)
-            plt.imshow(psf_basis[i], interpolation='none', cmap='viridis')
-            labels = {'j': i+1, 'sum': np.sum(psf_basis[i])}
-            plt.title(r'$\sum p_{j:d} = {sum:4.3e}$'.format(**labels))
+            plt.subplot(subplots[1], subplots[0], i + 1)
+            plt.imshow(psf_basis[i], interpolation="none", cmap="viridis")
+            labels = {"j": i + 1, "sum": np.sum(psf_basis[i])}
+            plt.title(r"$\sum p_{j:d} = {sum:4.3e}$".format(**labels))
             # , interpolation='linear')
             plt.colorbar(shrink=0.85)
             if iso:
-                plt.contour(np.arange(xsh), np.arange(ysh),
-                            psf_basis[i], colors='red', alpha=0.4)
+                plt.contour(
+                    np.arange(xsh),
+                    np.arange(ysh),
+                    psf_basis[i],
+                    colors="red",
+                    alpha=0.4,
+                )
         plt.tight_layout()
         if path is not None:
             plt.savefig(path)
@@ -100,7 +108,7 @@ try:
 
     def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
         if a_fields[0] is None:
-            print('No a_fields were calculated. Only one Psf Basis')
+            print("No a_fields were calculated. Only one Psf Basis")
             return
         # a_fields.reverse()
         N = len(a_fields)
@@ -108,20 +116,22 @@ try:
         if N == 2:
             subplots = (2, 1)
         elif p == N:
-            subplots = (np.rint(np.sqrt(N)),  np.rint(np.sqrt(N)+1))
+            subplots = (np.rint(np.sqrt(N)), np.rint(np.sqrt(N) + 1))
         else:
             rows = N // p
             rows += N % p
             subplots = (p, rows)
 
-        plt.figure(figsize=(size*subplots[0], size*subplots[1]), **kwargs)
+        plt.figure(figsize=(size * subplots[0], size * subplots[1]), **kwargs)
         for i in range(len(a_fields)):
-            plt.subplot(subplots[1], subplots[0], i+1)
+            plt.subplot(subplots[1], subplots[0], i + 1)
             a = a_fields[i](x, y)
             mean, med, std = sigma_clipped_stats(a)
-            plt.imshow(a, vmax=med+2*std, vmin=med-2*std, cmap='viridis')
-            labels = {'j': i+1, 'sum': np.sqrt(np.sum(a**2))}
-            plt.title(r'$a_{j}$,$\sum a_{j}={sum:4.3e}$'.format(**labels))
+            plt.imshow(
+                a, vmax=med + 2 * std, vmin=med - 2 * std, cmap="viridis"
+            )
+            labels = {"j": i + 1, "sum": np.sqrt(np.sum(a ** 2))}
+            plt.title(r"$a_{j}$,$\sum a_{j}={sum:4.3e}$".format(**labels))
             plt.colorbar(shrink=0.75, aspect=30)
         plt.tight_layout()
         if path is not None:
@@ -134,9 +144,13 @@ try:
         if isinstance(S, np.ma.masked_array):
             S = S.filled()
         mean, med, std = sigma_clipped_stats(S)
-        plt.imshow(S, vmax=med+4*std, vmin=med-4*std,
-                   interpolation='none',
-                   cmap='viridis')
+        plt.imshow(
+            S,
+            vmax=med + 4 * std,
+            vmin=med - 4 * std,
+            interpolation="none",
+            cmap="viridis",
+        )
         plt.tight_layout()
         plt.colorbar()
         if path is not None:
@@ -152,7 +166,7 @@ try:
             R = R.real
         if isinstance(R, np.ma.masked_array):
             R = R.filled()
-        plt.imshow(np.log10(R), interpolation='none', cmap='viridis')
+        plt.imshow(np.log10(R), interpolation="none", cmap="viridis")
         plt.tight_layout()
         plt.colorbar()
         if path is not None:
@@ -163,5 +177,6 @@ try:
             plt.close()
         return
 
+
 except ImportError:
-    print('Almost the entire module works on matplotlib. Try installing it')
+    print("Almost the entire module works on matplotlib. Try installing it")
