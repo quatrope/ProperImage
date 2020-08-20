@@ -4,9 +4,13 @@ language: python
 
 addons:
   apt_packages:
-    - pandoc
     - texlive-full
     - texlive-xetex
+
+before_install:
+  - sudo wget https://github.com/jgm/pandoc/releases/download/2.7.3/pandoc-2.7.3-1-amd64.deb
+  - sudo dpkg -i pandoc-2.7.3-1-amd64.deb
+  - pandoc --version
 
 install:
   - pip install tox
