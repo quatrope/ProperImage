@@ -64,19 +64,20 @@ def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
         Y_FWHM = X_FWHM
 
     a = np.zeros((int(N), int(N)))
-    mu = (N-1)/2.
-    sigma_x = X_FWHM/2.335
-    sigma_y = Y_FWHM/2.335
+    mu = (N - 1) / 2.0
+    sigma_x = X_FWHM / 2.335
+    sigma_y = Y_FWHM / 2.335
     sigma = max(sigma_x, sigma_y)
-    tail_len = min(int(5*sigma), N/2)
+    tail_len = min(int(5 * sigma), N / 2)
     mu_int = int(mu)
     for i in range(int(mu_int - tail_len), int(mu_int + tail_len), 1):
         for j in range(int(mu_int - tail_len), int(mu_int + tail_len), 1):
-            a[i, j] = stats.norm.pdf(i, loc=mu, scale=sigma_x) * \
-                       stats.norm.pdf(j, loc=mu, scale=sigma_y)
+            a[i, j] = stats.norm.pdf(
+                i, loc=mu, scale=sigma_x
+            ) * stats.norm.pdf(j, loc=mu, scale=sigma_y)
     if theta != 0:
         a = rotate(a, theta)
-    return(a/np.sum(a))
+    return a / np.sum(a)
 
 
 def astropy_Psf(N, FWHM):
@@ -88,16 +89,17 @@ def astropy_Psf(N, FWHM):
     1 loops, best of 3: 338 ms per loop
     """
     psf = np.zeros((N, N))
-    mu = (N-1)/2.
-    sigma = FWHM/2.335
-    model = models.Gaussian2D(amplitude=1., x_mean=mu, y_mean=mu,
-                              x_stddev=sigma, y_stddev=sigma)
-    tail_len = int(7*sigma)
+    mu = (N - 1) / 2.0
+    sigma = FWHM / 2.335
+    model = models.Gaussian2D(
+        amplitude=1.0, x_mean=mu, y_mean=mu, x_stddev=sigma, y_stddev=sigma
+    )
+    tail_len = int(7 * sigma)
     mu_int = int(mu)
     i = range(mu_int - tail_len, mu_int + tail_len, 1)
     for ii, jj in cartesian_product([i, i]):
         psf[ii, jj] = model(ii, jj)
-    return psf/np.sum(psf)
+    return psf / np.sum(psf)
 
 
 def _airy_func(rr, width, amplitude=1.0):
@@ -105,8 +107,8 @@ def _airy_func(rr, width, amplitude=1.0):
     For a simple radially symmetric airy function, returns the value at a given
     (normalized) radius
     """
-    r = float(rr)/width
-    return amplitude * (2.0 * sp.special.j1(r)/r)**2
+    r = float(rr) / width
+    return amplitude * (2.0 * sp.special.j1(r) / r) ** 2
 
 
 def airy_patron(N, width):
@@ -123,13 +125,13 @@ def airy_patron(N, width):
      width es el theta ya calculado. Es importante saber que este theta
      depende del CCD también, ya que esta construida la funcion en pixeles
     """
-    mu = (N-1)/2.
+    mu = (N - 1) / 2.0
     a = np.zeros((N, N))
     for i in range(N):
         for j in range(N):
-            r_pix = np.sqrt((i-mu)**2 + (j-mu)**2)
+            r_pix = np.sqrt((i - mu) ** 2 + (j - mu) ** 2)
             a[i, j] = _airy_func(r_pix, width)
-    return(a)
+    return a
 
 
 def convol_gal_psf_fft(gal, a):
@@ -144,7 +146,7 @@ def convol_gal_psf_fft(gal, a):
     FASTER
     """
     b = sg.fftconvolve(gal, a, mode="same")
-    return(b)
+    return b
 
 
 def perfilsersic(r_e, I_e, n, r):
@@ -156,10 +158,10 @@ def perfilsersic(r_e, I_e, n, r):
          n    :  Indice de Sersic
          r    :  Radio medido desde el centro en pixeles
     """
-    b = 1.999*n - 0.327
-    I_r = I_e * np.exp(-b*(((r/r_e)**(1/np.float(n)))-1))
-    I_r = I_r/(I_e*np.exp(-b*(((0.0/r_e)**(1/np.float(n)))-1)))
-    return(I_r)
+    b = 1.999 * n - 0.327
+    I_r = I_e * np.exp(-b * (((r / r_e) ** (1 / np.float(n))) - 1))
+    I_r = I_r / (I_e * np.exp(-b * (((0.0 / r_e) ** (1 / np.float(n))) - 1)))
+    return I_r
 
 
 def gal_sersic(N, n):
@@ -169,18 +171,18 @@ def gal_sersic(N, n):
     y que posee un indice de sersic n
     """
     gal = np.zeros((N, N))
-    mu = (N-1)/2.       # calculo posicion del pixel central
+    mu = (N - 1) / 2.0  # calculo posicion del pixel central
     # radio de escala, tomado como un
     # sexto del ancho de la imagen para que la galaxia no ocupe toda la imagen
-    R_e = ((N-1)/6.)
-    for i in range(N-1):
-        for j in range(N-1):
-            r_pix = np.sqrt((i-mu)**2 + (j-mu)**2)
-            if r_pix <= (4.5*R_e):
+    R_e = (N - 1) / 6.0
+    for i in range(N - 1):
+        for j in range(N - 1):
+            r_pix = np.sqrt((i - mu) ** 2 + (j - mu) ** 2)
+            if r_pix <= (4.5 * R_e):
                 gal[i, j] = perfilsersic(R_e, 10, n, r_pix)
             else:
                 gal[i, j] = 0
-    return(gal)
+    return gal
 
 
 def cartesian_product(arrays):
@@ -224,19 +226,20 @@ def delta_point(N, center=True, xy=None, weights=None):
     m = np.zeros(shape=(N, N))
     if center is False:
         if weights is None:
-            weights = list(np.repeat(1., len(xy)))
+            weights = list(np.repeat(1.0, len(xy)))
         j = -1
         for x, y in xy:
             w = weights[j]
-            m[int(x), int(y)] = 1.*w
+            m[int(x), int(y)] = 1.0 * w
             j -= 1
     else:
-        m[int(N/2.), int(N/2.)] = 1.
-    return(m)
+        m[int(N / 2.0), int(N / 2.0)] = 1.0
+    return m
 
 
-def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
-          bkg_pdf='poisson', std=None):
+def image(
+    MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0, bkg_pdf="poisson", std=None
+):
     """
     funcion que genera una imagen con ruido y seeing a partir
     de un master frame, y la pixeliza hasta tamaño N2
@@ -253,7 +256,7 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
     """
     N = np.shape(MF)[0]
     FWHM = max(X_FWHM, Y_FWHM)
-    PSF = Psf(5*FWHM, X_FWHM, Y_FWHM, theta)
+    PSF = Psf(5 * FWHM, X_FWHM, Y_FWHM, theta)
     IM = convol_gal_psf_fft(MF, PSF)
 
     if N != N2:
@@ -263,22 +266,22 @@ def image(MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0,
 
     b = np.max(image)  # image[int(N2/2), int(N2/2)]
 
-    if bkg_pdf == 'poisson':
-        mean = b/SN
-        print('mean = {}, b = {}, SN = {}'.format(mean, b, SN))
+    if bkg_pdf == "poisson":
+        mean = b / SN
+        print("mean = {}, b = {}, SN = {}".format(mean, b, SN))
         C = np.random.poisson(mean, (N2, N2)).astype(np.float32)
 
-    elif bkg_pdf == 'gaussian':
+    elif bkg_pdf == "gaussian":
         mean = 0
-        std = b/SN
-        print('mean = {}, std = {}, b = {}, SN = {}'.format(mean, std, b, SN))
+        std = b / SN
+        print("mean = {}, std = {}, b = {}, SN = {}".format(mean, std, b, SN))
         C = np.random.normal(mean, std, (N2, N2))
-    bias = 100.
+    bias = 100.0
     F = C + image + bias
-    return(F)
+    return F
 
 
-def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
+def capsule_corp(gal, t, t_exp, i, zero, path=".", round_int=False):
     """
     funcion que encapsula las imagenes generadas en fits
     gal        :   Imagen (matriz) a encapsular
@@ -293,47 +296,59 @@ def capsule_corp(gal, t, t_exp, i, zero, path='.', round_int=False):
     file1 = fits.PrimaryHDU(gal)
     hdulist = fits.HDUList([file1])
     hdr = hdulist[0].header
-    if t.__class__.__name__ == 'Time':
+    if t.__class__.__name__ == "Time":
         dia = t.iso[0:10]
         hora = t.iso[11:24]
         jd = t.jd
     else:
-        time = Time(t, format='jd', scale='utc')
+        time = Time(t, format="jd", scale="utc")
         dia = time.iso[0:10]
         hora = time.iso[11:24]
         jd = time.jd
-    hdr.set('TIME-OBS', hora)
-    hdr.set('DATE-OBS', dia)
-    hdr.set('EXPTIME', t_exp)
-    hdr.set('JD', jd)
-    hdr.set('ZERO_P', zero)
-    path_fits = os.path.join(path, ('image00'+str(i)+'.fits'))
+    hdr.set("TIME-OBS", hora)
+    hdr.set("DATE-OBS", dia)
+    hdr.set("EXPTIME", t_exp)
+    hdr.set("JD", jd)
+    hdr.set("ZERO_P", zero)
+    path_fits = os.path.join(path, ("image00" + str(i) + ".fits"))
     hdulist.writeto(path_fits, clobber=True)
     return path_fits
 
 
-def sim_varpsf(nstars, SN=3., thetas=[0, 45, 105, 150], N=512):
+def sim_varpsf(nstars, SN=3.0, thetas=[0, 45, 105, 150], N=512):
     frames = []
     for theta in thetas:
-        X_FWHM = 5 + 5.*theta/180.
+        X_FWHM = 5 + 5.0 * theta / 180.0
         Y_FWHM = 5
-        bias = 100.
+        bias = 100.0
         t_exp = 1
         max_fw = max(X_FWHM, Y_FWHM)
 
-        x = np.random.randint(low=6*max_fw, high=N-6*max_fw, size=nstars/4)
-        y = np.random.randint(low=6*max_fw, high=N-6*max_fw, size=nstars/4)
-        xy = np.array([(x[i], y[i]) for i in range(nstars/4)])
+        x = np.random.randint(
+            low=6 * max_fw, high=N - 6 * max_fw, size=nstars / 4
+        )
+        y = np.random.randint(
+            low=6 * max_fw, high=N - 6 * max_fw, size=nstars / 4
+        )
+        xy = np.array([(x[i], y[i]) for i in range(nstars / 4)])
 
-        weights = list(np.linspace(100., 10000., len(xy)))
+        weights = list(np.linspace(100.0, 10000.0, len(xy)))
         m = delta_point(N, center=False, xy=xy, weights=weights)
-        im = image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
-                   SN=SN, bkg_pdf='gaussian')
-        frames.append(im+bias)
+        im = image(
+            m,
+            N,
+            t_exp,
+            X_FWHM,
+            Y_FWHM=Y_FWHM,
+            theta=theta,
+            SN=SN,
+            bkg_pdf="gaussian",
+        )
+        frames.append(im + bias)
 
-    frame = np.zeros((2*N, 2*N))
+    frame = np.zeros((2 * N, 2 * N))
     for j in range(2):
         for i in range(2):
-            frame[i*N:(i+1)*N, j*N:(j+1)*N] = frames[i+2*j]
+            frame[i * N : (i + 1) * N, j * N : (j + 1) * N] = frames[i + 2 * j]
 
     return frame

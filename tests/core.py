@@ -13,15 +13,13 @@ import unittest
 import numpy as np
 import numpy.testing as npt
 
-import six
-
 
 # =============================================================================
 # BASE CLASS
 # =============================================================================
 
-class ProperImageTestCase(unittest.TestCase):
 
+class ProperImageTestCase(unittest.TestCase):
     def assertAllClose(self, a, b, **kwargs):
         return npt.assert_allclose(a, b, **kwargs)
 

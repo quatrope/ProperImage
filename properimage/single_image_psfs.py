@@ -45,6 +45,7 @@ from . import single_image as si
 
 try:
     import pyfftw
+
     _fftwn = pyfftw.interfaces.numpy_fft.fft2  # noqa
     _ifftwn = pyfftw.interfaces.numpy_fft.ifft2  # noqa
 except ImportError:
@@ -53,7 +54,6 @@ except ImportError:
 
 
 class Bunch(dict):
-
     def __dir__(self):
         return self.keys()
 
@@ -104,12 +104,16 @@ class SingleImageGaussPSF(si.SingleImage):
             if fitter is None:
                 fitter = fitting.LevMarLSQFitter()
 
-            y2, x2 = np.mgrid[:b.shape[0], :b.shape[1]]
-            ampl = b.max()-b.min()
-            p = models.Gaussian2D(x_mean=b.shape[1]/2., y_mean=b.shape[0]/2.,
-                                  x_stddev=1., y_stddev=1.,
-                                  theta=np.pi/4.,
-                                  amplitude=ampl)
+            y2, x2 = np.mgrid[: b.shape[0], : b.shape[1]]
+            ampl = b.max() - b.min()
+            p = models.Gaussian2D(
+                x_mean=b.shape[1] / 2.0,
+                y_mean=b.shape[0] / 2.0,
+                x_stddev=1.0,
+                y_stddev=1.0,
+                theta=np.pi / 4.0,
+                amplitude=ampl,
+            )
 
             p += models.Const2D(amplitude=b.min())
             out = fitter(p, x2, y2, b, maxiter=1000)
@@ -137,8 +141,13 @@ class SingleImageGaussPSF(si.SingleImage):
         mean_am, med_am, std_am = sigma_clipped_stats(p_am)
 
         # import ipdb; ipdb.set_trace()
-        mean_model = models.Gaussian2D(x_mean=0, y_mean=0,
-                                       x_stddev=mean_xw, y_stddev=mean_yw,
-                                       theta=mean_th, amplitude=1.)
+        mean_model = models.Gaussian2D(
+            x_mean=0,
+            y_mean=0,
+            x_stddev=mean_xw,
+            y_stddev=mean_yw,
+            theta=mean_th,
+            amplitude=1.0,
+        )
 
         return [[None], [mean_model.render(), mean_model]]
