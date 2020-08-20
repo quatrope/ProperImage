@@ -40,7 +40,7 @@ To create a proper-subtraction of images:
     >>> D, P, Scorr, mask = ps.diff(ref=ref_path, new=new_path, smooth_psf=False, fitted_psf=True,
                                     align=False, iterative=False, beta=False, shift=False)
 
-Where D, P, Scorr refer to the images defined by the same name in [Zackay & Ofek](https://iopscience.iop.org/article/10.3847/0004-637X/830/1/27/meta) paper.
+Where `D`, `P`, `Scorr` refer to the images defined by the same name in [Zackay & Ofek](https://iopscience.iop.org/article/10.3847/0004-637X/830/1/27/meta) paper.
 
 For the full documentation refer to [readthedocs](https://properimage.readthedocs.io).
 
