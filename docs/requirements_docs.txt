@@ -1,3 +1,4 @@
+ipython
 Sphinx>=1.6.5
 nbsphinx>=0.2.12
 sphinx-autobuild>=0.7.1
