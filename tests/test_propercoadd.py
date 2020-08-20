@@ -44,55 +44,61 @@ import shutil
 import numpy as np
 from astropy.io import fits
 
-from properimage import propercoadd as pc,  single_image as si
+from properimage import propercoadd as pc, single_image as si
 
 from . import simtools
 from .core import ProperImageTestCase
 
 
 class PropercoaddBase(object):
-
     def setUp(self):
-        print('setting up')
+        print("setting up")
         self.tempdir = tempfile.mkdtemp()
         self.paths = []
         # mock data
-        psf = simtools.Psf(11, 2.5, 3.)
+        psf = simtools.Psf(11, 2.5, 3.0)
 
-        self.mock_image_data = np.random.random((256, 256))*10.
+        self.mock_image_data = np.random.random((256, 256)) * 10.0
         for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(7, 120)
             # print x, y
-            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
+            self.mock_image_data[x : x + 11, y : y + 11] += (
+                psf * float(i + 1) * 2000.0
+            )
 
-        psf = simtools.Psf(11, 3., 1.9)
+        psf = simtools.Psf(11, 3.0, 1.9)
         for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(122, 220)
             # print x, y
-            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
+            self.mock_image_data[x : x + 11, y : y + 11] += (
+                psf * float(i + 1) * 2000.0
+            )
 
         # generate 4 images to coadd
         for j in range(4):
             # a numpy array
-            image_data = self.mock_image_data + \
-                         np.random.random((256, 256))*50. + 350
+            image_data = (
+                self.mock_image_data
+                + np.random.random((256, 256)) * 50.0
+                + 350
+            )
 
             image_data[123, 123] = np.nan
 
             # a fits file
-            mockfits_path = os.path.join(self.tempdir,
-                                         'mockfits_{}.fits'.format(j))
-            fits.writeto(mockfits_path, image_data,
-                         overwrite=True)
+            mockfits_path = os.path.join(
+                self.tempdir, "mockfits_{}.fits".format(j)
+            )
+            fits.writeto(mockfits_path, image_data, overwrite=True)
             self.paths.append(mockfits_path)
 
     def testChunkIt(self):
         imgs = [si.SingleImage(img) for img in self.paths]
 
         for i in range(len(imgs)):
-            chunks = si.chunk_it(imgs, i+1)
+            chunks = si.chunk_it(imgs, i + 1)
 
             self.assertIsInstance(chunks, list)
 
@@ -110,7 +116,6 @@ class PropercoaddBase(object):
 
 
 class TestCoaddSingleCore(PropercoaddBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestCoaddSingleCore, self).setUp()
         self.imgs = [si.SingleImage(img) for img in self.paths]
@@ -123,7 +128,6 @@ class TestCoaddSingleCore(PropercoaddBase, ProperImageTestCase):
 
 
 class TestCoadd2Core(PropercoaddBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestCoadd2Core, self).setUp()
         self.imgs = [si.SingleImage(img) for img in self.paths]
@@ -136,7 +140,6 @@ class TestCoadd2Core(PropercoaddBase, ProperImageTestCase):
 
 
 class TestCoaddMultCore1(PropercoaddBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestCoaddMultCore1, self).setUp()
         self.imgs = [si.SingleImage(img) for img in self.paths]
@@ -151,7 +154,6 @@ class TestCoaddMultCore1(PropercoaddBase, ProperImageTestCase):
 
 
 class TestCoaddMultCore2(PropercoaddBase, ProperImageTestCase):
-
     def setUp(self):
         super(TestCoaddMultCore2, self).setUp()
         self.imgs = [si.SingleImage(img) for img in self.paths]

@@ -36,6 +36,7 @@ Of 301
 """
 
 from multiprocessing import Queue
+
 # from collections import MutableSequence
 
 import numpy as np
@@ -54,6 +55,7 @@ except ImportError:
 
 try:
     import pyfftw
+
     _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
     _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
 except ImportError:
@@ -96,22 +98,23 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
         procs = []
         for chunk in chunk_it(img_list, n_procs):
             queue = Queue()
-            proc = StackCombinator(chunk, queue, shape=global_shape,
-                                   stack=True, fourier=False)
-            print('starting new process')
+            proc = StackCombinator(
+                chunk, queue, shape=global_shape, stack=True, fourier=False
+            )
+            print("starting new process")
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
 
-        print('all chunks started, and procs appended')
+        print("all chunks started, and procs appended")
 
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
         mix_mask = np.zeros(global_shape, dtype=np.bool)
         for q in queues:
             serialized = q.get()
-            print('loading pickles')
+            print("loading pickles")
             s_hat_comp, psf_hat_sum, mask = pickle.loads(serialized)
             np.add(s_hat_comp, S_hat, out=S_hat)  # , casting='same_kind')
             np.add(psf_hat_sum, P_hat, out=P_hat)  # , casting='same_kind')
@@ -119,16 +122,16 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
 
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
-        P_r = P_r/np.sum(P_r)
-        R = _ifftwn(S_hat/np.sqrt(P_hat))
+        P_r = P_r / np.sum(P_r)
+        R = _ifftwn(S_hat / np.sqrt(P_hat))
 
-        print('S calculated, now starting to join processes')
+        print("S calculated, now starting to join processes")
 
         for proc in procs:
-            print('waiting for procs to finish')
+            print("waiting for procs to finish")
             proc.join()
 
-        print('processes finished, now returning R')
+        print("processes finished, now returning R")
     else:
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
@@ -136,12 +139,15 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
 
         for an_img in img_list:
             np.add(an_img.s_hat_comp, S_hat, out=S_hat)
-            np.add(((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm(), P_hat,
-                   out=P_hat)
+            np.add(
+                ((an_img.zp / an_img.var) ** 2) * an_img.psf_hat_sqnorm(),
+                P_hat,
+                out=P_hat,
+            )
             mix_mask = np.ma.mask_or(mix_mask, an_img.pixeldata.mask)
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
-        P_r = P_r/np.sum(P_r)
-        R = _ifftwn(S_hat/P_r_hat)
+        P_r = P_r / np.sum(P_r)
+        R = _ifftwn(S_hat / P_r_hat)
 
     return R, P_r, mix_mask

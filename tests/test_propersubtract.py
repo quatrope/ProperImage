@@ -52,49 +52,58 @@ from . import simtools
 
 
 class PropersubtractBase(object):
-
     def setUp(self):
-        print('setting up')
+        print("setting up")
         self.tempdir = tempfile.mkdtemp()
         self.paths = []
         # mock data
-        psf = simtools.Psf(11, 2.5, 3.)
+        psf = simtools.Psf(11, 2.5, 3.0)
 
-        self.mock_image_data = np.random.random((256, 256))*10.
+        self.mock_image_data = np.random.random((256, 256)) * 10.0
         for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(7, 120)
             # print x, y
-            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
+            self.mock_image_data[x : x + 11, y : y + 11] += (
+                psf * float(i + 1) * 2000.0
+            )
 
-        psf = simtools.Psf(11, 3., 1.9)
+        psf = simtools.Psf(11, 3.0, 1.9)
         for i in range(50):
             x = np.random.randint(7, 220)
             y = np.random.randint(122, 220)
             # print x, y
-            self.mock_image_data[x:x+11, y:y+11] += psf*float(i+1)*2000.
+            self.mock_image_data[x : x + 11, y : y + 11] += (
+                psf * float(i + 1) * 2000.0
+            )
 
         # generate 2 images to subtract
 
         # a reference
-        refimage_data = self.mock_image_data*10. + \
-            np.random.random((256, 256))*50. + 350
+        refimage_data = (
+            self.mock_image_data * 10.0
+            + np.random.random((256, 256)) * 50.0
+            + 350
+        )
 
         refimage_data[123, 123] = np.nan
 
         # a fits file
-        refmockfits_path = os.path.join(self.tempdir, 'refmockfits.fits')
+        refmockfits_path = os.path.join(self.tempdir, "refmockfits.fits")
         fits.writeto(refmockfits_path, refimage_data, overwrite=True)
         self.paths.append(refmockfits_path)
 
         # a new image
-        newimage_data = self.mock_image_data*3. + \
-            np.random.random((256, 256))*50. + 750
+        newimage_data = (
+            self.mock_image_data * 3.0
+            + np.random.random((256, 256)) * 50.0
+            + 750
+        )
 
         newimage_data[123, 123] = np.nan
 
         # a fits file
-        newmockfits_path = os.path.join(self.tempdir, 'newmockfits.fits')
+        newmockfits_path = os.path.join(self.tempdir, "newmockfits.fits")
         fits.writeto(newmockfits_path, newimage_data, overwrite=True)
         self.paths.append(newmockfits_path)
 
@@ -115,53 +124,57 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.si_new = si.SingleImage(self.paths[1])
 
     def testSubtractNoBeta(self):
-        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
-                                         beta=False)
+        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new, beta=False)
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractBetaIterative(self):
-        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
-                                         beta=True, iterative=True,
-                                         shift=False)
+        D, P, S_corr, mix_mask = ps.diff(
+            self.si_ref, self.si_new, beta=True, iterative=True, shift=False
+        )
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractBetaShift(self):
-        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
-                                         beta=True, iterative=False,
-                                         shift=True)
+        D, P, S_corr, mix_mask = ps.diff(
+            self.si_ref, self.si_new, beta=True, iterative=False, shift=True
+        )
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractOnlyBeta(self):
-        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
-                                         beta=True, iterative=False,
-                                         shift=False)
+        D, P, S_corr, mix_mask = ps.diff(
+            self.si_ref, self.si_new, beta=True, iterative=False, shift=False
+        )
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractOnlyShift(self):
-        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
-                                         beta=False, iterative=False,
-                                         shift=True)
+        D, P, S_corr, mix_mask = ps.diff(
+            self.si_ref, self.si_new, beta=False, iterative=False, shift=True
+        )
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractNoFitPSF(self):
-        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new,
-                                         beta=False, iterative=False,
-                                         shift=False, fitted_psf=False)
+        D, P, S_corr, mix_mask = ps.diff(
+            self.si_ref,
+            self.si_new,
+            beta=False,
+            iterative=False,
+            shift=False,
+            fitted_psf=False,
+        )
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
