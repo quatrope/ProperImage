@@ -22,23 +22,29 @@ This code is inspired on [Zackay & Ofek 2017](http://arxiv.org/abs/1512.06872)  
 
 To install from PyPI
 
-    $ pip install properimage
+```console
+$ pip install properimage
+```
 
 ## Quick usage
 
 ### PSF estimation
 
-    >>> from properimage import singleimage as si
-    >>> with si.SingleImage(frame, smooth_psf=False) as sim:
-    >>>     a_fields, psf_basis = sim.get_variable_psf(inf_loss=0.15)
+```python
+>>> from properimage import singleimage as si
+>>> with si.SingleImage(frame, smooth_psf=False) as sim:
+...     a_fields, psf_basis = sim.get_variable_psf(inf_loss=0.15)
+```
 
 ### Proper-subtraction of images
 
 To create a proper-subtraction of images:
 
-    >>> from properimage import propersubtract as ps
-    >>> D, P, Scorr, mask = ps.diff(ref=ref_path, new=new_path, smooth_psf=False, fitted_psf=True,
-                                    align=False, iterative=False, beta=False, shift=False)
+```python
+>>> from properimage import propersubtract as ps
+>>> D, P, Scorr, mask = ps.diff(ref=ref_path, new=new_path, smooth_psf=False, fitted_psf=True,
+...                             align=False, iterative=False, beta=False, shift=False)
+```
 
 Where `D`, `P`, `Scorr` refer to the images defined by the same name in [Zackay & Ofek](https://iopscience.iop.org/article/10.3847/0004-637X/830/1/27/meta) paper.
 
