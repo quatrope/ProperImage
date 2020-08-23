@@ -48,7 +48,7 @@ with open(PROPERIMAGE_INIT_PATH, "r") as f:
 REQUIREMENTS = [
     "numpy >= 1.13.2",
     "scipy >= 1.0",
-    "astropy >= 2.0, <= 3.1",
+    "astropy >= 2.0",
     "photutils",
     "astroML",
     "sep",
