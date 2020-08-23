@@ -57,6 +57,17 @@ aa.NUM_NEAREST_NEIGHBORS = 5
 aa.MIN_MATCHES_FRACTION = 0.6
 
 
+class Bunch(dict):
+    def __dir__(self):
+        return self.keys()
+
+    def __getattr__(self, attr):
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError(attr)
+
+
 def encapsule_S(S, path=None):
     if isinstance(S, np.ma.core.MaskedArray):
         mask = S.mask.astype("int")
