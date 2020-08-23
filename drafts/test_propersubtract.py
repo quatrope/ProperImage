@@ -104,7 +104,7 @@ def main(args):
         try:
             D, P, S_corr, mask = ps.diff(animg, images[0], align=True,
                                    iterative=False, shift=False, beta=True)
-            mea, med, std = sigma_clipped_stats(D.real)
+            mea, med, std = sigma_clipped_stats(D.real, mask)
             D = np.ma.MaskedArray(D.real, mask).filled(mea)
             fits.writeto(os.path.join(dest_dir,'Diff_{}.fits'.format(i)), D, overwrite=True)
             fits.writeto(os.path.join(dest_dir,'P_{}.fits'.format(i)), P.real, overwrite=True)

@@ -407,7 +407,7 @@ def diff(
     print(
         (
             "mean = {}, median = {}, std = {}\n".format(
-                *sigma_clipped_stats(S_corr.real.flatten(), sigma=6.0)
+                *sigma_clipped_stats(S_corr.real.flatten(), sigma=4.0)
             )
         )
     )
