@@ -57,17 +57,6 @@ aa.NUM_NEAREST_NEIGHBORS = 5
 aa.MIN_MATCHES_FRACTION = 0.6
 
 
-class Bunch(dict):
-    def __dir__(self):
-        return self.keys()
-
-    def __getattr__(self, attr):
-        try:
-            return self[attr]
-        except KeyError:
-            raise AttributeError(attr)
-
-
 def encapsule_S(S, path=None):
     if isinstance(S, np.ma.core.MaskedArray):
         mask = S.mask.astype("int")
@@ -434,3 +423,14 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
         cat.append((y, x, (S_image[int(x), int(y)] - mean) / std))
 
     return cat
+
+
+class Bunch(dict):
+    def __dir__(self):
+        return self.keys()
+
+    def __getattr__(self, attr):
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError(attr)
