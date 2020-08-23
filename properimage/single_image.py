@@ -83,17 +83,6 @@ def conv(*arg, **kwargs):
     return convolve_fft(fftn=_fftwn, ifftn=_ifftwn, *arg, **kwargs)
 
 
-class Bunch(dict):
-    def __dir__(self):
-        return self.keys()
-
-    def __getattr__(self, attr):
-        try:
-            return self[attr]
-        except KeyError:
-            raise AttributeError(attr)
-
-
 class SingleImage(object):
     """Atomic processor class for a single image.
     Contains several tools for PSF measures, and different coadding

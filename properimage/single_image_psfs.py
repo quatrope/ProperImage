@@ -53,17 +53,6 @@ except ImportError:
     _ifftwn = np.fft.ifft2
 
 
-class Bunch(dict):
-    def __dir__(self):
-        return self.keys()
-
-    def __getattr__(self, attr):
-        try:
-            return self[attr]
-        except KeyError:
-            raise AttributeError(attr)
-
-
 class SingleImageGaussPSF(si.SingleImage):
     """Atomic processor class for a single image.
     Contains several tools for PSF measures, and different coadding
