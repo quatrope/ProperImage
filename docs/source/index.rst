@@ -43,7 +43,7 @@ Install the latest release from PyPI
 License
 -------
 
-Properimage is released under `The MIT License <https://raw.githubusercontent.com/toros-astro/Properimage/master/LICENSE.txt>`_.
+Properimage is released under `The BSD-3 License <https://raw.githubusercontent.com/toros-astro/Properimage/master/LICENSE.txt>`_.
 
 This license allows unlimited redistribution for any purpose as long as its
 copyright notices and the license's disclaimers of warranty are maintained.
