@@ -141,8 +141,8 @@ class ImageEnsemble(MutableSequence):
     @property
     def global_shape(self):
         if not hasattr(self, "_global_shape"):
-            shapex = np.min([at.pixeldata.shape[0] for at in self.atoms])
-            shapey = np.min([at.pixeldata.shape[1] for at in self.atoms])
+            shapex = np.min([at.data.shape[0] for at in self.atoms])
+            shapey = np.min([at.data.shape[1] for at in self.atoms])
             self._global_shape = (shapex, shapey)
             print(self._global_shape)
         return self._global_shape

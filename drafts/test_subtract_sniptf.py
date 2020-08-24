@@ -47,14 +47,14 @@ def main(args):
 
     #images = [s.SingleImage(animg) for animg in imgs]
     for i, animg in enumerate(images[1:]):
-        #~ t, _ = aa.find_transform(animg.pixeldata, images[0].pixeldata)
+        #~ t, _ = aa.find_transform(animg.data, images[0].data)
 
         #~ if abs(t.rotation)>5e-4:
             #~ k = t.__class__
             #~ t = k(np.round(t.params, decimals=5))
 
-        #~ reg = aa.apply_transform(t, animg.pixeldata, images[0].pixeldata)
-        reg = aa.register(animg.pixeldata, images[0].pixeldata)
+        #~ reg = aa.apply_transform(t, animg.data, images[0].data)
+        reg = aa.register(animg.data, images[0].data)
         new = s.SingleImage(reg.data, mask=reg.mask)
 
         fits.writeto('/home/bruno/aligned_{}.fits'.format(i),

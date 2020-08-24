@@ -80,8 +80,8 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
     else:
         img_list = si_list
 
-    shapex = np.min([an_img.pixeldata.shape[0] for an_img in img_list])
-    shapey = np.min([an_img.pixeldata.shape[1] for an_img in img_list])
+    shapex = np.min([an_img.data.shape[0] for an_img in img_list])
+    shapey = np.min([an_img.data.shape[1] for an_img in img_list])
     global_shape = (shapex, shapey)
 
     zps, meanmags = utils.transparency(img_list)
@@ -135,7 +135,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
     else:
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
-        mix_mask = img_list[0].pixeldata.mask
+        mix_mask = img_list[0].data.mask
 
         for an_img in img_list:
             np.add(an_img.s_hat_comp, S_hat, out=S_hat)
@@ -144,7 +144,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
                 P_hat,
                 out=P_hat,
             )
-            mix_mask = np.ma.mask_or(mix_mask, an_img.pixeldata.mask)
+            mix_mask = np.ma.mask_or(mix_mask, an_img.data.mask)
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r / np.sum(P_r)

@@ -95,7 +95,7 @@ def diff(
             ref = SI(ref, smooth_psf=smooth_psf)
         except:  # noqa
             try:
-                ref = SI(ref.pixeldata, smooth_psf=smooth_psf)
+                ref = SI(ref.data, smooth_psf=smooth_psf)
             except:  # noqa
                 raise
 
@@ -104,33 +104,31 @@ def diff(
             new = SI(new, smooth_psf=smooth_psf)
         except:  # noqa
             try:
-                new = SI(new.pixeldata, smooth_psf=smooth_psf)
+                new = SI(new.data, smooth_psf=smooth_psf)
             except:  # noqa
                 raise
 
     if align:
-        registered = aa.register(new.pixeldata, ref.pixeldata)
+        registered = aa.register(new.data, ref.data)
         new._clean()
-        registered = registered[
-            : ref.pixeldata.shape[0], : ref.pixeldata.shape[1]
-        ]
+        registered = registered[: ref.data.shape[0], : ref.data.shape[1]]
         new = SI(
             registered.data,
             mask=registered.mask,
             borders=False,
             smooth_psf=smooth_psf,
         )
-        # new.pixeldata = registered
-        # new.pixeldata.mask = registered.mask
+        # new.data = registered
+        # new.data.mask = registered.mask
 
     # make sure that the alignement has delivered arrays of size
-    if new.pixeldata.data.shape != ref.pixeldata.data.shape:
+    if new.data.data.shape != ref.data.data.shape:
         import ipdb
 
         ipdb.set_trace()
 
     t0 = time.time()
-    mix_mask = np.ma.mask_or(new.pixeldata.mask, ref.pixeldata.mask)
+    mix_mask = np.ma.mask_or(new.data.mask, ref.data.mask)
 
     zps, meanmags = u.transparency([ref, new])
     # print(zps)
@@ -152,15 +150,15 @@ def diff(
         p_r = psf_ref[1]
         p_n = psf_new[1]
 
-        p_r.x_mean = ref.pixeldata.data.shape[0] / 2.0
-        p_r.y_mean = ref.pixeldata.data.shape[1] / 2.0
-        p_n.x_mean = new.pixeldata.data.shape[0] / 2.0
-        p_n.y_mean = new.pixeldata.data.shape[1] / 2.0
+        p_r.x_mean = ref.data.data.shape[0] / 2.0
+        p_r.y_mean = ref.data.data.shape[1] / 2.0
+        p_n.x_mean = new.data.data.shape[0] / 2.0
+        p_n.y_mean = new.data.data.shape[1] / 2.0
         p_r.bounding_box = None
         p_n.bounding_box = None
 
-        p_n = p_n.render(np.zeros(new.pixeldata.data.shape))
-        p_r = p_r.render(np.zeros(ref.pixeldata.data.shape))
+        p_n = p_n.render(np.zeros(new.data.data.shape))
+        p_r = p_r.render(np.zeros(ref.data.data.shape))
         #  import ipdb; ipdb.set_trace()
 
         dx_ref, dy_ref = center_of_mass(p_r)  # [0])
@@ -180,8 +178,8 @@ def diff(
     # rad_ref_sq = dx_ref*dx_ref + dy_ref*dy_ref
     # rad_new_sq = dx_new*dx_new + dy_new*dy_new
 
-    psf_ref_hat = _fftwn(p_r, s=ref.pixeldata.shape, norm="ortho")
-    psf_new_hat = _fftwn(p_n, s=new.pixeldata.shape, norm="ortho")
+    psf_ref_hat = _fftwn(p_r, s=ref.data.shape, norm="ortho")
+    psf_new_hat = _fftwn(p_n, s=new.data.shape, norm="ortho")
 
     psf_ref_hat[np.where(psf_ref_hat.real == 0)] = eps
     psf_new_hat[np.where(psf_new_hat.real == 0)] = eps
@@ -391,14 +389,14 @@ def diff(
     )
 
     V_en = _ifftwn(
-        _fftwn(new.pixeldata.filled(0) + 1.0, norm="ortho")
-        * _fftwn(kn ** 2, s=new.pixeldata.shape),
+        _fftwn(new.data.filled(0) + 1.0, norm="ortho")
+        * _fftwn(kn ** 2, s=new.data.shape),
         norm="ortho",
     )
 
     V_er = _ifftwn(
-        _fftwn(ref.pixeldata.filled(0) + 1.0, norm="ortho")
-        * _fftwn(kr ** 2, s=ref.pixeldata.shape),
+        _fftwn(ref.data.filled(0) + 1.0, norm="ortho")
+        * _fftwn(kr ** 2, s=ref.data.shape),
         norm="ortho",
     )
 

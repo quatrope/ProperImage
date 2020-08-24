@@ -68,22 +68,22 @@ def main(args):
         srcs = animg.best_sources
         f60 = np.percentile(srcs['cflux'], q=60)
         jj = np.random.choice(len(srcs), len(srcs)/3, replace=False)
-        mea, med, std = sigma_clipped_stats(animg.pixeldata)
+        mea, med, std = sigma_clipped_stats(animg.data)
         sx, sy = animg.stamp_shape
         st = animg._bkg.globalrms
         for aj in jj:
             star = srcs[aj]
             x = star['x']
             y = star['y']
-            if x<sx or animg.pixeldata.shape[0]-x<sx:
+            if x<sx or animg.data.shape[0]-x<sx:
                 continue
-            if y<sy or animg.pixeldata.shape[1]-y<sy:
+            if y<sy or animg.data.shape[1]-y<sy:
                 continue
             if star['cflux']<f60:
                 continue
             print(x,y)
             noise = np.random.normal(loc=med, scale=st, size=animg.stamp_shape)
-            animg.pixeldata.data[np.int(x-sx/2.):np.int(x+sx/2.),
+            animg.data.data[np.int(x-sx/2.):np.int(x+sx/2.),
                                  np.int(y-sy/2.):np.int(y+sy/2.)] = noise
 
         ##  Adding stars
@@ -93,10 +93,10 @@ def main(args):
         #~ jj = np.random.choice(len(srcs), 12, replace=False)
         #~ for aj in jj:
             #~ star = animg.db.load(aj)[0]
-            #~ x, y = np.random.choice(np.min(animg.pixeldata.shape)-np.max(star.shape),
+            #~ x, y = np.random.choice(np.min(animg.data.shape)-np.max(star.shape),
                                     #~ 2, replace=True)
             #~ print star.shape
-            #~ animg.pixeldata.data[x:x+star.shape[0], y:y+star.shape[1]] = star
+            #~ animg.data.data[x:x+star.shape[0], y:y+star.shape[1]] = star
             #~ xc, yc = x+star.shape[0]/2., y+star.shape[1]/2.
             #~ print xc, yc
         fits.writeto(os.path.join(dest_dir,'InterpedNew_{}.fits'.format(i)),

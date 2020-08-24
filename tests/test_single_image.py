@@ -129,9 +129,9 @@ class SingleImageBase(object):
         except OSError:
             pass
 
-    def testPixeldata(self):
+    def testdata(self):
         np.testing.assert_allclose(
-            self.mock_image_data, self.si.pixeldata.data, rtol=0.15
+            self.mock_image_data, self.si.data.data, rtol=0.15
         )
 
     def testBackground(self):
@@ -249,7 +249,7 @@ class SingleImageBase(object):
     def testPsfBasisNorm(self):
         for an_inf_loss in [0.1, 0.2, 0.05, 0.15]:
             afields, psfs = self.si.get_variable_psf(an_inf_loss)
-            xs, ys = self.si.pixeldata.shape
+            xs, ys = self.si.data.shape
             for i in range(10):
                 xc = np.random.randint(xs - 60) + 30
                 yc = np.random.randint(ys - 60) + 30
@@ -323,7 +323,7 @@ class TestHDU(SingleImageBase, ProperImageTestCase):
     def testMask(self):
         nanmask = np.zeros((256, 256))
         nanmask[123, 123] = 1
-        np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
+        np.testing.assert_array_equal(nanmask, self.si.data.mask)
 
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)
@@ -431,7 +431,7 @@ class TestHDUPicky(SingleImageBase, ProperImageTestCase):
     def testMask(self):
         nanmask = np.zeros((256, 256))
         nanmask[123, 123] = 1
-        np.testing.assert_array_equal(nanmask, self.si.pixeldata.mask)
+        np.testing.assert_array_equal(nanmask, self.si.data.mask)
 
     def testHeader(self):
         self.assertDictEqual(dict(self.si.header), self.h_fitsfile)

@@ -396,7 +396,7 @@ def align_for_coadd(imglist):
     """
     ref = imglist[0]
     for animg in imglist[1:]:
-        aa.estimate_transform("affine", animg.pixeldata, ref.pixeldata)
+        aa.estimate_transform("affine", animg.data, ref.data)
 
     pass
 

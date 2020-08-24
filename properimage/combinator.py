@@ -132,7 +132,7 @@ class StackCombinator(Process):
     def run(self):
         S_hat = np.zeros(self.global_shape).astype(np.complex128)
         psf_hat_sum = np.zeros(self.global_shape).astype(np.complex128)
-        mix_mask = self.list_to_combine[0].pixeldata.mask
+        mix_mask = self.list_to_combine[0].data.mask
 
         for an_img in self.list_to_combine:
             np.add(an_img.s_hat_comp, S_hat, out=S_hat, casting="same_kind")
@@ -142,7 +142,7 @@ class StackCombinator(Process):
                 out=psf_hat_sum,
             )  # , casting='same_kind')
             # psf_hat_sum = ((an_img.zp/an_img.var)**2)*an_img.psf_hat_sqnorm()
-            mix_mask = np.ma.mask_or(mix_mask, an_img.pixeldata.mask)
+            mix_mask = np.ma.mask_or(mix_mask, an_img.data.mask)
 
         serialized = pickle.dumps([S_hat, psf_hat_sum, mix_mask])
         self.queue.put(serialized)
