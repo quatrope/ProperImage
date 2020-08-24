@@ -127,7 +127,7 @@ class SingleImage(object):
         self.header = img
         self.gain = gain
         self.maskthresh = maskthresh
-        self.pixeldata = img
+        self.data = img
         self.mask = mask
         self._bkg = maskthresh
         self.stamp_shape = stamp_shape
@@ -164,24 +164,24 @@ class SingleImage(object):
             self.__attached_to = img.__class__.__name__
 
     @property
-    def pixeldata(self):
-        return self.__pixeldata
+    def data(self):
+        return self.__data
 
-    @pixeldata.setter
-    def pixeldata(self, img):
+    @data.setter
+    def data(self, img):
         if isinstance(img, str):
-            self.__pixeldata = ma.asarray(fits.getdata(img)).astype("<f4")
+            self.__data = ma.asarray(fits.getdata(img)).astype("<f4")
         elif isinstance(img, np.ndarray):
-            self.__pixeldata = ma.MaskedArray(img, mask=False).astype("<f4")
+            self.__data = ma.MaskedArray(img, mask=False).astype("<f4")
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
-                self.__pixeldata = ma.asarray(img[0].data).astype("<f4")
+                self.__data = ma.asarray(img[0].data).astype("<f4")
         elif isinstance(img, fits.PrimaryHDU):
             if img.is_image:
-                self.__pixeldata = ma.asarray(img.data).astype("<f4")
+                self.__data = ma.asarray(img.data).astype("<f4")
         if self.borders:
-            sx, sy = self.__pixeldata.shape
-            line = self.__pixeldata.data[sx // 2, :]
+            sx, sy = self.__data.shape
+            line = self.__data.data[sx // 2, :]
             pxsum = 0
             for x, px in enumerate(line):
                 pxsum += px
@@ -189,7 +189,7 @@ class SingleImage(object):
                     ldx = x
                     break
             for dx in range(ldx):
-                if not np.sum(self.__pixeldata.data[:dx, :]) == 0:
+                if not np.sum(self.__data.data[:dx, :]) == 0:
                     ldx = dx
                     break
             pxsum = 0
@@ -199,10 +199,10 @@ class SingleImage(object):
                     rdx = sx - x
                     break
             for dx in range(x):
-                if not np.sum(self.__pixeldata.data[-dx - 1 :, :]) == 0:
+                if not np.sum(self.__data.data[-dx - 1 :, :]) == 0:
                     rdx = sx - dx
                     break
-            col = self.__pixeldata.data[:, sy // 2]
+            col = self.__data.data[:, sy // 2]
             pxsum = 0
             for y, px in enumerate(col):
                 pxsum += px
@@ -210,7 +210,7 @@ class SingleImage(object):
                     ldy = y
                     break
             for dy in range(ldy):
-                if not np.sum(self.__pixeldata.data[:, :dy]) == 0:
+                if not np.sum(self.__data.data[:, :dy]) == 0:
                     ldy = dy
                     break
             pxsum = 0
@@ -220,14 +220,14 @@ class SingleImage(object):
                     rdy = sy - y
                     break
             for dy in range(y):
-                if not np.sum(self.__pixeldata.data[:, -dy - 1 :]) == 0:
+                if not np.sum(self.__data.data[:, -dy - 1 :]) == 0:
                     rdy = sy - dy
                     break
-            self.__pixeldata = self.__pixeldata[ldx:rdx, ldy:rdy]
+            self.__data = self.__data[ldx:rdx, ldy:rdy]
         if not np.sum(self.crop) == 0.0:
             dx, dy = self.crop
-            self.__pixeldata = self.__pixeldata[dx[0] : -dx[1], dy[0] : -dy[1]]
-        self.__pixeldata = self.__pixeldata * self.__gain
+            self.__data = self.__data[dx[0] : -dx[1], dy[0] : -dy[1]]
+        self.__data = self.__data * self.__gain
 
     @property
     def gain(self):
@@ -260,36 +260,36 @@ class SingleImage(object):
 
     @property
     def mask(self):
-        return self.__pixeldata.mask
+        return self.__data.mask
 
     @mask.setter
     def mask(self, mask):
         if isinstance(mask, str):
             fitsmask = fits.getdata(mask)
             if np.median(fitsmask) == 0:
-                self.__pixeldata.mask = fitsmask >= self.maskthresh
+                self.__data.mask = fitsmask >= self.maskthresh
             else:
-                self.__pixeldata.mask = fitsmask <= self.maskthresh
+                self.__data.mask = fitsmask <= self.maskthresh
         # if the mask is a separated array
         elif isinstance(mask, np.ndarray):
-            self.__pixeldata.mask = mask
+            self.__data.mask = mask
         # if the mask is not given
         elif mask is None:
             # check the fits file and try to find it as an extension
             if self.attached_to == "PrimaryHDU":
-                self.__pixeldata = ma.masked_invalid(self.__img.data)
+                self.__data = ma.masked_invalid(self.__img.data)
 
             elif self.attached_to == "ndarray":
-                self.__pixeldata = ma.masked_invalid(self.__img)
+                self.__data = ma.masked_invalid(self.__img)
             elif self.attached_to == "HDUList":
                 if self.header["EXTEND"]:
                     fitsmask = self.__img[1].data
                     if np.median(fitsmask) == 0:
-                        self.__pixeldata.mask = fitsmask >= self.maskthresh
+                        self.__data.mask = fitsmask >= self.maskthresh
                     else:
-                        self.__pixeldata.mask = fitsmask <= self.maskthresh
+                        self.__data.mask = fitsmask <= self.maskthresh
                 else:
-                    self.__pixeldata = ma.masked_invalid(self.__img[0].data)
+                    self.__data = ma.masked_invalid(self.__img[0].data)
             # if a path is given where we find a fits file search on extensions
             else:
                 try:
@@ -299,33 +299,29 @@ class SingleImage(object):
                             try:
                                 fitsmask = ff[1].data
                                 if np.median(fitsmask) == 0:
-                                    self.__pixeldata.mask = (
+                                    self.__data.mask = (
                                         fitsmask >= self.maskthresh
                                     )
                                 else:
-                                    self.__pixeldata.mask = (
+                                    self.__data.mask = (
                                         fitsmask <= self.maskthresh
                                     )
                             except IndexError:
-                                self.__pixeldata = ma.masked_invalid(
-                                    self.__pixeldata.data
+                                self.__data = ma.masked_invalid(
+                                    self.__data.data
                                 )
                 except IOError:
-                    self.__pixeldata = ma.masked_invalid(self.__pixeldata)
+                    self.__data = ma.masked_invalid(self.__data)
         else:
-            masked = ma.masked_greater(self.__pixeldata, 65000.0)
+            masked = ma.masked_greater(self.__data, 65000.0)
             if not np.sum(~masked.mask) < 1000.0:
-                self.__pixeldata = masked
+                self.__data = masked
 
-        mask_lower = ma.masked_less(self.__pixeldata, -50.0)
-        mask_greater = ma.masked_greater(self.__pixeldata, 65000.0)
+        mask_lower = ma.masked_less(self.__data, -50.0)
+        mask_greater = ma.masked_greater(self.__data, 65000.0)
 
-        self.__pixeldata.mask = ma.mask_or(
-            self.__pixeldata.mask, mask_lower.mask
-        )
-        self.__pixeldata.mask = ma.mask_or(
-            self.__pixeldata.mask, mask_greater.mask
-        )
+        self.__data.mask = ma.mask_or(self.__data.mask, mask_lower.mask)
+        self.__data.mask = ma.mask_or(self.__data.mask, mask_greater.mask)
 
     @property
     def background(self):
@@ -349,20 +345,20 @@ class SingleImage(object):
     def _bkg(self, maskthresh):
         if self.mask.any():
             if maskthresh is not None:
-                back = sep.Background(self.pixeldata.data, mask=self.mask)  # ,
+                back = sep.Background(self.data.data, mask=self.mask)  # ,
                 # maskthresh=maskthresh)
                 self.__bkg = back
             else:
-                back = sep.Background(self.pixeldata.data, mask=self.mask)
+                back = sep.Background(self.data.data, mask=self.mask)
                 self.__bkg = back
         else:
-            # print(self.pixeldata.data.shape)
-            back = sep.Background(self.pixeldata.data)
+            # print(self.data.data.shape)
+            back = sep.Background(self.data.data)
             self.__bkg = back
 
     @property
     def bkg_sub_img(self):
-        return self.pixeldata - self.__bkg
+        return self.data - self.__bkg
 
     @property
     def stamp_shape(self):
@@ -788,9 +784,7 @@ class SingleImage(object):
         return self._a_fields
 
     def get_afield_domain(self):
-        x, y = np.mgrid[
-            : self.pixeldata.data.shape[0], : self.pixeldata.data.shape[1]
-        ]
+        x, y = np.mgrid[: self.data.data.shape[0], : self.data.data.shape[1]]
         return x, y
 
     def _setup_kl_a_fields(self, inf_loss=None, updating=False):
@@ -906,12 +900,12 @@ class SingleImage(object):
             a_fields, psf_basis = self.get_variable_psf()
 
             if a_fields[0] is None:
-                a = np.ones_like(self.pixeldata.data)
+                a = np.ones_like(self.data.data)
                 self._normal_image = convolve_fft(a, psf_basis[0])
 
             else:
                 x, y = self.get_afield_domain()
-                conv = np.zeros_like(self.pixeldata.data)
+                conv = np.zeros_like(self.data.data)
                 for a, psf_i in zip(a_fields, psf_basis):
                     conv += convolve_scp(a(x, y), psf_i)
                 self._normal_image = conv
@@ -974,15 +968,15 @@ class SingleImage(object):
                 s_hat = (
                     self.interped_hat
                     * _fftwn(
-                        psf_basis[0], s=self.pixeldata.shape, norm="ortho"
+                        psf_basis[0], s=self.data.shape, norm="ortho"
                     ).conj()
                 )
 
                 s_hat = fourier_shift(s_hat, (+dx, +dy))
             else:
-                s_hat = np.zeros_like(self.pixeldata.data, dtype=np.complex128)
+                s_hat = np.zeros_like(self.data.data, dtype=np.complex128)
                 x, y = self.get_afield_domain()
-                im_shape = self.pixeldata.shape
+                im_shape = self.data.shape
                 for a, psf in zip(a_fields, psf_basis):
                     conv = (
                         _fftwn(self.interped * a(x, y) / nrm, norm="ortho")
@@ -1054,12 +1048,12 @@ class SingleImage(object):
         psf_basis = self.kl_basis
         a_fields = self.kl_afields
         if a_fields is None:
-            p_hat = _fftwn(psf_basis[0], s=self.pixeldata.shape, norm="ortho")
+            p_hat = _fftwn(psf_basis[0], s=self.data.shape, norm="ortho")
             p_hat_sqnorm = p_hat * p_hat.conj()
         else:
-            p_hat_sqnorm = np.zeros(self.pixeldata.shape, dtype=np.complex128)
+            p_hat_sqnorm = np.zeros(self.data.shape, dtype=np.complex128)
             for a_psf in psf_basis:
-                psf_hat = _fftwn(a_psf, s=self.pixeldata.shape, norm="ortho")
+                psf_hat = _fftwn(a_psf, s=self.data.shape, norm="ortho")
                 np.add(
                     psf_hat * psf_hat.conj(), p_hat_sqnorm, out=p_hat_sqnorm
                 )
