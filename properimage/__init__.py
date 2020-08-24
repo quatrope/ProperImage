@@ -20,7 +20,7 @@
 
 """
 Properimage is a package for astronomical image processing, in particular
-for coaddition and subtraction of CCD images. The methodology follows a 
+for coaddition and subtraction of CCD images. The methodology follows a
 hypothesis test scheme.
 """
 
