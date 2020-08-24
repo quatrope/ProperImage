@@ -41,7 +41,7 @@ from . import utils as u
 
 try:
     import pyfftw
-
+    
     _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
     _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
     print("using pyfftw interfaces API")

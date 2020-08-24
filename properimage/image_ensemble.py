@@ -5,9 +5,9 @@
 #
 #  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
 #
-# This file is part of ProperImage (https://github.com/toros-astro/ProperImage).
+# This file is part of ProperImage (https://github.com/toros-astro/ProperImage)
 # License: BSD-3-Clause
-#  Full Text: https://github.com/toros-astro/ProperImage/blob/master/LICENSE.txt
+# Full Text: https://github.com/toros-astro/ProperImage/blob/master/LICENSE.txt
 #
 
 """image_ensemble module from ProperImage,
