@@ -46,8 +46,8 @@ import numpy as np
 from astropy.io import fits
 
 from properimage import single_image as s
+from properimage import simtools
 
-from . import simtools
 from .core import ProperImageTestCase
 
 np.warnings.filterwarnings("ignore")

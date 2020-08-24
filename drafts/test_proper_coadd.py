@@ -23,7 +23,7 @@ from astropy.convolution import convolve, convolve_fft
 from astropy.time import Time
 from astropy.io import fits
 
-from properimage.tests import simtools
+from properimage import simtools
 from properimage import propercoadd as pc
 
 

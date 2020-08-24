@@ -47,7 +47,7 @@ from properimage import utils
 
 from .core import ProperImageTestCase
 
-from . import simtools as sm
+from properimage import simtools as sm
 
 
 class UtilsBase(ProperImageTestCase):

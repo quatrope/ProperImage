@@ -25,7 +25,8 @@ import numpy as np
 
 from scipy.ndimage.interpolation import rotate
 
-from . import simtools as sm
+from properimage import simtools as sm
+
 from .core import ProperImageTestCase
 
 

@@ -14,7 +14,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from properimage.tests import simtools
+from properimage import simtools
 from properimage import propercoadd as pc
 from properimage import single_image as si
 from properimage import utils
