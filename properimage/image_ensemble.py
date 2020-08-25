@@ -72,14 +72,18 @@ class ImageEnsemble(MutableSequence):
         super(ImageEnsemble, self).__init__(*arg, **kwargs)
 
         if masklist is not None:
-            self.imglist = zip(imglist, masklist)
+            self.masklist = masklist
+            self.imglist = list(zip(imglist, masklist))
         else:
             self.masklist = np.repeat(masklist, len(imglist))
-            self.imglist = zip(imglist, self.masklist)
+            self.imglist = list(zip(imglist, self.masklist))
         self.inf_loss = inf_loss
 
     def __setitem__(self, i, v):
-        self.imglist[i] = v
+        if len(v) == 1:
+            self.imglist[i] = (v, None)
+        elif len(v) == 2:
+            self.imglist[i] = tuple(v)
 
     def __getitem__(self, i):
         return self.imglist[i]
@@ -88,10 +92,13 @@ class ImageEnsemble(MutableSequence):
         del self.imglist[i]
 
     def __len__(self):
-        return len(self.imgl)
+        return len(self.imglist)
 
     def insert(self, i, v):
-        self.imgl.insert(i, v)
+        if len(v) == 1:
+            self.imglist.insert(i, (v, None))
+        elif len(v) == 2:
+            self.imglist.insert(i, tuple(v))
 
     def __enter__(self):
         return self
@@ -122,6 +129,7 @@ class ImageEnsemble(MutableSequence):
                 si.SingleImage(im[0], mask=im[1]) for im in self.imglist
             ]
         elif len(self._atoms) is not len(self.imglist):
+            self._clean()
             self._atoms = [
                 si.SingleImage(im[0], mask=im[1]) for im in self.imglist
             ]

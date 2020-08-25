@@ -122,6 +122,10 @@ class SingleImageBase(object):
             self.mock_image_data, self.si.data.data, rtol=0.15
         )
 
+    def testRepr(self):
+        self.assertIsInstance(self.si.__repr__(), str)
+        self.assertTrue("SingleImage" in self.si.__repr__())
+
     def testBackground(self):
         self.assertIsInstance(self.si.background, np.ndarray)
 

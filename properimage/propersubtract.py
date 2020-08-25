@@ -36,12 +36,11 @@ import astroalign as aa
 import sep
 import time
 
-#  from .single_image import SingleImage as SI
 from . import utils as u
 
 try:
     import pyfftw
-    
+
     _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
     _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
     print("using pyfftw interfaces API")
@@ -69,32 +68,23 @@ def diff(
     and performs a stacking using properimage R estimator
     """
     if fitted_psf:
-        try:
-            from .single_image_psfs import SingleImageGaussPSF as SI
+        from .single_image_psfs import SingleImageGaussPSF as SI
 
-            print("using single psf, gaussian modeled")
-        except ImportError:
-            from .single_image import SingleImage as SI
+        print("using single psf, gaussian modeled")
     else:
         from .single_image import SingleImage as SI
 
     if not isinstance(ref, SI):
-        try:
+        if hasattr(ref, "data"):
+            ref = SI(ref.data, smooth_psf=smooth_psf)
+        else:
             ref = SI(ref, smooth_psf=smooth_psf)
-        except:  # noqa
-            try:
-                ref = SI(ref.data, smooth_psf=smooth_psf)
-            except:  # noqa
-                raise
 
     if not isinstance(new, SI):
-        try:
+        if hasattr(new, "data"):
+            new = SI(new.data, smooth_psf=smooth_psf)
+        else:
             new = SI(new, smooth_psf=smooth_psf)
-        except:  # noqa
-            try:
-                new = SI(new.data, smooth_psf=smooth_psf)
-            except:  # noqa
-                raise
 
     if align:
         registered = aa.register(new.data, ref.data)

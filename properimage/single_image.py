@@ -142,7 +142,7 @@ class SingleImage(object):
         self._clean()
 
     def __repr__(self):
-        return "SingleImage instance for {}".format(self.attached_to)
+        return f"SingleImage {self.data.shape[0]}, {self.data.shape[1]}"
 
     def _clean(self):
         print("cleaning... ")
