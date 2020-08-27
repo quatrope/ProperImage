@@ -49,6 +49,7 @@ REQUIREMENTS = [
     "numpy >= 1.13.2",
     "scipy >= 1.0",
     "astropy >= 2.0",
+    "matplotlib",
     "photutils",
     "astroML",
     "sep",
