@@ -3,36 +3,39 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Properimage's documentation!
-=======================================
+Properimage documentation
+=========================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-Properimage is an astronomical image processing code, specially written for
-coaddition, and image subtraction.
-It uses the mathematical developement published in the following papers
-[Zackay2016]_, [Zackay2017a]_, and [Zackay2017b]_, and a PSF estimation
-method published in [Lauer2002]_.
+Subtracting a reference image of the "static" sky from a science image for
+transient detection and flux measurement is one of the most fundamental
+techniques in time domain astronomy.
+But due to varying seeing conditions between the reference image and the science
+image, the process becomes non-trivial and it requires the adjustment for
+different `point-spread functions (PSF) <https://en.wikipedia.org/wiki/Point_spread_function>`_ across the two frames.
 
-Most of the code is based on a class called *SingleImage*, which provides
-methods and properties for image processing such as PSF determination.
+**Properimage** is an astronomical image processing code, specially written for
+coaddition, and image subtraction under those circumstances.
+It is an implementation of the mathematical developement published in the
+papers [Zackay2016]_, [Zackay2017a]_, and [Zackay2017b]_ writen by 
+Barak Zackay, Eran O. Ofek and Avishay Gal-Yam.
 
-.. note::
+Unlike previous methods to remedy this problem, the method proposed
+in [Zackay2016]_ is based on basic statistical principles applied in the Fourier
+domain of the image system.
+This has several advantages with respect to previous methods, among which are:
 
-    A previous version of this code used the concept of *ensembles*, which was a class
-    inheriting from python lists, grouping instances of SingleImage,
-    providing all the mathematical operations over multiple images such as coadd,
-    and subtract methods.
-    
-    Now to offer more flexibility to user, there is only one class, the SingleImage.
-    For coaddition, and subtraction the user must employ the functions provided,
-    which take instances of SingleImage as input.
+* It is numerically stable
+* The difference image has uncorrelated white noise
+* It is symmetric to the exchange of the new and reference images
+* It is at least an order of magnitude faster to compute than some popular methods
 
 
-Install Properimage
--------------------
+Installing Properimage
+----------------------
 
 Install the latest release from PyPI
 
@@ -72,4 +75,3 @@ References
 .. [Zackay2016] http://adsabs.harvard.edu/abs/2016ApJ...830...27Z
 .. [Zackay2017a] http://adsabs.harvard.edu/abs/2017ApJ...836..187Z
 .. [Zackay2017b] http://adsabs.harvard.edu/abs/2017ApJ...836..188Z
-.. [Lauer2002] http://adsabs.harvard.edu/abs/2002SPIE.4847..167L
