@@ -4,8 +4,8 @@
 Glossary
 ========
 
-There are some terminology which is used through thte documentation,
-and it is strictly related to astronomical image processing techniques,
+There are some terminology used throughout the documentation,
+that is strictly related to astronomical image processing techniques
 and implementation details.
 
 

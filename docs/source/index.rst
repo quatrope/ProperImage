@@ -10,10 +10,10 @@ Properimage documentation
    :maxdepth: 2
    :caption: Contents:
 
-Subtracting a reference image of the "static" sky from a science image for
+Subtracting a reference image of the "static" sky from a new image for
 transient detection and flux measurement is one of the most fundamental
 techniques in time domain astronomy.
-But due to varying seeing conditions between the reference image and the science
+But due to varying seeing conditions between the reference image and the new
 image, the process becomes non-trivial and it requires the adjustment for
 different `point-spread functions (PSF) <https://en.wikipedia.org/wiki/Point_spread_function>`_ across the two frames.
 
