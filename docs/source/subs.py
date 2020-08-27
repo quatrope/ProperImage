@@ -9,7 +9,5 @@ TARGETS = {
     "virtualenv": "http://www.virtualenv.org/",
     "virtualenvwrapper": "https://virtualenvwrapper.readthedocs.org/en/latest/",
     "standalone pip installer": "https://pip.pypa.io/en/latest/installing.html#install-pip",
-
     "Git": "http://git-scm.com/",
 }
-
