@@ -21,7 +21,7 @@
 #  MA 02110-1301, USA.
 #
 
-"""single_image module from ProperImage,
+"""single_image module from ProperImage,z
 for analysis of astronomical images.
 
 Written by Bruno SANCHEZ
@@ -67,7 +67,7 @@ from astroscrappy import detect_cosmics
 import sep
 
 from . import numpydb as npdb
-from . import utils
+from . import utils, plot
 
 try:
     import pyfftw
@@ -134,6 +134,8 @@ class SingleImage(object):
         self.inf_loss = 0.2
         self._smooth_autopsf = smooth_psf
         self.dbname = os.path.abspath("._" + str(id(self)) + "SingleImage")
+
+        self._plot = plot.Plot(self)
 
     def __enter__(self):
         return self
@@ -1043,6 +1045,10 @@ class SingleImage(object):
         if not hasattr(self, "_interped_hat"):
             self._interped_hat = _fftwn(self.interped, norm="ortho")
         return self._interped_hat
+
+    @property
+    def plot(self):
+        return self._plot
 
     def psf_hat_sqnorm(self):
         psf_basis = self.kl_basis

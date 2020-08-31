@@ -25,20 +25,89 @@ Cordoba - Argentina
 Of 301
 """
 
+# el siguiente código va a ser escrito como funciones. Esto se trata mas que
+# nada por que los plots son mucho mas fáciles de probar con esta forma.
+# lo ideal es qur todos los tests sigan esta forma si usamos pytest.
+
+import matplotlib.pyplot as plt
+from matplotlib.testing.decorators import check_figures_equal
+
+import pytest
+
 from properimage import plot
 
-from .core import ProperImageTestCase
+
+# =============================================================================
+# PRIMES
+# =============================================================================
 
 
-class TestPrimes(ProperImageTestCase):
-    def test9(self):
-        self.assertEqual(plot.primes(9), 3)
+@pytest.mark.parametrize(
+    "test_input, expected", [(9, 3), (45045, 143), (3, 3), (1, 1)]
+)
+def test_primes(test_input, expected):
+    assert plot.primes(test_input) == expected
 
-    def test45045(self):
-        self.assertEqual(plot.primes(45045), 143)
 
-    def test3(self):
-        self.assertEqual(plot.primes(3), 3)
+# =============================================================================
+# TEST API
+# =============================================================================
 
-    def test1(self):
-        self.assertEqual(plot.primes(1), 1)
+
+def test_plot_default_ax(random_simage):
+    img = random_simage
+    ax = img.plot()
+    assert ax is plt.gca()
+
+
+@check_figures_equal()
+def test_plot_default(random_simage, fig_test, fig_ref):
+    img = random_simage
+
+    # fig test
+    test_ax = fig_test.subplots()
+    img.plot(ax=test_ax)
+
+    # expected
+    exp_ax = fig_ref.subplots()
+    img.plot.imshow(ax=exp_ax)
+
+
+def test_plot_invalid_plot(random_simage):
+    img = random_simage
+    with pytest.raises(ValueError):
+        img.plot("_foo")
+
+    with pytest.raises(ValueError):
+        img.plot("foo")
+
+
+# =============================================================================
+# imshow
+# =============================================================================
+
+
+@check_figures_equal()
+def test_plot_imshow_method(random_simage, fig_test, fig_ref):
+    img = random_simage
+
+    # fig test
+    test_ax = fig_test.subplots()
+    img.plot.imshow(ax=test_ax)
+
+    # expected
+    exp_ax = fig_ref.subplots()
+    exp_ax.imshow(img.data)
+
+
+@check_figures_equal()
+def test_plot_imshow_str(random_simage, fig_test, fig_ref):
+    img = random_simage
+
+    # fig test
+    test_ax = fig_test.subplots()
+    img.plot("imshow", ax=test_ax)
+
+    # expected
+    exp_ax = fig_ref.subplots()
+    exp_ax.imshow(img.data)

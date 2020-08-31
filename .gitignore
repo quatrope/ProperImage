@@ -86,7 +86,11 @@ coverage.xml
 swarp.xml
 default.swarp
 profile*
+.vscode/
 *.ipynb_checkpoints*
 
 # Fits files
 *.fits
+
+# test images
+result_images/
