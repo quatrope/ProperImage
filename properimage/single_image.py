@@ -790,9 +790,7 @@ class SingleImage(object):
         return x, y
 
     def _setup_kl_a_fields(self, inf_loss=None, updating=False):
-        """Calculate the coefficients of the expansion in basis of KLoeve.
-
-        """
+        """Calculate the coefficients of the expansion in basis of KLoeve."""
         inf_loss_update = (inf_loss is not None) and (
             self.inf_loss != inf_loss
         )

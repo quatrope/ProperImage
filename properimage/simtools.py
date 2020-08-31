@@ -101,17 +101,17 @@ def _airy_func(rr, width, amplitude=1.0):
 
 def airy_patron(N, width):
     """Esta funcion genera un patron de airy, en una matriz 2D
-     el cual es la impronta
-     del espejo del telescopio y sigue una relacion de
+    el cual es la impronta
+    del espejo del telescopio y sigue una relacion de
 
-       sin(theta) = 1.22 (Lambda / D)
+      sin(theta) = 1.22 (Lambda / D)
 
-     donde theta es la distancia desde el centro del patron a el primer
-     minimo del mismo, lambda es la longitud de onda de la radiacion que
-     colecta el telescopio, y D es el diametro del objetivo del telescopio
-     N es el tamaño de la matriz en pixeles
-     width es el theta ya calculado. Es importante saber que este theta
-     depende del CCD también, ya que esta construida la funcion en pixeles
+    donde theta es la distancia desde el centro del patron a el primer
+    minimo del mismo, lambda es la longitud de onda de la radiacion que
+    colecta el telescopio, y D es el diametro del objetivo del telescopio
+    N es el tamaño de la matriz en pixeles
+    width es el theta ya calculado. Es importante saber que este theta
+    depende del CCD también, ya que esta construida la funcion en pixeles
     """
     mu = (N - 1) / 2.0
     a = np.zeros((N, N))
