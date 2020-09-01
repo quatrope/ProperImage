@@ -58,8 +58,9 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
-    tutorial.rst
-    glossary.rst
+    tutorial
+    glossary
+    api
 
 
 Indices and tables

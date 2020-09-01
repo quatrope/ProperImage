@@ -19,6 +19,7 @@
 import os
 import sys
 
+sys.path.insert(0, os.path.abspath(os.path.join("..", "properimage")))
 sys.path.insert(0, os.path.abspath("."))
 
 ON_RTD = os.environ.get("READTHEDOCS", None) == "True"
