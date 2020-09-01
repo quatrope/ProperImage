@@ -52,5 +52,6 @@ properimage's ``SingleImage`` instances, astropy's `HDUList` objects,
 or a string containing the path to a FITS file.
 
 The output will be four different arrays:
+``D``, ``P``, ``Scorr`` as explained above, and ``mask``.
 
-D, P, Scorr as explained above, and mask.
+It is recommended that you run your source extraction algorithm on ``D``.
