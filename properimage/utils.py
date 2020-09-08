@@ -36,20 +36,14 @@ Of 301
 """
 
 import os
-
 import numpy as np
-
 from scipy import sparse
 import scipy.ndimage as ndimage
-
 from numpy.lib.recfunctions import append_fields
-
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
 from astropy.convolution import convolve, convolve_fft
-
 from astroML import crossmatch as cx
-
 import astroalign as aa
 
 aa.PIXEL_TOL = 0.3
@@ -142,16 +136,12 @@ def matching(
     IDs = np.zeros_like(ind_) - 13133
     for i in range(len(ind_)):
         if dist_[i] != np.inf:
-            # dist_o = dist_[i]
             ind_o = ind_[i]
             if dist[ind_o] != np.inf:
-                # dist_s = dist[ind_o]
                 ind_s = ind[ind_o]
                 if ind_s == i:
                     IDs[i] = master[idkey][ind_o]
 
-    # print((len(IDs), len(ind_), len(ind)))
-    # print(("Matching result::  IDs > 0. => {}".format(sum(IDs > 0))))
     if masked:
         mask = IDs > 0
         return (IDs, mask)
@@ -228,10 +218,8 @@ def transparency(images, master=None):
                 imgrow = cat[cat["sourceid"] == row["sourceid"]]
                 m[q + j] = -2.5 * np.log10(imgrow["flux"]) + 20.0
                 j += 1
-        # print mastercat['detected']
         master.update_sources(mastercat)
 
-        # print("p={}, q={}".format(p, q))
         ident = sparse.identity(q)
         col = np.repeat(1.0, q)
         sparses = []
@@ -256,7 +244,6 @@ def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
-        # a = a_fields[j] * image
         psf = psf_basis[j]
 
         imconvolved += convolve(a, psf, boundary="extend")
@@ -280,8 +267,6 @@ def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
 def lucy_rich(
     image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
 ):
-    # direct_time = np.prod(image.shape + psf.shape)
-    # fft_time =  np.sum([n*np.log(n) for n in image.shape + psf.shape])
 
     # see whether the fourier transform convolution method or the direct
     # convolution method is faster (discussed in scikit-image PR #1792)
@@ -294,7 +279,6 @@ def lucy_rich(
 
     image = image.astype(np.float)
     image = np.ma.masked_invalid(image).filled(np.nan)
-    # x, y = np.mgrid[:image.shape[0], :image.shape[1]]
     x, y = adomain
 
     im_deconv = 0.5 * np.ones(image.shape)
@@ -402,22 +386,11 @@ def align_for_coadd(imglist):
 
 
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
-    # std = np.std(S_image)
-    # mean = np.mean(S_image)
-    # threshold = threshold * std
     mean, median, std = sigma_clipped_stats(S_image, maxiters=3)
-    # data_max = filters.maximum_filter(S_image, neighborhood_size)
-    # maxima = (S_image == data_max)
-    # data_min = filters.minimum_filter(S_image, neighborhood_size)
-    # diff = ((data_max - data_min) > threshold)
-    # maxima[diff == 0] = 0
-
     labeled, num_objects = ndimage.label((S_image - mean) / std > threshold)
     xy = np.array(
         ndimage.center_of_mass(S_image, labeled, range(1, num_objects + 1))
     )
-    # x = xy[:, 0]
-    # y = xy[:, 1]
     cat = []
     for x, y in xy:
         cat.append((y, x, (S_image[int(x), int(y)] - mean) / std))
