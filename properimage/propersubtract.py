@@ -401,13 +401,3 @@ def diff(
 
     # import ipdb; ipdb.set_trace()
     return D, P, S_corr.real, mix_mask
-
-
-def get_transients(self, threshold=2.5, neighborhood_size=5.0):
-    S = self.subtract()[2]
-    threshold = np.std(S) * threshold
-    cat = u.find_S_local_maxima(
-        S, threshold=threshold, neighborhood_size=neighborhood_size
-    )
-
-    return cat
