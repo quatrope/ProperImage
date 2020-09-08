@@ -37,8 +37,6 @@ Of 301
 
 import os
 
-from six.moves import range
-
 import numpy as np
 from numpy import ma
 

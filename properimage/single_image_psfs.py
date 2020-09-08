@@ -32,8 +32,6 @@ Cordoba - Argentina
 Of 301
 """
 
-from six.moves import range
-
 import numpy as np
 
 from astropy.stats import sigma_clipped_stats
