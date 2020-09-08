@@ -1069,3 +1069,92 @@ def chunk_it(seq, num):
         return out
     except ValueError:
         return out
+
+
+class SingleImageGaussPSF(SingleImage):
+    """Atomic processor class for a single image.
+    Contains several tools for PSF measures, and different coadding
+    building structures.
+
+    It includes the pixel matrix data, as long as some descriptions.
+    For statistical values of the pixel matrix the class' methods need to be
+    called.
+
+    Inherits from properimage.single_image.SingleImage, but replacing
+    every psf determination routine with a multi gaussian fit.
+
+
+    Parameters
+    ----------
+    img : `~numpy.ndarray` or :class:`~ccdproc.CCDData`,
+                `~astropy.io.fits.HDUList`  or a `str` naming the filename.
+        The image object to work with
+
+    mask: `~numpy.ndarray` or a `str` naming the filename.
+        The mask image
+    """
+
+    def __init__(self, *arg, **kwargs):
+        super(SingleImageGaussPSF, self).__init__(*arg, **kwargs)
+
+    def get_variable_psf(self, inf_loss=None, shape=None):
+        """Method to obtain a unique Gaussian psf, non variable.
+        Returns
+        -------
+        An astropy model Gaussian2D instance, with the median parameters
+        for the fit of every star.
+
+
+        """
+
+        def fit_gaussian2d(b, fitter=None):
+            if fitter is None:
+                fitter = fitting.LevMarLSQFitter()
+
+            y2, x2 = np.mgrid[: b.shape[0], : b.shape[1]]
+            ampl = b.max() - b.min()
+            p = models.Gaussian2D(
+                x_mean=b.shape[1] / 2.0,
+                y_mean=b.shape[0] / 2.0,
+                x_stddev=1.0,
+                y_stddev=1.0,
+                theta=np.pi / 4.0,
+                amplitude=ampl,
+            )
+
+            p += models.Const2D(amplitude=b.min())
+            out = fitter(p, x2, y2, b, maxiter=1000)
+            return out
+
+        p_xw = []
+        p_yw = []
+        p_th = []
+        p_am = []
+        fitter = fitting.LevMarLSQFitter()
+        for i in range(self.n_sources):
+            psfi_render = self.db.load(i)[0]
+            p = fit_gaussian2d(psfi_render, fitter=fitter)
+            #  room for p checking
+            gaussian = p[0]
+            #  back = p[1]
+            p_xw.append(gaussian.x_stddev.value)
+            p_yw.append(gaussian.y_stddev.value)
+            p_th.append(gaussian.theta.value)
+            p_am.append(gaussian.amplitude.value)
+
+        mean_xw, med_xw, std_xw = sigma_clipped_stats(p_xw)
+        mean_yw, med_yw, std_yw = sigma_clipped_stats(p_yw)
+        mean_th, med_th, std_th = sigma_clipped_stats(p_th)
+        mean_am, med_am, std_am = sigma_clipped_stats(p_am)
+
+        # import ipdb; ipdb.set_trace()
+        mean_model = models.Gaussian2D(
+            x_mean=0,
+            y_mean=0,
+            x_stddev=mean_xw,
+            y_stddev=mean_yw,
+            theta=mean_th,
+            amplitude=1.0,
+        )
+
+        return [[None], [mean_model.render(), mean_model]]
