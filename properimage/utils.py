@@ -92,8 +92,7 @@ def encapsule_R(R, path=None, header=None):
 def matching(
     master, cat, masteridskey=None, angular=False, radius=1.5, masked=False
 ):
-    """Function to match stars between frames.
-    """
+    """Function to match stars between frames."""
     if masteridskey is None:
         masterids = np.arange(len(master))
         master["masterindex"] = masterids
