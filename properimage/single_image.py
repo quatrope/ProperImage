@@ -35,26 +35,29 @@ Cordoba - Argentina
 Of 301
 """
 
+import logging
 import os
-from six.moves import range
+import pathlib
+import tempfile
+
 import numpy as np
+from astropy.convolution import (Box2DKernel, convolve_fft,
+                                 interpolate_replace_nans)
+from astropy.io import fits
+from astropy.modeling import fitting, models
+from astropy.nddata.utils import extract_array
+from astropy.stats import sigma_clipped_stats
 from numpy import ma
+from scipy.ndimage import center_of_mass
 from scipy.ndimage import convolve as convolve_scp
 from scipy.ndimage.fourier import fourier_shift
-from scipy.ndimage import center_of_mass
-from astropy.io import fits
-from astropy.stats import sigma_clipped_stats
-from astropy.modeling import fitting
-from astropy.modeling import models
-from astropy.convolution import convolve_fft
-from astropy.convolution import interpolate_replace_nans
-from astropy.convolution import Box2DKernel
-from astropy.nddata.utils import extract_array
-from astroscrappy import detect_cosmics
+from six.moves import range
+
 import sep
-import logging
+from astroscrappy import detect_cosmics
+
 from . import numpydb as npdb
-from . import utils, plot
+from . import plot, utils
 
 try:
     import pyfftw
@@ -64,6 +67,21 @@ try:
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
+
+
+# =============================================================================
+# CONSTANTS
+# =============================================================================
+
+TEMP_DIR = tempfile.mkdtemp(suffix="_properimage")
+
+TEMP_PATH = pathlib.Path(TEMP_DIR)
+
+logger = logging.getLogger()
+
+# =============================================================================
+# API
+# =============================================================================
 
 
 def conv(*arg, **kwargs):
@@ -120,8 +138,7 @@ class SingleImage(object):
         self.stamp_shape = stamp_shape
         self.inf_loss = 0.2
         self._smooth_autopsf = smooth_psf
-        self.dbname = os.path.abspath("._" + str(id(self)) + "SingleImage")
-        self.logger = logging.getLogger()
+        self.dbname = str(TEMP_PATH / f"{id(self)}_SingleImage")
 
         self._plot = plot.Plot(self)
 
@@ -135,12 +152,12 @@ class SingleImage(object):
         return f"SingleImage {self.data.shape[0]}, {self.data.shape[1]}"
 
     def _clean(self):
-        self.logger.info("cleaning... ")
+        logger.info("cleaning... ")
         try:
             os.remove(self.dbname + ".dat")
             os.remove(self.dbname + ".map")
         except OSError:
-            self.logger.warning("Nothing to clean. (Or something has failed)")
+            logger.warning("Nothing to clean. (Or something has failed)")
 
     @property
     def attached_to(self):
@@ -616,7 +633,7 @@ class SingleImage(object):
                 self.stamp_shape[0] + 6,
                 self.stamp_shape[1] + 6,
             )
-            self.logger.warning(
+            logger.warning(
                 "updating stamp shape to ({},{})".format(
                     self.stamp_shape[0], self.stamp_shape[1]
                 )
@@ -714,7 +731,7 @@ class SingleImage(object):
             xs = vech[:, -cut:]
             psf_basis = []
             if hasattr(self, "_m"):
-                self.logger.debug(vech.shape, self._m.shape)
+                logger.debug(vech.shape, self._m.shape)
                 self._full_bases = np.dot(self._m, vech)
                 self._bases = self._full_bases[:, -cut:]
                 psf_basis = [
