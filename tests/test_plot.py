@@ -38,18 +38,6 @@ from properimage import plot
 
 
 # =============================================================================
-# PRIMES
-# =============================================================================
-
-
-@pytest.mark.parametrize(
-    "test_input, expected", [(9, 3), (45045, 143), (3, 3), (1, 1)]
-)
-def test_primes(test_input, expected):
-    assert plot.primes(test_input) == expected
-
-
-# =============================================================================
 # TEST API
 # =============================================================================
 
@@ -82,6 +70,10 @@ def test_plot_invalid_plot(random_simage):
         img.plot("foo")
 
 
+    with pytest.raises(ValueError):
+        img.plot("si")
+
+
 # =============================================================================
 # imshow
 # =============================================================================
@@ -97,7 +89,8 @@ def test_plot_imshow_method(random_simage, fig_test, fig_ref):
 
     # expected
     exp_ax = fig_ref.subplots()
-    exp_ax.imshow(img.data)
+    exp_ax.imshow(img.data, origin="lower")
+    exp_ax.set_title(f"SingleImage {img.data.shape}")
 
 
 @check_figures_equal()
@@ -110,4 +103,5 @@ def test_plot_imshow_str(random_simage, fig_test, fig_ref):
 
     # expected
     exp_ax = fig_ref.subplots()
-    exp_ax.imshow(img.data)
+    exp_ax.imshow(img.data, origin="lower")
+    exp_ax.set_title(f"SingleImage {img.data.shape}")

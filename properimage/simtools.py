@@ -256,13 +256,11 @@ def image(
 
     if bkg_pdf == "poisson":
         mean = b / SN
-        print("mean = {}, b = {}, SN = {}".format(mean, b, SN))
         C = np.random.poisson(mean, (N2, N2)).astype(np.float32)
 
     elif bkg_pdf == "gaussian":
         mean = 0
         std = b / SN
-        print("mean = {}, std = {}, b = {}, SN = {}".format(mean, std, b, SN))
         C = np.random.normal(mean, std, (N2, N2))
     bias = 100.0
     F = C + image + bias

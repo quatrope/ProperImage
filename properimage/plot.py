@@ -1,15 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-#  plot.py
-#
-#  Copyright 2017 Bruno S <bruno@oac.unc.edu.ar>
-#
-# This file is part of ProperImage (https://github.com/toros-astro/ProperImage)
-# License: BSD-3-Clause
-# Full Text: https://github.com/toros-astro/ProperImage/blob/master/LICENSE.txt
-#
-
 """plot module from ProperImage,
 for coadding astronomical images.
 
@@ -24,7 +12,10 @@ Cordoba - Argentina
 Of 301
 """
 
+import logging
+
 import numpy as np
+
 from astropy.stats import sigma_clipped_stats
 
 import matplotlib.pyplot as plt
@@ -44,6 +35,14 @@ FONT = {
 }
 
 TEXT = {"usetex": True}
+
+
+logger = logging.getLogger()
+
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
 
 
 def primes(n):
@@ -100,7 +99,7 @@ def plot_psfbasis(
 
 def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
     if a_fields[0] is None:
-        print("No a_fields were calculated. Only one Psf Basis")
+        logging.warning("No a_fields were calculated. Only one Psf Basis")
         return
     # a_fields.reverse()
     N = len(a_fields)
@@ -181,17 +180,21 @@ class Plot:
     si = attr.ib()
 
     def _ax(self, ax):
-        if ax is None:
-            ax = plt.gca()
-        return ax
+        return plt.gca() if ax is None else ax
 
     def __call__(self, plot=None, ax=None, **kwargs):
         if plot is not None and ("_" in plot or not hasattr(self, plot)):
             raise ValueError(f"Ivalid plot method '{plot}'")
         method = getattr(self, plot or "imshow")
+        if not callable(method):
+            raise ValueError(f"Ivalid plot method '{plot}'")
         return method(ax=ax, **kwargs)
 
     def imshow(self, ax=None, **kwargs):
+        kwargs.setdefault("origin", "lower")
+
         ax = self._ax(ax)
         ax.imshow(self.si.data, **kwargs)
+
+        ax.set_title(f"SingleImage {self.si.data.shape}")
         return ax
