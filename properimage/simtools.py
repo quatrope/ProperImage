@@ -100,7 +100,8 @@ def _airy_func(rr, width, amplitude=1.0):
 
 
 def airy_patron(N, width):
-    """Esta funcion genera un patron de airy, en una matriz 2D
+    """
+    Esta funcion genera un patron de airy, en una matriz 2D
      el cual es la impronta
      del espejo del telescopio y sigue una relacion de
 

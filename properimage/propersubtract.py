@@ -70,7 +70,8 @@ def diff(
     """
     if fitted_psf:
         from .single_image import SingleImageGaussPSF as SI
-        print("using single psf, gaussian modeled")
+
+        print("Using single psf, gaussian modeled")
     else:
         from .single_image import SingleImage as SI
 
