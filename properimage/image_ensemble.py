@@ -28,7 +28,7 @@ from multiprocessing import Queue
 from collections import MutableSequence
 
 import numpy as np
-
+import logging
 from . import utils
 from . import combinator as cm
 from . import single_image as si
@@ -77,6 +77,7 @@ class ImageEnsemble(MutableSequence):
             self.masklist = np.repeat(masklist, len(imglist))
             self.imglist = zip(imglist, self.masklist)
         self.inf_loss = inf_loss
+        self.logger = logging.getLogger("ImageEnsemble")
 
     def __setitem__(self, i, v):
         self.imglist[i] = v
@@ -133,7 +134,7 @@ class ImageEnsemble(MutableSequence):
             shapex = np.min([at.data.shape[0] for at in self.atoms])
             shapey = np.min([at.data.shape[1] for at in self.atoms])
             self._global_shape = (shapex, shapey)
-            print(self._global_shape)
+            self.logger.debug(self.global_shape)
         return self._global_shape
 
     @property
@@ -173,31 +174,31 @@ class ImageEnsemble(MutableSequence):
                 stack=True,
                 fourier=False,
             )
-            print("starting new process")
+            self.logger.info("starting new process")
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
 
-        print("all chunks started, and procs appended")
+        self.logger.info("all chunks started, and procs appended")
 
         S = np.zeros(self.global_shape)
         for q in queues:
             serialized = q.get()
-            print("loading pickles")
+            self.logger.info("loading pickles")
             s_comp = pickle.loads(serialized)
-            print(s_comp.shape)
+            self.logger.debug(s_comp.shape)
             S = np.ma.add(
                 s_comp[: self.global_shape[0], : self.global_shape[1]], S
             )
 
-        print("S calculated, now starting to join processes")
+        self.logger.info("S calculated, now starting to join processes")
 
         for proc in procs:
-            print("waiting for procs to finish")
+            self.logger.info("waiting for procs to finish")
             proc.join()
 
-        print("processes finished, now returning S")
+        self.logger.info("processes finished, now returning S")
         return S
 
     def calculate_R(self, n_procs=2, return_S=False, debug=False):
@@ -223,20 +224,20 @@ class ImageEnsemble(MutableSequence):
         for chunk in si.chunk_it(self.atoms, n_procs):
             queue = Queue()
             proc = cm.Combinator(chunk, queue, fourier=True, stack=False)
-            print("starting new process")
+            self.logger.info("starting new process")
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
 
-        print("all chunks started, and procs appended")
+        self.logger.info("all chunks started, and procs appended")
 
         S_stk = []
         S_hat_stk = []
 
         for q in queues:
             serialized = q.get()
-            print("loading pickles")
+            self.logger.info("loading pickles")
             s_list, s_hat_list = pickle.loads(serialized)
 
             S_stk.extend(s_list)
@@ -266,16 +267,16 @@ class ImageEnsemble(MutableSequence):
         R = _ifftwn(R_hat)
 
         for proc in procs:
-            print("waiting for procs to finish")
+            self.logger.info("waiting for procs to finish")
             proc.join()
 
         if debug:
             return [S_hat_stack, S_stack, S_hat, S, R_hat]
         if return_S:
-            print("processes finished, now returning R, S")
+            self.logger.info("processes finished, now returning R, S")
             return R, S
         else:
-            print("processes finished, now returning R")
+            self.logger.info("processes finished, now returning R")
             return R
 
     def _clean(self):
