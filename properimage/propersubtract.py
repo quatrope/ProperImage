@@ -69,12 +69,8 @@ def diff(
     and performs a stacking using properimage R estimator
     """
     if fitted_psf:
-        try:
-            from .single_image_psfs import SingleImageGaussPSF as SI
-
-            print("using single psf, gaussian modeled")
-        except ImportError:
-            from .single_image import SingleImage as SI
+        from .single_image import SingleImageGaussPSF as SI
+        print("using single psf, gaussian modeled")
     else:
         from .single_image import SingleImage as SI
 
