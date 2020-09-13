@@ -25,18 +25,14 @@ Of 301
 """
 
 import numpy as np
-
 from scipy import optimize
-
-# from scipy import stats
+import logging
 from scipy.ndimage import center_of_mass
 from scipy.ndimage.fourier import fourier_shift
 from astropy.stats import sigma_clipped_stats
 import astroalign as aa
 import sep
 import time
-
-#  from .single_image import SingleImage as SI
 from . import utils as u
 
 try:
@@ -44,11 +40,9 @@ try:
 
     _fftwn = pyfftw.interfaces.numpy_fft.fftn  # noqa
     _ifftwn = pyfftw.interfaces.numpy_fft.ifftn  # noqa
-    print("using pyfftw interfaces API")
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
-    print("using numpy fft API")
 
 aa.PIXEL_TOL = 0.5
 eps = np.finfo(np.float64).eps
@@ -68,10 +62,10 @@ def diff(
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
     """
+    logger = logging.getLogger()
     if fitted_psf:
         from .single_image import SingleImageGaussPSF as SI
-
-        print("Using single psf, gaussian modeled")
+        logger.info("Using single psf, gaussian modeled")
     else:
         from .single_image import SingleImage as SI
 
@@ -116,13 +110,10 @@ def diff(
     mix_mask = np.ma.mask_or(new.data.mask, ref.data.mask)
 
     zps, meanmags = u.transparency([ref, new])
-    # print(zps)
     ref.zp = zps[0]
     new.zp = zps[1]
     n_zp = new.zp
     r_zp = ref.zp
-    # r_var = ref.var
-    # n_var = new.var
 
     a_ref, psf_ref = ref.get_variable_psf(inf_loss)
     a_new, psf_new = new.get_variable_psf(inf_loss)
@@ -144,7 +135,6 @@ def diff(
 
         p_n = p_n.render(np.zeros(new.data.data.shape))
         p_r = p_r.render(np.zeros(ref.data.data.shape))
-        #  import ipdb; ipdb.set_trace()
 
         dx_ref, dy_ref = center_of_mass(p_r)  # [0])
         dx_new, dy_new = center_of_mass(p_n)  # [0])
@@ -154,7 +144,6 @@ def diff(
 
         dx_ref, dy_ref = center_of_mass(p_r)  # [0])
         dx_new, dy_new = center_of_mass(p_n)  # [0])
-        # print(dx_new, dy_new)
         if dx_new < 0.0 or dy_new < 0.0:
             import ipdb
 
@@ -220,13 +209,15 @@ def diff(
             tf = time.time()
 
             if solv_beta.success:
-                print(("Found that beta = {}".format(solv_beta.x)))
-                print(("Took only {} awesome seconds".format(tf - ti)))
-                print(("The solution was with cost {}".format(solv_beta.cost)))
+                logger.info(("Found that beta = {}".format(solv_beta.x)))
+                logger.info(("Took only {} awesome seconds".format(tf - ti)))
+                logger.info(
+                    ("The solution was with cost {}".format(solv_beta.cost))
+                )
                 b, dx, dy = solv_beta.x
             else:
-                print("Least squares could not find our beta  :(")
-                print("Beta is overriden to be the zp ratio again")
+                logger.info("Least squares could not find our beta  :(")
+                logger.info("Beta is overriden to be the zp ratio again")
                 b = n_zp / r_zp
                 dx = 0.0
                 dy = 0.0
@@ -256,12 +247,12 @@ def diff(
 
             tf = time.time()
             if solv_beta.success:
-                print(("Found that beta = {}".format(solv_beta.x)))
-                print(("Took only {} awesome seconds".format(tf - tf)))
+                logger.info(("Found that beta = {}".format(solv_beta.x)))
+                logger.info(("Took only {} awesome seconds".format(tf - tf)))
                 b = solv_beta.x
             else:
-                print("Least squares could not find our beta  :(")
-                print("Beta is overriden to be the zp ratio again")
+                logger.info("Least squares could not find our beta  :(")
+                logger.info("Beta is overriden to be the zp ratio again")
                 b = n_zp / r_zp
             dx = dy = 0.0
         else:
@@ -275,8 +266,6 @@ def diff(
                     - gammap
                     - b * _ifftwn(D_hat_r / norm, norm="ortho")
                 )
-                # robust_stats = lambda b: sigma_clipped_stats(
-                #    b_n(b).real[100:-100, 100:-100])
 
                 return np.sum(np.abs(b_n.real))
 
@@ -287,13 +276,15 @@ def diff(
 
             tf = time.time()
             if solv_beta.success:
-                print(("Found that beta = {}".format(solv_beta.x)))
-                print(("Took only {} awesome seconds".format(tf - tf)))
-                print(("The solution was with cost {}".format(solv_beta.cost)))
+                logger.info(("Found that beta = {}".format(solv_beta.x)))
+                logger.info(("Took only {} awesome seconds".format(tf - tf)))
+                logger.info(
+                    ("The solution was with cost {}".format(solv_beta.cost))
+                )
                 b = solv_beta.x
             else:
-                print("Least squares could not find our beta  :(")
-                print("Beta is overriden to be the zp ratio again")
+                logger.info("Least squares could not find our beta  :(")
+                logger.info("Beta is overriden to be the zp ratio again")
                 b = n_zp / r_zp
             dx = dy = 0.0
     else:
@@ -329,12 +320,14 @@ def diff(
             tf = time.time()
 
             if solv_beta.success:
-                print(("Found that shift = {}".format(solv_beta.x)))
-                print(("Took only {} awesome seconds".format(tf - ti)))
-                print(("The solution was with cost {}".format(solv_beta.cost)))
+                logger.info(("Found that shift = {}".format(solv_beta.x)))
+                logger.info(("Took only {} awesome seconds".format(tf - ti)))
+                logger.info(
+                    ("The solution was with cost {}".format(solv_beta.cost))
+                )
                 dx, dy = solv_beta.x
             else:
-                print("Least squares could not find our shift  :(")
+                logger.info("Least squares could not find our shift  :(")
                 dx = 0.0
                 dy = 0.0
         else:
@@ -386,25 +379,17 @@ def diff(
     )
 
     S_corr = _ifftwn(S_hat, norm="ortho") / np.sqrt(V_en + V_er)
-    print("S_corr sigma_clipped_stats ")
-    print(
+    logger.info("S_corr sigma_clipped_stats ")
+    logger.info(
         (
             "mean = {}, median = {}, std = {}\n".format(
                 *sigma_clipped_stats(S_corr.real.flatten(), sigma=4.0)
             )
         )
     )
-    print(("Subtraction performed in {} seconds\n\n".format(time.time() - t0)))
+    logger.info(
+        ("Subtraction performed in {} seconds\n\n".format(time.time() - t0))
+    )
 
     # import ipdb; ipdb.set_trace()
     return D, P, S_corr.real, mix_mask
-
-
-def get_transients(self, threshold=2.5, neighborhood_size=5.0):
-    S = self.subtract()[2]
-    threshold = np.std(S) * threshold
-    cat = u.find_S_local_maxima(
-        S, threshold=threshold, neighborhood_size=neighborhood_size
-    )
-
-    return cat

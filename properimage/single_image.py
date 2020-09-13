@@ -36,36 +36,22 @@ Of 301
 """
 
 import os
-
-from six.moves import range
-
 import numpy as np
 from numpy import ma
-
-# from scipy import signal as sg
 from scipy.ndimage import convolve as convolve_scp
 from scipy.ndimage.fourier import fourier_shift
 from scipy.ndimage import center_of_mass
-
 from astropy.io import fits
-
-# from astropy.stats import sigma_clip
 from astropy.stats import sigma_clipped_stats
-
 from astropy.modeling import fitting
 from astropy.modeling import models
 from astropy.convolution import convolve_fft
-
-# from astropy.convolution import convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.convolution import Box2DKernel
-
-# from astropy.convolution import Gaussian2DKernel
 from astropy.nddata.utils import extract_array
-
 from astroscrappy import detect_cosmics
 import sep
-
+import logging
 from . import numpydb as npdb
 from . import utils
 
@@ -134,6 +120,7 @@ class SingleImage(object):
         self.inf_loss = 0.2
         self._smooth_autopsf = smooth_psf
         self.dbname = os.path.abspath("._" + str(id(self)) + "SingleImage")
+        self.logger = logging.getLogger()
 
     def __enter__(self):
         return self
@@ -145,12 +132,12 @@ class SingleImage(object):
         return "SingleImage instance for {}".format(self.attached_to)
 
     def _clean(self):
-        print("cleaning... ")
+        self.logger.info("cleaning... ")
         try:
             os.remove(self.dbname + ".dat")
             os.remove(self.dbname + ".map")
         except OSError:
-            print("Nothing to clean. (Or something has failed)")
+            self.logger.warning("Nothing to clean. (Or something has failed)")
 
     @property
     def attached_to(self):
@@ -333,8 +320,6 @@ class SingleImage(object):
         numpy.array 2D
             a background estimation image is returned
         """
-        # print("Background level = {}, rms = {}".format(self.__bkg.globalback,
-        #                                                self.__bkg.globalrms))
         return self.__bkg.back()
 
     @property
@@ -345,14 +330,12 @@ class SingleImage(object):
     def _bkg(self, maskthresh):
         if self.mask.any():
             if maskthresh is not None:
-                back = sep.Background(self.data.data, mask=self.mask)  # ,
-                # maskthresh=maskthresh)
+                back = sep.Background(self.data.data, mask=self.mask)
                 self.__bkg = back
             else:
                 back = sep.Background(self.data.data, mask=self.mask)
                 self.__bkg = back
         else:
-            # print(self.data.data.shape)
             back = sep.Background(self.data.data)
             self.__bkg = back
 
@@ -378,7 +361,6 @@ class SingleImage(object):
                     shape = (dx, dx)
                 else:
                     shape = (5, 5)
-                # print(('stamps will be {} x {}'.format(*shape)))
         self.__stamp_shape = shape
 
     @property
@@ -391,7 +373,6 @@ class SingleImage(object):
             n_sources: the total number of sources extracted
         """
         if not hasattr(self, "_best_sources"):
-            # print('looking for srcs')
             try:
                 srcs = sep.extract(
                     self.bkg_sub_img.data,
@@ -411,8 +392,6 @@ class SingleImage(object):
                 except Exception:
                     raise
             if len(srcs) < self.min_sources:
-                # print("""found {} sources, looking for at least {}.
-                #        Trying again""".format(len(srcs), self.min_sources))
                 old_srcs = srcs
                 try:
                     srcs = sep.extract(
@@ -443,7 +422,6 @@ class SingleImage(object):
                 if m >= 65535.0:
                     raise ValueError("Image is saturated")
                 else:
-                    # import ipdb; ipdb.set_trace()
                     raise ValueError("Only one source. Possible saturation")
 
             p_sizes = np.percentile(srcs["npix"], q=[20, 50, 80])
@@ -461,15 +439,15 @@ class SingleImage(object):
             ]
 
             if len(best_srcs) == 0:
-                # print('Best sources are too few- Using everything we have!')
+                self.warning(
+                    "Best sources are too few- Using everything we have!"
+                )
                 best_srcs = srcs
-                # raise ValueError('Few sources detected on image')
 
             if len(best_srcs) > 1800:
                 jj = np.random.choice(len(best_srcs), 1800, replace=False)
                 best_srcs = best_srcs[jj]
 
-            # print(('Sources found = {}'.format(len(best_srcs))))
             self._best_sources = best_srcs
 
         return self._best_sources
@@ -553,7 +531,6 @@ class SingleImage(object):
                         mode="partial",
                         fill_value=self._bkg.globalrms,
                     )  # noqa
-                    # print check_shape, new_shape
                     if new_shape[0] - self.stamp_shape[0] >= 6:
                         check_shape = False
 
@@ -613,10 +590,8 @@ class SingleImage(object):
                         jj += 1
                         continue
 
-                    # thrs = [outl[-1] for outl in outl_cat]
                     if len(outl_cat) != 0:
                         ymax, xmax, thmax = outl_cat[0]
-                        # np.where(thrs==np.max(thrs))[0][0]]
                         xcm = np.array([xmax, ymax])
                         delta = xcm - np.asarray(new_shape) / 2.0
                         if np.sqrt(np.sum(delta ** 2)) > new_shape[0] / 5.0:
@@ -638,7 +613,7 @@ class SingleImage(object):
                 self.stamp_shape[0] + 6,
                 self.stamp_shape[1] + 6,
             )
-            print(
+            self.logger.warning(
                 "updating stamp shape to ({},{})".format(
                     self.stamp_shape[0], self.stamp_shape[1]
                 )
@@ -736,21 +711,13 @@ class SingleImage(object):
             xs = vech[:, -cut:]
             psf_basis = []
             if hasattr(self, "_m"):
-                print(vech.shape, self._m.shape)
+                self.logger.debug(vech.shape, self._m.shape)
                 self._full_bases = np.dot(self._m, vech)
                 self._bases = self._full_bases[:, -cut:]
                 psf_basis = [
                     self._bases[:, i].reshape(self.stamp_shape)
                     for i in range(self._bases.shape[1])
                 ]
-
-                # for i in range(n_basis):
-                #    # eig = xs[:, i]
-                #    # base = np.matmul(self._m, eig).reshape(self.stamp_shape)
-                #    # base = base/np.sum(base)
-                #    # base = base - np.abs(np.min(base))
-                #    # base = base/np.sum(base)
-                #    # psf_basis.append(base)
             else:
                 for i in range(n_basis):
                     base = np.zeros(self.stamp_shape)
@@ -817,20 +784,6 @@ class SingleImage(object):
             # Each element in patches brings information about the real PSF
             # evaluated -or measured-, giving an interpolation point for a
             a_fields = []
-            # measures = np.zeros((n_fields, self.n_sources))
-            # for k in range(self.n_sources):
-            #    # Pval = self.db.load(k)[0].flatten()
-            #    # Pval = Pval/np.sum(Pval)
-            #    # for i in range(n_fields):
-            #        # p_i = psf_basis[i].flatten()  # starting from bottom
-            #        # p_i_sq = np.sqrt(np.sum(np.dot(p_i, p_i)))
-
-            #        # Pval_sq = np.sqrt(np.sum(np.dot(Pval, Pval)))
-            #        # m = np.dot(Pval, p_i)
-            #        # m = m/(Pval_sq*p_i_sq)
-            #        # measures[i, k] = m
-            #    # else:
-            #        # measures[i, k] = None
             measures = np.flip(self.eigenv[1][:, -n_fields:].T, 0)
             for i in range(n_fields):
                 z = measures[i, :]
@@ -1022,8 +975,6 @@ class SingleImage(object):
             self.bkg_sub_img.mask = np.ma.mask_or(
                 self.bkg_sub_img.mask, np.isnan(self.bkg_sub_img)
             )
-
-            # print(('Masked pixels: ', np.sum(self.bkg_sub_img.mask)))
             img = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img, kernel, convolve=conv)
 
@@ -1031,9 +982,6 @@ class SingleImage(object):
                 img_interp = interpolate_replace_nans(
                     img_interp, kernel, convolve=conv
                 )
-            # clipped = sigma_clip(self.bkg_sub_img,
-            # iters=5, sigma_upper=40).filled(np.nan)
-            # img_interp = interpolate_replace_nans(img_interp, kernel)
             self._interped = img_interp
 
         return self._interped
@@ -1062,8 +1010,6 @@ class SingleImage(object):
 
     def p_sqnorm(self):
         phat = self.psf_hat_sqnorm()
-        # p = _ifftwn(phat, norm='ortho')
-        # print(np.sum(p))
         return _ifftwn(
             fourier_shift(
                 phat, (self.stamp_shape[0] / 2, self.stamp_shape[1] / 2)
@@ -1088,9 +1034,7 @@ class SingleImage(object):
                     apsf
                     * afield(*np.mgrid[xmin:xmax, ymin:ymax])
                     / self.normal_image[xmin:xmax, ymin:ymax]
-                )  # afield(x, y) #
-            # for apsf, afield in zip(psf_basis, a_fields):
-            #    psf_at_xy += apsf * afield(x, y)/self.normal_image[xp, yp]
+                )
 
             return psf_at_xy / np.sum(psf_at_xy)
         else:

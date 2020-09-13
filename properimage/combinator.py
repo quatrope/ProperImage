@@ -35,7 +35,7 @@ Cordoba - Argentina
 Of 301
 """
 import numpy as np
-
+import logging
 from multiprocessing import Process
 
 try:
@@ -126,7 +126,7 @@ class StackCombinator(Process):
         self.list_to_combine = img_list
         self.queue = queue
         self.global_shape = shape
-        print(self.global_shape)
+        logging.getLogger("StackCombinator").info(self.global_shape)
         # self.zps = ensemble.transparencies
 
     def run(self):
