@@ -35,6 +35,7 @@ from . import utils
 from .combinator import StackCombinator
 from .single_image import SingleImage as si
 from .single_image import chunk_it
+import logging
 
 try:
     import cPickle as pickle  # noqa
@@ -56,7 +57,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
     and performs a stacking using properimage R estimator
 
     """
-
+    logger = logging.getLogger()
     for i_img, animg in enumerate(si_list):
         if not isinstance(animg, si):
             si_list[i_img] = si(animg)
@@ -89,20 +90,20 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
             proc = StackCombinator(
                 chunk, queue, shape=global_shape, stack=True, fourier=False
             )
-            print("starting new process")
+            logger.info("starting new process")
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
 
-        print("all chunks started, and procs appended")
+        logger.info("all chunks started, and procs appended")
 
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
         mix_mask = np.zeros(global_shape, dtype=np.bool)
         for q in queues:
             serialized = q.get()
-            print("loading pickles")
+            logger.info("loading pickles")
             s_hat_comp, psf_hat_sum, mask = pickle.loads(serialized)
             np.add(s_hat_comp, S_hat, out=S_hat)  # , casting='same_kind')
             np.add(psf_hat_sum, P_hat, out=P_hat)  # , casting='same_kind')
@@ -113,13 +114,13 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
         P_r = P_r / np.sum(P_r)
         R = _ifftwn(S_hat / np.sqrt(P_hat))
 
-        print("S calculated, now starting to join processes")
+        logger.info("S calculated, now starting to join processes")
 
         for proc in procs:
-            print("waiting for procs to finish")
+            logger.info("waiting for procs to finish")
             proc.join()
 
-        print("processes finished, now returning R")
+        logger.info("processes finished, now returning R")
     else:
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)

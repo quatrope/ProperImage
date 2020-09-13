@@ -26,6 +26,7 @@ Of 301
 
 import numpy as np
 from astropy.stats import sigma_clipped_stats
+import logging
 
 
 def primes(n):
@@ -96,7 +97,9 @@ try:
 
     def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
         if a_fields[0] is None:
-            print("No a_fields were calculated. Only one Psf Basis")
+            logging.getLogger().info(
+                "No a_fields were calculated. Only one Psf Basis"
+            )
             return
         # a_fields.reverse()
         N = len(a_fields)
@@ -167,4 +170,6 @@ try:
 
 
 except ImportError:
-    print("Almost the entire module works on matplotlib. Try installing it")
+    logging.getLogger("plot").warning(
+        "Almost the entire module works on matplotlib. Try installing it."
+    )
