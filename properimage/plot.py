@@ -64,7 +64,7 @@ def plot_psfbasis(
     # psf_basis.reverse()
     xsh, ysh = psf_basis[1].shape
     N = len(psf_basis)
-    p = primes(N)
+    p = _primes(N)
     if N == 2:
         subplots = (2, 1)
     elif p == N:
@@ -97,37 +97,37 @@ def plot_psfbasis(
         plt.close()
 
 
-def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
-    if a_fields[0] is None:
-        logging.warning("No a_fields were calculated. Only one Psf Basis")
-        return
-    # a_fields.reverse()
-    N = len(a_fields)
-    p = primes(N)
-    if N == 2:
-        subplots = (2, 1)
-    elif p == N:
-        subplots = (np.rint(np.sqrt(N)), np.rint(np.sqrt(N) + 1))
-    else:
-        rows = N // p
-        rows += N % p
-        subplots = (p, rows)
+# def plot_afields(a_fields, x, y, path=None, nbook=False, size=4, **kwargs):
+#     if a_fields[0] is None:
+#         logging.warning("No a_fields were calculated. Only one Psf Basis")
+#         return
+#     # a_fields.reverse()
+#     N = len(a_fields)
+#     p = _primes(N)
+#     if N == 2:
+#         subplots = (2, 1)
+#     elif p == N:
+#         subplots = (np.rint(np.sqrt(N)), np.rint(np.sqrt(N) + 1))
+#     else:
+#         rows = N // p
+#         rows += N % p
+#         subplots = (p, rows)
 
-    plt.figure(figsize=(size * subplots[0], size * subplots[1]), **kwargs)
-    for i in range(len(a_fields)):
-        plt.subplot(subplots[1], subplots[0], i + 1)
-        a = a_fields[i](x, y)
-        mean, med, std = sigma_clipped_stats(a)
-        plt.imshow(a, vmax=med + 2 * std, vmin=med - 2 * std, cmap="viridis")
-        labels = {"j": i + 1, "sum": np.sqrt(np.sum(a ** 2))}
-        plt.title(r"$a_{j}$,$\sum a_{j}={sum:4.3e}$".format(**labels))
-        plt.colorbar(shrink=0.75, aspect=30)
-    plt.tight_layout()
-    if path is not None:
-        plt.savefig(path)
-    if not nbook:
-        plt.close()
-    return
+#     plt.figure(figsize=(size * subplots[0], size * subplots[1]), **kwargs)
+#     for i in range(len(a_fields)):
+#         plt.subplot(subplots[1], subplots[0], i + 1)
+#         a = a_fields[i](x, y)
+#         mean, med, std = sigma_clipped_stats(a)
+#         plt.imshow(a, vmax=med + 2 * std, vmin=med - 2 * std, cmap="viridis")
+#         labels = {"j": i + 1, "sum": np.sqrt(np.sum(a ** 2))}
+#         plt.title(r"$a_{j}$,$\sum a_{j}={sum:4.3e}$".format(**labels))
+#         plt.colorbar(shrink=0.75, aspect=30)
+#     plt.tight_layout()
+#     if path is not None:
+#         plt.savefig(path)
+#     if not nbook:
+#         plt.close()
+#     return
 
 
 def plot_S(S, path=None, nbook=False):
@@ -177,23 +177,23 @@ def plot_R(R, path=None, nbook=False):
 @attr.s(frozen=True, repr=False, eq=False, order=False)
 class Plot:
 
-    si = attr.ib()
+    DEFAULT_PLOT = "imshow"
 
-    def _ax(self, ax):
-        return plt.gca() if ax is None else ax
+    si = attr.ib()
 
     def __call__(self, plot=None, ax=None, **kwargs):
         if plot is not None and ("_" in plot or not hasattr(self, plot)):
             raise ValueError(f"Ivalid plot method '{plot}'")
-        method = getattr(self, plot or "imshow")
+        method = getattr(self, plot or Plot.DEFAULT_PLOT)
         if not callable(method):
             raise ValueError(f"Ivalid plot method '{plot}'")
         return method(ax=ax, **kwargs)
 
     def imshow(self, ax=None, **kwargs):
+        ax = plt.gca() if ax is None else ax
+
         kwargs.setdefault("origin", "lower")
 
-        ax = self._ax(ax)
         ax.imshow(self.si.data, **kwargs)
 
         ax.set_title(f"SingleImage {self.si.data.shape}")

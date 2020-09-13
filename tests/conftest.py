@@ -31,7 +31,7 @@ import numpy as np
 
 import pytest
 
-from properimage import single_image as s
+from properimage import single_image as s, simtools
 
 
 # =============================================================================
@@ -39,7 +39,7 @@ from properimage import single_image as s
 # =============================================================================
 
 # FIX the random state
-random = np.random.RandomState(42)
+random = np.random.RandomState(44)
 
 
 # =============================================================================
@@ -63,3 +63,35 @@ def random_simage():
     img = s.SingleImage(pixel, mask)
 
     return img
+
+
+@pytest.fixture
+def random_4psf_simage():
+
+    frames = []
+    for theta in [0, 45, 105, 150]:
+        image_seed = int(random.rand() * 1000)
+
+        N = 512  # side
+        X_FWHM = 5 + 5.5*theta/180
+        Y_FWHM = 5
+        t_exp = 5
+        max_fw = max(X_FWHM, Y_FWHM)
+
+        x = random.randint(low=6*max_fw, high=N-6*max_fw, size=80)
+        y = random.randint(low=6*max_fw, high=N-6*max_fw, size=80)
+        xy = [(x[i], y[i]) for i in range(80)]
+
+        SN =  30. # SN para poder medir psf
+        weights = list(np.linspace(10, 1000., len(xy)))
+        m = simtools.delta_point(N, center=False, xy=xy, weights=weights)
+        im = simtools.image(m, N, t_exp, X_FWHM, Y_FWHM=Y_FWHM, theta=theta,
+                            SN=SN, bkg_pdf='gaussian', seed=image_seed)
+        frames.append(im+100.)
+
+    frame = np.zeros((1024, 1024))
+    for j in range(2):
+        for i in range(2):
+            frame[i*512:(i+1)*512, j*512:(j+1)*512] = frames[i+2*j]
+
+    return s.SingleImage(frame)
