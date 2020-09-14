@@ -101,18 +101,18 @@ def _airy_func(rr, width, amplitude=1.0):
 
 def airy_patron(N, width):
     """
-    Function that generates an Airy disc pattern, in a 2D array, 
-    which represents the telescope pupil optical transfer function, 
+    Function that generates an Airy disc pattern, in a 2D array,
+    which represents the telescope pupil optical transfer function,
     with a functional form of
 
       sin(theta) = 1.22 (Lambda / D)
 
-    with theta is the distance from the pattern center to its first 
-    minimum, Lambda is the light wavelength, and D is the pupil 
-    aperture diameter. 
-    
+    with theta is the distance from the pattern center to its first
+    minimum, Lambda is the light wavelength, and D is the pupil
+    aperture diameter.
+
     Parameters:
-    
+
     N: integer, the array size (in pixels)
     width: the theta angle already estimated in pixel units.
     """
@@ -285,7 +285,8 @@ def capsule_corp(gal, t, t_exp, i, zero, path=".", round_int=False):
     file1 = fits.PrimaryHDU(gal)
     hdulist = fits.HDUList([file1])
     hdr = hdulist[0].header
-    if isinstance(t, Time):  #  t.__class__.__name__ == "Time":
+    if isinstance(t, Time):
+        #  t.__class__.__name__ == "Time":
         dia = t.iso[0:10]
         hora = t.iso[11:24]
         jd = t.jd

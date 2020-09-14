@@ -122,17 +122,17 @@ class UtilsBase(ProperImageTestCase):
         self.assertIsInstance(hdu, fits.PrimaryHDU)
 
     def testStoreImg_Store(self):
-        utils.store_img(self.img, path=os.path.join(self.tempdir, 'tst.fits'))
-        assert os.path.isfile(os.path.join(self.tempdir, 'tst.fits'))
+        utils.store_img(self.img, path=os.path.join(self.tempdir, "tst.fits"))
+        assert os.path.isfile(os.path.join(self.tempdir, "tst.fits"))
 
     def testStoreImg_noStoreMask(self):
         hdu = utils.store_img(self.img_masked)
         self.assertIsInstance(hdu, fits.HDUList)
-  
+
     def testStoreImg_StoreMask(self):
-        utils.store_img(self.img_masked, 
-                        path=os.path.join(self.tempdir, 'tst_mask.fits'))
-        assert os.path.isfile(os.path.join(self.tempdir, 'tst_mask.fits'))
+        utils.store_img(self.img_masked,
+                        path=os.path.join(self.tempdir, "tst_mask.fits"))
+        assert os.path.isfile(os.path.join(self.tempdir, "tst_mask.fits"))
 
 
 class TestChunkIt(ProperImageTestCase):

@@ -1128,4 +1128,3 @@ class SingleImageGaussPSF(SingleImage):
         )
 
         return [[None], [mean_model.render(), mean_model]]
-

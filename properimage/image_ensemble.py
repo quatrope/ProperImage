@@ -228,14 +228,14 @@ class ImageEnsemble(MutableSequence):
                 queue,
                 shape=self.global_shape,
                 fourier=True,
-                stack=False
+                stack=False,
             )
             self.logger.info("starting new process")
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
-        print('procs appended')
+
         self.logger.info("all chunks started, and procs appended")
 
         S_stk = []
@@ -248,7 +248,7 @@ class ImageEnsemble(MutableSequence):
 
             S_stk.extend(s_list)
             S_hat_stk.extend(s_hat_list)
-        print('getting queue results')
+
         S_stack = np.stack(S_stk, axis=-1)
         # S_stack = np.tensordot(S_stack, self.transparencies, axes=(-1, 0))
 
@@ -275,7 +275,7 @@ class ImageEnsemble(MutableSequence):
         for proc in procs:
             self.logger.info("waiting for procs to finish")
             proc.join()
-        print('getting proc joins')
+
         if debug:
             return [S_hat_stack, S_stack, S_hat, S, R_hat]
         if return_S:

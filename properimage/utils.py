@@ -54,7 +54,7 @@ aa.MIN_MATCHES_FRACTION = 0.6
 def store_img(img, path=None):
     if isinstance(img[0, 0], np.complex):
         img = img.real
-    
+
     if isinstance(img, np.ma.core.MaskedArray):
         mask = img.mask.astype("int")
         data = img.data
@@ -133,7 +133,7 @@ def _matching(
 
 def transparency(images, master=None):
     """Transparency calculator, using Ofek method."""
-    
+
     if master is None:
         p = len(images)
         master = images[0]
@@ -365,7 +365,6 @@ def _align_for_coadd(imglist):
     ref = imglist[0]
     new_list = [ref]
     for animg in imglist[1:]:
-        # aa.estimate_transform("affine", animg.data, ref.data)
         new_img = aa.align_image(ref.data.astype(float),
                                  animg.data.astype(float))
         new_list.append(type(animg)(new_img))
