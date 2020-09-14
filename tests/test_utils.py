@@ -29,7 +29,6 @@ import os
 import numpy as np
 import tempfile
 
-from properimage import single_image as si
 from properimage import image_ensemble as en
 from properimage import utils
 
@@ -121,7 +120,7 @@ class TestChunkIt(ProperImageTestCase):
 
     def testChunks(self):
         for i in range(len(self.data)):
-            chunks = si.chunk_it(self.data, i + 1)
+            chunks = utils.chunk_it(self.data, i + 1)
             self.assertIsInstance(chunks, list)
 
             flat_list = [item for sublist in chunks for item in sublist]

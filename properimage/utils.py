@@ -397,3 +397,35 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
         cat.append((y, x, (S_image[int(x), int(y)] - mean) / std))
 
     return cat
+
+
+def chunk_it(seq, num):
+    """Creates chunks of a sequence suitable for data parallelism using
+    multiprocessing.
+
+    Parameters
+    ----------
+    seq: list, array or sequence like object. (indexable)
+        data to separate in chunks
+
+    num: int
+        number of chunks required
+
+    Returns
+    -------
+    Sorted list.
+    List of chunks containing the data splited in num parts.
+
+    """
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+    while last < len(seq):
+        out.append(seq[int(last) : int(last + avg)])
+        last += avg
+    try:
+        return sorted(out, reverse=True)
+    except TypeError:
+        return out
+    except ValueError:
+        return out

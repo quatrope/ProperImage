@@ -34,7 +34,6 @@ from scipy.ndimage.fourier import fourier_shift
 from . import utils
 from .combinator import StackCombinator
 from .single_image import SingleImage as si
-from .single_image import chunk_it
 import logging
 
 try:
@@ -85,7 +84,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
     if n_procs > 1:
         queues = []
         procs = []
-        for chunk in chunk_it(img_list, n_procs):
+        for chunk in utils.chunk_it(img_list, n_procs):
             queue = Queue()
             proc = StackCombinator(
                 chunk, queue, shape=global_shape, stack=True, fourier=False

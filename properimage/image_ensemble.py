@@ -165,7 +165,7 @@ class ImageEnsemble(MutableSequence):
         """
         queues = []
         procs = []
-        for chunk in si.chunk_it(self.atoms, n_procs):
+        for chunk in utils.chunk_it(self.atoms, n_procs):
             queue = Queue()
             proc = cm.Combinator(
                 chunk,
@@ -221,7 +221,7 @@ class ImageEnsemble(MutableSequence):
         """
         queues = []
         procs = []
-        for chunk in si.chunk_it(self.atoms, n_procs):
+        for chunk in utils.chunk_it(self.atoms, n_procs):
             queue = Queue()
             proc = cm.Combinator(chunk, queue, fourier=True, stack=False)
             self.logger.info("starting new process")
