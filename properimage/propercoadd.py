@@ -145,7 +145,7 @@ class StackCombinator(Process):
         return
 
 
-def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
+def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
     """Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
 

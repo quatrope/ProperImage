@@ -48,7 +48,7 @@ aa.PIXEL_TOL = 0.5
 eps = np.finfo(np.float64).eps
 
 
-def diff(
+def subtract(
     ref,
     new,
     align=False,

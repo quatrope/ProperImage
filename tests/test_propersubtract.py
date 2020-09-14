@@ -111,14 +111,14 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.si_new = si.SingleImage(self.paths[1])
 
     def testSubtractNoBeta(self):
-        D, P, S_corr, mix_mask = ps.diff(self.si_ref, self.si_new, beta=False)
+        D, P, S_corr, mix_mask = ps.subtract(self.si_ref, self.si_new, beta=False)
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractBetaIterative(self):
-        D, P, S_corr, mix_mask = ps.diff(
+        D, P, S_corr, mix_mask = ps.subtract(
             self.si_ref, self.si_new, beta=True, iterative=True, shift=False
         )
         self.assertIsInstance(D, np.ndarray)
@@ -127,7 +127,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractBetaShift(self):
-        D, P, S_corr, mix_mask = ps.diff(
+        D, P, S_corr, mix_mask = ps.subtract(
             self.si_ref, self.si_new, beta=True, iterative=False, shift=True
         )
         self.assertIsInstance(D, np.ndarray)
@@ -136,7 +136,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractOnlyBeta(self):
-        D, P, S_corr, mix_mask = ps.diff(
+        D, P, S_corr, mix_mask = ps.subtract(
             self.si_ref, self.si_new, beta=True, iterative=False, shift=False
         )
         self.assertIsInstance(D, np.ndarray)
@@ -145,7 +145,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractOnlyShift(self):
-        D, P, S_corr, mix_mask = ps.diff(
+        D, P, S_corr, mix_mask = ps.subtract(
             self.si_ref, self.si_new, beta=False, iterative=False, shift=True
         )
         self.assertIsInstance(D, np.ndarray)
@@ -154,7 +154,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractNoFitPSF(self):
-        D, P, S_corr, mix_mask = ps.diff(
+        D, P, S_corr, mix_mask = ps.subtract(
             self.si_ref,
             self.si_new,
             beta=False,
