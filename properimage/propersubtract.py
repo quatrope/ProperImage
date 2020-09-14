@@ -66,7 +66,8 @@ def diff(
     logger = logging.getLogger()
     if fitted_psf:
         from .single_image import SingleImageGaussPSF as SI
-        logger.info('Using single psf, gaussian modeled')
+
+        logger.info("Using single psf, gaussian modeled")
     else:
         from .single_image import SingleImage as SI
 

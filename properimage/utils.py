@@ -365,8 +365,9 @@ def _align_for_coadd(imglist):
     ref = imglist[0]
     new_list = [ref]
     for animg in imglist[1:]:
-        new_img = aa.align_image(ref.data.astype(float),
-                                 animg.data.astype(float))
+        new_img = aa.align_image(
+            ref.data.astype(float), animg.data.astype(float)
+        )
         new_list.append(type(animg)(new_img))
     return new_list
 
