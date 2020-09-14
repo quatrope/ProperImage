@@ -62,7 +62,7 @@ def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
             si_list[i_img] = si(animg)
 
     if align:
-        img_list = utils.align_for_coadd(si_list)
+        img_list = utils._align_for_coadd(si_list)
         for an_img in img_list:
             an_img.update_sources()
     else:

@@ -89,7 +89,7 @@ def encapsule_R(R, path=None, header=None):
         return hdu
 
 
-def matching(
+def _matching(
     master, cat, masteridskey=None, angular=False, radius=1.5, masked=False
 ):
     """
@@ -177,7 +177,7 @@ def transparency(images, master=None):
     #  Matching the sources
     for img in imglist:
         newcat = img.best_sources
-        ids, mask = matching(
+        ids, mask = _matching(
             mastercat,
             newcat,
             masteridskey="sourceid",
@@ -265,7 +265,7 @@ def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
     return imconvolved
 
 
-def lucy_rich(
+def _lucy_rich(
     image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
 ):
 
@@ -297,7 +297,7 @@ def lucy_rich(
     return im_deconv
 
 
-def align_for_diff(refpath, newpath, newmask=None):
+def _align_for_diff(refpath, newpath, newmask=None):
     """Function to align two images using their paths,
     and returning newpaths for differencing.
     We will allways rotate and align the new image to the reference,
@@ -336,7 +336,7 @@ def align_for_diff(refpath, newpath, newmask=None):
     return dest_file
 
 
-def align_for_diff_crop(refpath, newpath, bordersize=50):
+def _align_for_diff_crop(refpath, newpath, bordersize=50):
     """Function to align two images using their paths,
     and returning newpaths for differencing.
     We will allways rotate and align the new image to the reference,
@@ -375,15 +375,19 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
     return [dest_file_new, dest_file_ref]
 
 
-def align_for_coadd(imglist):
-    """Function to align a group of images for coadding, it uses
-    the
+def _align_for_coadd(imglist):
+    """
+    Function to align a group of images for coadding, it uses
+    the astroalign `align_image` tool.
     """
     ref = imglist[0]
+    new_list = [ref]
     for animg in imglist[1:]:
-        aa.estimate_transform("affine", animg.data, ref.data)
-
-    pass
+        # aa.estimate_transform("affine", animg.data, ref.data)
+        new_img = aa.align_image(ref.data.astype(float),
+                                 animg.data.astype(float))
+        new_list.append(type(animg)(new_img))
+    return new_list
 
 
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
