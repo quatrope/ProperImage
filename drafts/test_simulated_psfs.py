@@ -73,8 +73,8 @@ for xfwhm in [4, 5, 6]:
 
                 shdu = fits.PrimaryHDU(S)
                 shdulist = fits.HDUList([shdu])
-                shdulist.writeto(os.path.join(img_dir,'S.fits'), clobber=True)
+                shdulist.writeto(os.path.join(img_dir,'S.fits'), overwrite=True)
 
                 rhdu = fits.PrimaryHDU(R.real)
                 rhdulist = fits.HDUList([rhdu])
-                rhdulist.writeto(os.path.join(img_dir,'R.fits'), clobber=True)
+                rhdulist.writeto(os.path.join(img_dir,'R.fits'), overwrite=True)

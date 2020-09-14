@@ -89,14 +89,14 @@ plt.show()
 
 R = pc._ifftwn(R_hat)
 
-fits.PrimaryHDU(R.real).writeto('R_.fits', clobber=True)
+fits.PrimaryHDU(R.real).writeto('R_.fits', overwrite=True)
 
 hat_std = np.ma.std(S_hat_stack, axis=2)
 r_hat = np.ma.divide(S_hat, hat_std)
 
 r = pc._ifftwn(r_hat)
 
-fits.PrimaryHDU(r.real).writeto('r_.fits', clobber=True)
+fits.PrimaryHDU(r.real).writeto('r_.fits', overwrite=True)
 
 dr = R - r
 plt.hist(dr.real.flatten(), log=True)
