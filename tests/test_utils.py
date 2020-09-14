@@ -31,7 +31,6 @@ import tempfile
 
 from astropy.io import fits
 
-from properimage import image_ensemble as en
 from properimage import utils
 
 from .core import ProperImageTestCase
@@ -64,7 +63,7 @@ class UtilsBase(ProperImageTestCase):
 
         img_dir = os.path.join(self.tempdir, "zp_{}".format(zero))
         os.makedirs(img_dir)
-        for i in range(6):
+        for i in range(4):
             im = sm.image(
                 m,
                 N,
@@ -82,40 +81,8 @@ class UtilsBase(ProperImageTestCase):
             )
 
         self.filenames = filenames
-        self.ensemble = en.ImageEnsemble(filenames)
         self.img = im
         self.img_masked = np.ma.MaskedArray(im, mask=np.zeros(im.shape))
-
-    def testTransparency(self):
-        zps, meanmags = utils.transparency(self.ensemble.atoms)
-        self.assertIsInstance(zps, np.ndarray)
-        self.assertIsInstance(meanmags, np.ndarray)
-        self.assertFalse(np.any(zps == 0))
-
-    def testGlobalShape(self):
-        global_shape = self.ensemble.global_shape
-        self.assertIsInstance(global_shape, tuple)
-
-    def testTransparencies(self):
-        zps = self.ensemble.transparencies
-        self.assertIsInstance(zps, np.ndarray)
-        self.assertFalse(np.any(zps == 0))
-
-    # def testCalculateS(self):
-    #     S = self.ensemble.calculate_S(n_procs=1)
-    #     self.assertIsInstance(S, np.ndarray)
-
-    # def testCalculateR(self):
-    #     R = self.ensemble.calculate_R(n_procs=1)
-    #     self.assertIsInstance(R, np.ndarray)
-
-    # def testCalculateS2Core(self):
-    #     S = self.ensemble.calculate_S(n_procs=2)
-    #     self.assertIsInstance(S, np.ndarray)
-
-    # def testCalculateR2Core(self):
-    #     R = self.ensemble.calculate_R(n_procs=2)
-    #     self.assertIsInstance(R, np.ndarray)
 
     def testStoreImg_noStore(self):
         hdu = utils.store_img(self.img)
