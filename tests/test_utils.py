@@ -97,8 +97,9 @@ class UtilsBase(ProperImageTestCase):
         self.assertIsInstance(hdu, fits.HDUList)
 
     def testStoreImg_StoreMask(self):
-        utils.store_img(self.img_masked,
-                        path=os.path.join(self.tempdir, "tst_mask.fits"))
+        utils.store_img(
+            self.img_masked, path=os.path.join(self.tempdir, "tst_mask.fits")
+        )
         assert os.path.isfile(os.path.join(self.tempdir, "tst_mask.fits"))
 
 
