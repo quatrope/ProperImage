@@ -90,7 +90,7 @@ def main(args):
         fits.writeto(os.path.join(dest_dir,'InterpedNew_{}.fits'.format(i)),
                      animg.interped, overwrite=True)
         try:
-            D, P, S_corr, mask = ps.diff(animg, images[0], align=True,
+            D, P, S_corr, mask = ps.subtract(animg, images[0], align=True,
                                    iterative=False, shift=False, beta=True)
             mea, med, std = sigma_clipped_stats(D.real, mask)
             D = np.ma.MaskedArray(D.real, mask).filled(mea)

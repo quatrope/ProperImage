@@ -66,7 +66,7 @@ def main():
         plot.plt.savefig(os.path.join(dest_dir,'psf_hat_sqnorm_{}.png'.format(j)))
         plot.plt.close()
 
-    R, P_r = pc.stack_R(images, align=False, n_procs=4, inf_loss=0.25)
+    R, P_r = pc.coadd(images, align=False, n_procs=4, inf_loss=0.25)
 
     fits.writeto(os.path.join(dest_dir,'R.fits'), R.real, overwrite=True)
     fits.writeto(os.path.join(dest_dir,'P.fits'), P_r.real, overwrite=True)
