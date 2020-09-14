@@ -72,10 +72,10 @@ class ImageEnsemble(MutableSequence):
         super(ImageEnsemble, self).__init__(*arg, **kwargs)
 
         if masklist is not None:
-            self.imglist = zip(imglist, masklist)
+            self.imglist = list(zip(imglist, masklist))
         else:
             self.masklist = np.repeat(masklist, len(imglist))
-            self.imglist = zip(imglist, self.masklist)
+            self.imglist = list(zip(imglist, self.masklist))
         self.inf_loss = inf_loss
         self.logger = logging.getLogger("ImageEnsemble")
 
@@ -89,10 +89,10 @@ class ImageEnsemble(MutableSequence):
         del self.imglist[i]
 
     def __len__(self):
-        return len(self.imgl)
+        return len(self.imglist)
 
     def insert(self, i, v):
-        self.imgl.insert(i, v)
+        self.imglist.insert(i, v)
 
     def __enter__(self):
         return self
@@ -167,7 +167,7 @@ class ImageEnsemble(MutableSequence):
         procs = []
         for chunk in utils.chunk_it(self.atoms, n_procs):
             queue = Queue()
-            proc = cm.Combinator(
+            proc = cm.StackCombinator(
                 chunk,
                 queue,
                 shape=self.global_shape,
@@ -223,13 +223,19 @@ class ImageEnsemble(MutableSequence):
         procs = []
         for chunk in utils.chunk_it(self.atoms, n_procs):
             queue = Queue()
-            proc = cm.Combinator(chunk, queue, fourier=True, stack=False)
+            proc = cm.StackCombinator(
+                chunk,
+                queue,
+                shape=self.global_shape,
+                fourier=True,
+                stack=False
+            )
             self.logger.info("starting new process")
             proc.start()
 
             queues.append(queue)
             procs.append(proc)
-
+        print('procs appended')
         self.logger.info("all chunks started, and procs appended")
 
         S_stk = []
@@ -242,7 +248,7 @@ class ImageEnsemble(MutableSequence):
 
             S_stk.extend(s_list)
             S_hat_stk.extend(s_hat_list)
-
+        print('getting queue results')
         S_stack = np.stack(S_stk, axis=-1)
         # S_stack = np.tensordot(S_stack, self.transparencies, axes=(-1, 0))
 
@@ -269,7 +275,7 @@ class ImageEnsemble(MutableSequence):
         for proc in procs:
             self.logger.info("waiting for procs to finish")
             proc.join()
-
+        print('getting proc joins')
         if debug:
             return [S_hat_stack, S_stack, S_hat, S, R_hat]
         if return_S:

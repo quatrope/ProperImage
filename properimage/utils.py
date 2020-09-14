@@ -51,38 +51,20 @@ aa.NUM_NEAREST_NEIGHBORS = 5
 aa.MIN_MATCHES_FRACTION = 0.6
 
 
-def encapsule_S(S, path=None):
-    if isinstance(S, np.ma.core.MaskedArray):
-        mask = S.mask.astype("int")
-        data = S.data
+def store_img(img, path=None):
+    if isinstance(img[0, 0], np.complex):
+        img = img.real
+    
+    if isinstance(img, np.ma.core.MaskedArray):
+        mask = img.mask.astype("int")
+        data = img.data
         hdu_data = fits.PrimaryHDU(data)
         hdu_data.scale(type="float32")
         hdu_mask = fits.ImageHDU(mask, uint="uint8")
         hdu_mask.header["IMG_TYPE"] = "BAD_PIXEL_MASK"
         hdu = fits.HDUList([hdu_data, hdu_mask])
     else:
-        hdu = fits.PrimaryHDU(S)
-    if path is not None:
-        hdu.writeto(path, overwrite=True)
-    else:
-        return hdu
-
-
-def encapsule_R(R, path=None, header=None):
-    if isinstance(R[0, 0], np.complex):
-        R = R.real
-    if isinstance(R, np.ma.core.MaskedArray):
-        mask = R.mask.astype("int")
-        data = R.data
-        hdu_data = fits.PrimaryHDU(data, uint="int16")
-        hdu_data.scale(type="int16")
-        hdu_mask = fits.ImageHDU(mask, uint="uint8")
-        hdu_mask.header["IMG_TYPE"] = "BAD_PIXEL_MASK"
-        hdu = fits.HDUList([hdu_data, hdu_mask])
-    else:
-        hdu = fits.PrimaryHDU(R)
-    if header is not None:
-        pass
+        hdu = fits.PrimaryHDU(img)
     if path is not None:
         hdu.writeto(path, overwrite=True)
     else:
@@ -151,7 +133,7 @@ def _matching(
 
 def transparency(images, master=None):
     """Transparency calculator, using Ofek method."""
-
+    
     if master is None:
         p = len(images)
         master = images[0]
@@ -236,12 +218,12 @@ def transparency(images, master=None):
 
         meanmags = P[0][p:]
 
-        return zps, meanmags
+        return np.asarray(zps), np.asarray(meanmags)
     else:
         return np.ones(p), np.nan
 
 
-def convolve_psf_basis(image, psf_basis, a_fields, x, y):
+def _convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
@@ -252,7 +234,7 @@ def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     return imconvolved
 
 
-def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
+def _fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
@@ -274,9 +256,9 @@ def _lucy_rich(
     # time_ratio = 40.032 * fft_time / direct_time
 
     if fft:
-        convolve_method = fftconvolve_psf_basis
+        convolve_method = _fftconvolve_psf_basis
     else:
-        convolve_method = convolve_psf_basis
+        convolve_method = _convolve_psf_basis
 
     image = image.astype(np.float)
     image = np.ma.masked_invalid(image).filled(np.nan)

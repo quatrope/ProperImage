@@ -29,6 +29,8 @@ import os
 import numpy as np
 import tempfile
 
+from astropy.io import fits
+
 from properimage import image_ensemble as en
 from properimage import utils
 
@@ -42,7 +44,7 @@ class UtilsBase(ProperImageTestCase):
         print("setting up")
         self.tempdir = tempfile.mkdtemp()
 
-        now = "2018-05-17T00:00:00.1234567"
+        now = "2020-05-17T00:00:00.1234567"
         t = sm.Time(now)
 
         N = 1024
@@ -60,9 +62,9 @@ class UtilsBase(ProperImageTestCase):
         xy = [(x[i], y[i]) for i in range(100)]
         m = sm.delta_point(N, center=False, xy=xy, weights=weights)
 
-        img_dir = os.path.join(self.tempdir, "zp={}".format(zero))
-
-        for i in range(50):
+        img_dir = os.path.join(self.tempdir, "zp_{}".format(zero))
+        os.makedirs(img_dir)
+        for i in range(6):
             im = sm.image(
                 m,
                 N,
@@ -81,37 +83,56 @@ class UtilsBase(ProperImageTestCase):
 
         self.filenames = filenames
         self.ensemble = en.ImageEnsemble(filenames)
+        self.img = im
+        self.img_masked = np.ma.MaskedArray(im, mask=np.zeros(im.shape))
 
-    def TestTransparency(self):
-        zps, meanmags = utils.transparency(self.ensemble)
-        self.assertIsInstance(zps, list)
-        self.assertIsInstance(meanmags, list)
-        self.assert_(np.any(np.asarray(zps) == 0))
+    def testTransparency(self):
+        zps, meanmags = utils.transparency(self.ensemble.atoms)
+        self.assertIsInstance(zps, np.ndarray)
+        self.assertIsInstance(meanmags, np.ndarray)
+        self.assertFalse(np.any(zps == 0))
 
-    def TestGlobalShape(self):
+    def testGlobalShape(self):
         global_shape = self.ensemble.global_shape
         self.assertIsInstance(global_shape, tuple)
 
-    def TestTransparencies(self):
+    def testTransparencies(self):
         zps = self.ensemble.transparencies
-        self.assertIsInstance(zps, list)
-        self.assert_(np.any(np.asarray(zps) == 0))
+        self.assertIsInstance(zps, np.ndarray)
+        self.assertFalse(np.any(zps == 0))
 
-    def TestCalculateS(self):
-        S = self.ensemble.calculate_S(n_procs=1)
-        self.assertIsInstance(S, np.ndarray)
+    # def testCalculateS(self):
+    #     S = self.ensemble.calculate_S(n_procs=1)
+    #     self.assertIsInstance(S, np.ndarray)
 
-    def TestCalculateR(self):
-        R = self.ensemble.calculate_R(n_procs=1)
-        self.assertIsInstance(R, np.ndarray)
+    # def testCalculateR(self):
+    #     R = self.ensemble.calculate_R(n_procs=1)
+    #     self.assertIsInstance(R, np.ndarray)
 
-    def TestCalculateS2Core(self):
-        S = self.ensemble.calculate_S(n_procs=2)
-        self.assertIsInstance(S, np.ndarray)
+    # def testCalculateS2Core(self):
+    #     S = self.ensemble.calculate_S(n_procs=2)
+    #     self.assertIsInstance(S, np.ndarray)
 
-    def TestCalculateR2Core(self):
-        R = self.ensemble.calculate_R(n_procs=2)
-        self.assertIsInstance(R, np.ndarray)
+    # def testCalculateR2Core(self):
+    #     R = self.ensemble.calculate_R(n_procs=2)
+    #     self.assertIsInstance(R, np.ndarray)
+
+    def testStoreImg_noStore(self):
+        hdu = utils.store_img(self.img)
+        self.assertIsInstance(hdu, fits.PrimaryHDU)
+
+    def testStoreImg_Store(self):
+        utils.store_img(self.img, path=os.path.join(self.tempdir, 'tst.fits'))
+        assert os.path.isfile(os.path.join(self.tempdir, 'tst.fits'))
+
+    def testStoreImg_noStoreMask(self):
+        hdu = utils.store_img(self.img_masked)
+        self.assertIsInstance(hdu, fits.HDUList)
+  
+    def testStoreImg_StoreMask(self):
+        utils.store_img(self.img_masked, 
+                        path=os.path.join(self.tempdir, 'tst_mask.fits'))
+        assert os.path.isfile(os.path.join(self.tempdir, 'tst_mask.fits'))
 
 
 class TestChunkIt(ProperImageTestCase):
