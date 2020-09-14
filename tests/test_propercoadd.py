@@ -35,6 +35,7 @@ from astropy.io import fits
 from properimage import propercoadd as pc
 from properimage import single_image as si
 from properimage import simtools
+from properimage import utils
 
 from .core import ProperImageTestCase
 
@@ -87,7 +88,7 @@ class PropercoaddBase(object):
         imgs = [si.SingleImage(img) for img in self.paths]
 
         for i in range(len(imgs)):
-            chunks = si.chunk_it(imgs, i + 1)
+            chunks = utils.chunk_it(imgs, i + 1)
 
             self.assertIsInstance(chunks, list)
 

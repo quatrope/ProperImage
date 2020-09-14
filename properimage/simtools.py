@@ -100,18 +100,21 @@ def _airy_func(rr, width, amplitude=1.0):
 
 
 def airy_patron(N, width):
-    """Esta funcion genera un patron de airy, en una matriz 2D
-    el cual es la impronta
-    del espejo del telescopio y sigue una relacion de
+    """
+    Function that generates an Airy disc pattern, in a 2D array,
+    which represents the telescope pupil optical transfer function,
+    with a functional form of
 
       sin(theta) = 1.22 (Lambda / D)
 
-    donde theta es la distancia desde el centro del patron a el primer
-    minimo del mismo, lambda es la longitud de onda de la radiacion que
-    colecta el telescopio, y D es el diametro del objetivo del telescopio
-    N es el tamaño de la matriz en pixeles
-    width es el theta ya calculado. Es importante saber que este theta
-    depende del CCD también, ya que esta construida la funcion en pixeles
+    with theta is the distance from the pattern center to its first
+    minimum, Lambda is the light wavelength, and D is the pupil
+    aperture diameter.
+
+    Parameters:
+
+    N: integer, the array size (in pixels)
+    width: the theta angle already estimated in pixel units.
     """
     mu = (N - 1) / 2.0
     a = np.zeros((N, N))
@@ -282,7 +285,8 @@ def capsule_corp(gal, t, t_exp, i, zero, path=".", round_int=False):
     file1 = fits.PrimaryHDU(gal)
     hdulist = fits.HDUList([file1])
     hdr = hdulist[0].header
-    if t.__class__.__name__ == "Time":
+    if isinstance(t, Time):
+        #  t.__class__.__name__ == "Time":
         dia = t.iso[0:10]
         hora = t.iso[11:24]
         jd = t.jd
@@ -297,7 +301,7 @@ def capsule_corp(gal, t, t_exp, i, zero, path=".", round_int=False):
     hdr.set("JD", jd)
     hdr.set("ZERO_P", zero)
     path_fits = os.path.join(path, ("image00" + str(i) + ".fits"))
-    hdulist.writeto(path_fits, clobber=True)
+    hdulist.writeto(path_fits, overwrite=True)
     return path_fits
 
 

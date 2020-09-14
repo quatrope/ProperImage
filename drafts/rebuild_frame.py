@@ -67,10 +67,10 @@ plt.savefig(os.path.join(test_dir, 'frame_rebuild.png'))
 plt.close()
 
 f = fits.PrimaryHDU(frame)
-f.writeto(os.path.join(test_dir, 'test_frame.fits'), clobber=True)
+f.writeto(os.path.join(test_dir, 'test_frame.fits'), overwrite=True)
 
 r = fits.PrimaryHDU(rebuild)
-r.writeto(os.path.join(test_dir, 'frame_rebuild.fits'), clobber=True)
+r.writeto(os.path.join(test_dir, 'frame_rebuild.fits'), overwrite=True)
 
 
 scale = np.vdot(frame.flatten(), rebuild.flatten())
@@ -85,6 +85,6 @@ plt.savefig(os.path.join(test_dir, 'diff.png'))
 plt.close()
 
 diff = fits.PrimaryHDU(diff)
-diff.writeto(os.path.join(test_dir, 'diff.fits'), clobber=True)
+diff.writeto(os.path.join(test_dir, 'diff.fits'), overwrite=True)
 
 

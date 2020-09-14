@@ -755,7 +755,9 @@ class SingleImage(object):
         return x, y
 
     def _setup_kl_a_fields(self, inf_loss=None, updating=False):
-        """Calculate the coefficients of the expansion in basis of KLoeve."""
+        """
+        Calculate the coefficients of the expansion in basis of KLoeve
+        """
         inf_loss_update = (inf_loss is not None) and (
             self.inf_loss != inf_loss
         )
@@ -1037,38 +1039,6 @@ class SingleImage(object):
             return psf_at_xy / np.sum(psf_at_xy)
         else:
             return psf_basis[0]
-
-
-def chunk_it(seq, num):
-    """Creates chunks of a sequence suitable for data parallelism using
-    multiprocessing.
-
-    Parameters
-    ----------
-    seq: list, array or sequence like object. (indexable)
-        data to separate in chunks
-
-    num: int
-        number of chunks required
-
-    Returns
-    -------
-    Sorted list.
-    List of chunks containing the data splited in num parts.
-
-    """
-    avg = len(seq) / float(num)
-    out = []
-    last = 0.0
-    while last < len(seq):
-        out.append(seq[int(last) : int(last + avg)])
-        last += avg
-    try:
-        return sorted(out, reverse=True)
-    except TypeError:
-        return out
-    except ValueError:
-        return out
 
 
 class SingleImageGaussPSF(SingleImage):
