@@ -55,3 +55,19 @@ The output will be four different arrays:
 ``D``, ``P``, ``Scorr`` as explained above, and ``mask``.
 
 It is recommended that you run your source extraction algorithm on ``D``.
+
+Image Coaddition
+----------------
+
+TBD
+
+Decomposition for a Single Image
+--------------------------------
+
+Following the modelling for an image :math:`R`,
+
+.. math::
+    R = F_r T \otimes P_r + \epsilon_r
+
+properimage can return :math:`F_r` and :math:`P_r`, among other statistics and
+properties of the image.
