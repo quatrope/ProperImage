@@ -36,6 +36,8 @@ from astropy.io import fits
 from properimage import single_image as s
 from properimage import simtools
 
+import pytest
+
 from .core import ProperImageTestCase
 
 np.warnings.filterwarnings("ignore")
@@ -249,6 +251,12 @@ class SingleImageBase(object):
                 np.testing.assert_approx_equal(
                     np.sum(psfxy), 1.0, significant=2
                 )
+
+    @pytest.mark.xfail()
+    def testPSFInfLossChange(self):
+        original_si = self.si.inf_loss
+        self.si.get_variable_psf(inf_loss=0)
+        self.assertEqual(original_si, self.si.inf_loss)
 
 
 class TestNpArray(SingleImageBase, ProperImageTestCase):

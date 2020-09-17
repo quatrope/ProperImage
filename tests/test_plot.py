@@ -34,11 +34,14 @@ Of 301
 # =============================================================================
 
 import itertools as it
+from unittest import mock
 
 from astropy.stats import sigma_clipped_stats
 
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import check_figures_equal
+
+import numpy as np
 
 import pytest
 
@@ -59,12 +62,6 @@ def test_primes(test_input, expected):
 # =============================================================================
 # TEST API
 # =============================================================================
-
-
-def test_plot_default_ax(random_simage):
-    img = random_simage
-    ax = img.plot()
-    assert ax is plt.gca()
 
 
 @check_figures_equal()
@@ -97,8 +94,14 @@ def test_plot_invalid_plot(random_simage):
 # =============================================================================
 
 
+def test_plot_imshow_default_ax(random_simage):
+    img = random_simage
+    ax = img.plot.imshow()
+    assert ax is plt.gca()
+
+
 @check_figures_equal()
-def test_plot_imshow_method(random_simage, fig_test, fig_ref):
+def test_plot_imshow(random_simage, fig_test, fig_ref):
     img = random_simage
 
     # fig test
@@ -121,8 +124,7 @@ def test_plot_imshow_str(random_simage, fig_test, fig_ref):
 
     # expected
     exp_ax = fig_ref.subplots()
-    exp_ax.imshow(img.data, origin="lower")
-    exp_ax.set_title(f"SingleImage {img.data.shape}")
+    img.plot.imshow(ax=exp_ax)
 
 
 # =============================================================================
@@ -130,46 +132,74 @@ def test_plot_imshow_str(random_simage, fig_test, fig_ref):
 # =============================================================================
 
 
-# @check_figures_equal()
-# def test_plot_autopsf_coef(random_4psf_simage, fig_test, fig_ref):
-#     img = random_4psf_simage
+def test_plot_autopsf_coef_default_axes(random_4psf_simage):
+    simg = random_4psf_simage
 
-#     # fig test
-#     # test_ax = fig_test.subplots()
-#     # img.plot.autopsf_coef(ax=test_ax)
+    a_fields, psf_basis = simg.get_variable_psf(inf_loss=0.15)
+    axs = simg.plot.autopsf_coef(inf_loss=0.15)
 
-#     # expected
-#     a_fields, psf_basis = img.get_variable_psf()
-#     print(len(a_fields))
-#     import ipdb; ipdb.set_trace()
-#     x, y = img.get_afield_domain()
-
-#     # here we plot
-#     N = len(a_fields)  # axis needed
-#     p = plot.primes(N)
-
-#     rows = (N // p) + (N % p)
-#     subplots = (p, rows)
-
-#     size = 4
-#     width = size * subplots[0]
-#     height = size * subplots[1]
-
-#     fig_ref.set_size_inches(w=width, h=height)
-#     exp_axs = fig_ref.subplots(*subplots)
-
-#     cmap_kw = {"shrink": 0.75, "aspect": 30}
-
-#     title_tpl = r"$a_{j}$,$\sum a_{j}={sum:4.3e}$"
-#     for idx, a_field, ax in zip(range(N), a_fields, it.chain(*exp_axs)):
-
-#         a = a_field(x, y)
-#         mean, med, std = sigma_clipped_stats(a)
-
-#         img = ax.imshow(a, vmax=med + 2 * std, vmin=med - 2 * std)
-#         fig.colorbar(img, ax=ax, **cmap_kw)
-
-#         title = title_tpl.format(j=idx + 1, sum=np.sqrt(np.sum(a ** 2)))
-#         ax.set_title(title)
+    assert np.size(axs) >= len(a_fields)
 
 
+def test_plot_autopsf_coef_to_few_axis(random_4psf_simage):
+    simg = random_4psf_simage
+
+    with pytest.raises(ValueError):
+        simg.plot.autopsf_coef(inf_loss=0.15, axs=[plt.gca()])
+
+
+@check_figures_equal()
+def test_plot_autopsf_coef(random_4psf_simage, fig_test, fig_ref):
+    simg = random_4psf_simage
+
+    # expected
+    a_fields, psf_basis = simg.get_variable_psf(inf_loss=0.15)
+    x, y = simg.get_afield_domain()
+
+    # here we plot
+    N = len(a_fields)  # axis needed
+    p = plot.primes(N)
+
+    if N == 2:
+        subplots = (2, 1)
+    elif p == N:
+        subplots = (round(np.sqrt(N)), round(np.sqrt(N) + 1))
+    else:
+        rows = int((N // p) + (N % p))
+        subplots = (p, rows)
+
+    width = plot.DEFAULT_WIDTH * subplots[0]
+    height = plot.DEFAULT_HEIGHT * subplots[1]
+
+    fig_ref.set_size_inches(w=width, h=height)
+    exp_axs = fig_ref.subplots(*subplots)
+
+    cmap_kw = {"shrink": 0.75, "aspect": 30}
+
+    title_tpl = r"$a_{j}$,$\sum a_{j}={sum:4.3e}$"
+    for idx, a_field, ax in zip(range(N), a_fields, it.chain(*exp_axs)):
+
+        a = a_field(x, y)
+        mean, med, std = sigma_clipped_stats(a)
+
+        img = ax.imshow(a, vmax=med + 2 * std, vmin=med - 2 * std)
+        fig_ref.colorbar(img, ax=ax, **cmap_kw)
+
+        title = title_tpl.format(j=idx + 1, sum=np.sqrt(np.sum(a ** 2)))
+        ax.set_title(title)
+
+    # fig test
+    fig_test.set_size_inches(w=width, h=height)
+    test_axs = fig_test.subplots(*subplots)
+    simg.plot.autopsf_coef(axs=test_axs, inf_loss=0.15)
+
+
+@check_figures_equal()
+def test_plot_autopsf_coef_str(random_4psf_simage, fig_test, fig_ref):
+    simg = random_4psf_simage
+
+    with mock.patch("matplotlib.pyplot.gcf", return_value=fig_test):
+        simg.plot("autopsf_coef", inf_loss=0.15)
+
+    with mock.patch("matplotlib.pyplot.gcf", return_value=fig_ref):
+        simg.plot.autopsf_coef(inf_loss=0.15)

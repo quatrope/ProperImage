@@ -25,7 +25,7 @@ Of 301
 """
 
 from multiprocessing import Queue
-from collections import MutableSequence
+from collections.abc import MutableSequence
 
 import numpy as np
 import logging
