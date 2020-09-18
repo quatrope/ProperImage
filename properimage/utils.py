@@ -223,26 +223,24 @@ def transparency(images, master=None):
         return np.ones(p), np.nan
 
 
-def _convolve_psf_basis(image, psf_basis, a_fields, x, y):
+def _convolve_psf_basis(image, psf_basis, a_fields, x, y, fft=False):
     imconvolved = np.zeros_like(image)
+
+    if fft:
+        convolve_method = convolve_fft
+    else:
+        convolve_method = convolve
+
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
         psf = psf_basis[j]
 
-        imconvolved += convolve(a, psf, boundary="extend")
-
-    return imconvolved
-
-
-def _fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
-    imconvolved = np.zeros_like(image)
-    for j in range(len(psf_basis)):
-        a = a_fields[j](x, y) * image
-        psf = psf_basis[j]
-
-        imconvolved += convolve_fft(
-            a, psf, interpolate_nan=True, allow_huge=True
-        )
+        if fft:
+            imconvolved += convolve(
+                a, psf, interpolate_nan=True, allow_huge=True
+            )
+        else:
+            imconvolved += convolve(a, psf, boundary="extend")
 
     return imconvolved
 
