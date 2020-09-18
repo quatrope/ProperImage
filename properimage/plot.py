@@ -13,7 +13,6 @@ Of 301
 """
 
 import logging
-import itertools as it
 
 import numpy as np
 
@@ -43,6 +42,14 @@ DEFAULT_WIDTH = 4
 
 logger = logging.getLogger()
 
+# =============================================================================
+# EXCEPTIONS
+# =============================================================================
+
+
+class NoDataToPlot(ValueError):
+    pass
+
 
 # =============================================================================
 # FUNCTIONS
@@ -60,45 +67,6 @@ def primes(n):
         return n
 
     return max(prims)
-
-
-def plot_psfbasis(
-    psf_basis, path=None, nbook=False, size=4, iso=False, **kwargs
-):
-    # psf_basis.reverse()
-    xsh, ysh = psf_basis[1].shape
-    N = len(psf_basis)
-    p = primes(N)
-    if N == 2:
-        subplots = (2, 1)
-    elif p == N:
-        subplots = (np.rint(np.sqrt(N)), np.rint(np.sqrt(N) + 1))
-    else:
-        rows = N // p
-        rows += N % p
-        subplots = (p, rows)
-
-    plt.figure(figsize=(size * subplots[0], size * subplots[1]))
-    for i in range(len(psf_basis)):
-        plt.subplot(subplots[1], subplots[0], i + 1)
-        plt.imshow(psf_basis[i], interpolation="none", cmap="viridis")
-        labels = {"j": i + 1, "sum": np.sum(psf_basis[i])}
-        plt.title(r"$\sum p_{j:d} = {sum:4.3e}$".format(**labels))
-        # , interpolation='linear')
-        plt.colorbar(shrink=0.85)
-        if iso:
-            plt.contour(
-                np.arange(xsh),
-                np.arange(ysh),
-                psf_basis[i],
-                colors="red",
-                alpha=0.4,
-            )
-    plt.tight_layout()
-    if path is not None:
-        plt.savefig(path)
-    if not nbook:
-        plt.close()
 
 
 def plot_S(S, path=None, nbook=False):
@@ -175,10 +143,77 @@ class Plot:
         ax.set_title(f"SingleImage {self.si.data.shape}")
         return ax
 
+    def autopsf(
+        self,
+        axs=None,
+        iso=False,
+        inf_loss=None,
+        shape=None,
+        cmap_kw=None,
+        iso_kw=None,
+        **kwargs,
+    ):
+        _, psf_basis = self.si.get_variable_psf(inf_loss=inf_loss, shape=shape)
+
+        # here we plot
+        N = len(psf_basis)
+
+        if axs is None:
+            p = primes(N)
+
+            fig = plt.gcf()
+
+            if N == 2:
+                subplots = (2, 1)
+            elif p == N:
+                subplots = (round(np.sqrt(N)), round(np.sqrt(N) + 1))
+            else:
+                rows = int((N // p) + (N % p))
+                subplots = (p, rows)
+
+            width = DEFAULT_WIDTH * subplots[0]
+            height = DEFAULT_HEIGHT * subplots[1]
+
+            fig.set_size_inches(w=width, h=height)
+            axs = fig.subplots(*subplots)
+
+        if N > np.size(axs):
+            raise ValueError(
+                f"You must provide at least {N} axs. Found {len(axs)}"
+            )
+
+        xsh, ysh = psf_basis[1].shape
+
+        kwargs.setdefault("interpolation", "none")
+
+        iso_kw = iso_kw or {}
+        iso_kw = {"colors": "black", "alpha": 0.5}
+
+        cmap_kw = cmap_kw or {}
+        cmap_kw.setdefault("shrink", 0.85)
+
+        title_tpl = r"$\sum p_{j:d} = {sum:4.3e}$"
+        for idx, psf_basis, ax in zip(range(N), psf_basis, np.ravel(axs)):
+            fig = ax.get_figure()
+
+            img = ax.imshow(psf_basis, **kwargs)
+            title = title_tpl.format(j=idx + 1, sum=np.sum(psf_basis))
+            ax.set_title(title)
+
+            fig.colorbar(img, ax=ax, **cmap_kw)
+
+            if iso:
+                ax.contour(np.arange(xsh), np.arange(ysh), psf_basis, **iso_kw)
+
+        return axs
+
     def autopsf_coef(
         self, axs=None, inf_loss=None, shape=None, cmap_kw=None, **kwargs
     ):
-        a_fields, psf_basis = self.si.get_variable_psf(inf_loss=inf_loss)
+        a_fields, _ = self.si.get_variable_psf(inf_loss=inf_loss, shape=shape)
+        if a_fields == [None]:
+            raise NoDataToPlot("No coeficients for this PSF")
+
         x, y = self.si.get_afield_domain()
 
         # here we plot
@@ -213,7 +248,7 @@ class Plot:
         cmap_kw.setdefault("aspect", 30)
 
         title_tpl = r"$a_{j}$,$\sum a_{j}={sum:4.3e}$"
-        for idx, a_field, ax in zip(range(N), a_fields, it.chain(*axs)):
+        for idx, a_field, ax in zip(range(N), a_fields, np.ravel(axs)):
             fig = ax.get_figure()
 
             a = a_field(x, y)

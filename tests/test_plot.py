@@ -33,7 +33,6 @@ Of 301
 # IMPORTS
 # =============================================================================
 
-import itertools as it
 from unittest import mock
 
 from astropy.stats import sigma_clipped_stats
@@ -128,8 +127,93 @@ def test_plot_imshow_str(random_simage, fig_test, fig_ref):
 
 
 # =============================================================================
+# TEST auto_psf
+# =============================================================================
+
+
+def test_plot_autopsf_default_axes(random_4psf_simage):
+    simg = random_4psf_simage
+
+    a_fields, psf_basis = simg.get_variable_psf(inf_loss=0.15)
+    axs = simg.plot.autopsf(inf_loss=0.15)
+
+    assert np.size(axs) >= len(psf_basis)
+
+
+def test_plot_autopsf_too_few_axis(random_4psf_simage):
+    simg = random_4psf_simage
+    with pytest.raises(ValueError):
+        simg.plot.autopsf(inf_loss=0.15, axs=[plt.gca()])
+
+
+@check_figures_equal()
+def test_plot_autopsf(random_4psf_simage, fig_test, fig_ref):
+    simg = random_4psf_simage
+
+    # expected
+    a_fields, psf_basis = simg.get_variable_psf(inf_loss=0.15)
+
+    xsh, ysh = psf_basis[1].shape
+
+    N = len(psf_basis)
+    p = plot.primes(N)
+    if N == 2:
+        subplots = (2, 1)
+    elif p == N:
+        subplots = (round(np.sqrt(N)), round(np.sqrt(N) + 1))
+    else:
+        rows = N // p
+        rows += N % p
+        subplots = (p, rows)
+
+    width = plot.DEFAULT_WIDTH * subplots[0]
+    height = plot.DEFAULT_HEIGHT * subplots[1]
+
+    fig_ref.set_size_inches(w=width, h=height)
+    exp_axs = fig_ref.subplots(*subplots)
+
+    kwargs = {"interpolation": "none"}
+    cmap_kw = {"shrink": 0.85}
+    iso_kw = {"colors": "black", "alpha": 0.5}
+
+    title_tpl = r"$\sum p_{j:d} = {sum:4.3e}$"
+    for idx, psf_basis, ax in zip(range(N), psf_basis, np.ravel(exp_axs)):
+
+        img = ax.imshow(psf_basis, **kwargs)
+        title = title_tpl.format(j=idx + 1, sum=np.sum(psf_basis))
+        ax.set_title(title)
+
+        fig_ref.colorbar(img, ax=ax, **cmap_kw)
+
+        ax.contour(np.arange(xsh), np.arange(ysh), psf_basis, **iso_kw)
+
+    # fig test
+    fig_test.set_size_inches(w=width, h=height)
+    test_axs = fig_test.subplots(*subplots)
+    simg.plot.autopsf(axs=test_axs, inf_loss=0.15, iso=True)
+
+
+@check_figures_equal()
+def test_plot_autopsf_str(random_4psf_simage, fig_test, fig_ref):
+    simg = random_4psf_simage
+
+    with mock.patch("matplotlib.pyplot.gcf", return_value=fig_test):
+        simg.plot("autopsf", inf_loss=0.15, iso=True)
+
+    with mock.patch("matplotlib.pyplot.gcf", return_value=fig_ref):
+        simg.plot.autopsf(inf_loss=0.15, iso=True)
+
+
+# =============================================================================
 # TEST auto_psf_coef
 # =============================================================================
+
+
+def test_plot_autopsf_coef_no_coef(random_4psf_simage):
+    simg = random_4psf_simage
+
+    with pytest.raises(plot.NoDataToPlot):
+        simg.plot.autopsf_coef(inf_loss=1.0)
 
 
 def test_plot_autopsf_coef_default_axes(random_4psf_simage):
@@ -141,9 +225,8 @@ def test_plot_autopsf_coef_default_axes(random_4psf_simage):
     assert np.size(axs) >= len(a_fields)
 
 
-def test_plot_autopsf_coef_to_few_axis(random_4psf_simage):
+def test_plot_autopsf_coef_too_few_axis(random_4psf_simage):
     simg = random_4psf_simage
-
     with pytest.raises(ValueError):
         simg.plot.autopsf_coef(inf_loss=0.15, axs=[plt.gca()])
 
@@ -177,7 +260,7 @@ def test_plot_autopsf_coef(random_4psf_simage, fig_test, fig_ref):
     cmap_kw = {"shrink": 0.75, "aspect": 30}
 
     title_tpl = r"$a_{j}$,$\sum a_{j}={sum:4.3e}$"
-    for idx, a_field, ax in zip(range(N), a_fields, it.chain(*exp_axs)):
+    for idx, a_field, ax in zip(range(N), a_fields, np.ravel(exp_axs)):
 
         a = a_field(x, y)
         mean, med, std = sigma_clipped_stats(a)
