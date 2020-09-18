@@ -41,11 +41,8 @@ import pathlib
 import tempfile
 
 import numpy as np
-from astropy.convolution import (
-    Box2DKernel,
-    convolve_fft,
-    interpolate_replace_nans,
-)
+from astropy.convolution import (Box2DKernel, convolve_fft,
+                                 interpolate_replace_nans)
 from astropy.io import fits
 from astropy.modeling import fitting, models
 from astropy.nddata.utils import extract_array
@@ -59,8 +56,8 @@ from six.moves import range
 import sep
 from astroscrappy import detect_cosmics
 
-from . import numpydb as npdb
 from . import plot, utils
+from .tplibs import numpydb as npdb
 
 try:
     import pyfftw
