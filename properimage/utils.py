@@ -245,7 +245,6 @@ def _convolve_psf_basis(image, psf_basis, a_fields, x, y, fft=False):
     return imconvolved
 
 
-
 def _lucy_rich(
     image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
 ):
