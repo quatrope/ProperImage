@@ -245,6 +245,7 @@ def _convolve_psf_basis(image, psf_basis, a_fields, x, y, fft=False):
     return imconvolved
 
 
+
 def _lucy_rich(
     image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
 ):
@@ -252,11 +253,6 @@ def _lucy_rich(
     # see whether the fourier transform convolution method or the direct
     # convolution method is faster (discussed in scikit-image PR #1792)
     # time_ratio = 40.032 * fft_time / direct_time
-
-    if fft:
-        convolve_method = _fftconvolve_psf_basis
-    else:
-        convolve_method = _convolve_psf_basis
 
     image = image.astype(np.float)
     image = np.ma.masked_invalid(image).filled(np.nan)
@@ -266,10 +262,12 @@ def _lucy_rich(
     psf_mirror = [psf[::-1, ::-1] for psf in psf_basis]
 
     for _ in range(iterations):
-        rela_blur = image / convolve_method(
-            im_deconv, psf_basis, a_fields, x, y
+        rela_blur = image / _convolve_psf_basis(
+            im_deconv, psf_basis, a_fields, x, y, fft=fft
         )
-        im_deconv *= convolve_method(rela_blur, psf_mirror, a_fields, x, y)
+        im_deconv *= _convolve_psf_basis(
+            rela_blur, psf_mirror, a_fields, x, y, fft=fft
+        )
 
     if clip:
         im_deconv = np.ma.masked_invalid(im_deconv).filled(-1.0)
