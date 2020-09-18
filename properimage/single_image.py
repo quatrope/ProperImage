@@ -21,7 +21,7 @@
 #  MA 02110-1301, USA.
 #
 
-"""single_image module from ProperImage,
+"""single_image module from ProperImage,z
 for analysis of astronomical images.
 
 Written by Bruno SANCHEZ
@@ -35,25 +35,32 @@ Cordoba - Argentina
 Of 301
 """
 
+import logging
 import os
+import pathlib
+import tempfile
+
 import numpy as np
+from astropy.convolution import (
+    Box2DKernel,
+    convolve_fft,
+    interpolate_replace_nans,
+)
+from astropy.io import fits
+from astropy.modeling import fitting, models
+from astropy.nddata.utils import extract_array
+from astropy.stats import sigma_clipped_stats
 from numpy import ma
+from scipy.ndimage import center_of_mass
 from scipy.ndimage import convolve as convolve_scp
 from scipy.ndimage.fourier import fourier_shift
-from scipy.ndimage import center_of_mass
-from astropy.io import fits
-from astropy.stats import sigma_clipped_stats
-from astropy.modeling import fitting
-from astropy.modeling import models
-from astropy.convolution import convolve_fft
-from astropy.convolution import interpolate_replace_nans
-from astropy.convolution import Box2DKernel
-from astropy.nddata.utils import extract_array
-from astroscrappy import detect_cosmics
+from six.moves import range
+
 import sep
-import logging
-from . import numpydb as npdb
-from . import utils
+from astroscrappy import detect_cosmics
+
+from . import plot, utils
+from .tplibs import numpydb as npdb
 
 try:
     import pyfftw
@@ -63,6 +70,21 @@ try:
 except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
+
+
+# =============================================================================
+# CONSTANTS
+# =============================================================================
+
+TEMP_DIR = tempfile.mkdtemp(suffix="_properimage")
+
+TEMP_PATH = pathlib.Path(TEMP_DIR)
+
+logger = logging.getLogger()
+
+# =============================================================================
+# API
+# =============================================================================
 
 
 def conv(*arg, **kwargs):
@@ -119,8 +141,9 @@ class SingleImage(object):
         self.stamp_shape = stamp_shape
         self.inf_loss = 0.2
         self._smooth_autopsf = smooth_psf
-        self.dbname = os.path.abspath("._" + str(id(self)) + "SingleImage")
-        self.logger = logging.getLogger()
+        self.dbname = str(TEMP_PATH / f"{id(self)}_SingleImage")
+
+        self._plot = plot.Plot(self)
 
     def __enter__(self):
         return self
@@ -129,15 +152,15 @@ class SingleImage(object):
         self._clean()
 
     def __repr__(self):
-        return "SingleImage instance for {}".format(self.attached_to)
+        return f"SingleImage {self.data.shape[0]}, {self.data.shape[1]}"
 
     def _clean(self):
-        self.logger.info("cleaning... ")
+        logger.info("cleaning... ")
         try:
             os.remove(self.dbname + ".dat")
             os.remove(self.dbname + ".map")
         except OSError:
-            self.logger.warning("Nothing to clean. (Or something has failed)")
+            logger.warning("Nothing to clean. (Or something has failed)")
 
     @property
     def attached_to(self):
@@ -613,7 +636,7 @@ class SingleImage(object):
                 self.stamp_shape[0] + 6,
                 self.stamp_shape[1] + 6,
             )
-            self.logger.warning(
+            logger.warning(
                 "updating stamp shape to ({},{})".format(
                     self.stamp_shape[0], self.stamp_shape[1]
                 )
@@ -711,7 +734,7 @@ class SingleImage(object):
             xs = vech[:, -cut:]
             psf_basis = []
             if hasattr(self, "_m"):
-                self.logger.debug(vech.shape, self._m.shape)
+                logger.debug(vech.shape, self._m.shape)
                 self._full_bases = np.dot(self._m, vech)
                 self._bases = self._full_bases[:, -cut:]
                 psf_basis = [
@@ -991,6 +1014,10 @@ class SingleImage(object):
         if not hasattr(self, "_interped_hat"):
             self._interped_hat = _fftwn(self.interped, norm="ortho")
         return self._interped_hat
+
+    @property
+    def plot(self):
+        return self._plot
 
     def psf_hat_sqnorm(self):
         psf_basis = self.kl_basis

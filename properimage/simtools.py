@@ -229,7 +229,16 @@ def delta_point(N, center=True, xy=None, weights=None):
 
 
 def image(
-    MF, N2, t_exp, X_FWHM, SN, Y_FWHM=0, theta=0, bkg_pdf="poisson", std=None
+    MF,
+    N2,
+    t_exp,
+    X_FWHM,
+    SN,
+    Y_FWHM=0,
+    theta=0,
+    bkg_pdf="poisson",
+    std=None,
+    seed=None,
 ):
     """
     funcion que genera una imagen con ruido y seeing a partir
@@ -245,6 +254,8 @@ def image(
     bkg_pdf : distribucion de probabilidad del ruido background
     std : en caso que bkg_pdf sea gaussian, valor de std
     """
+    random = np.random.RandomState(seed=seed)
+
     N = np.shape(MF)[0]
     FWHM = max(X_FWHM, Y_FWHM)
     PSF = Psf(5 * FWHM, X_FWHM, Y_FWHM, theta)
@@ -259,12 +270,12 @@ def image(
 
     if bkg_pdf == "poisson":
         mean = b / SN
-        C = np.random.poisson(mean, (N2, N2)).astype(np.float32)
+        C = random.poisson(mean, (N2, N2)).astype(np.float32)
 
     elif bkg_pdf == "gaussian":
         mean = 0
         std = b / SN
-        C = np.random.normal(mean, std, (N2, N2))
+        C = random.normal(mean, std, (N2, N2))
     bias = 100.0
     F = C + image + bias
     return F
@@ -305,7 +316,7 @@ def capsule_corp(gal, t, t_exp, i, zero, path=".", round_int=False):
     return path_fits
 
 
-def sim_varpsf(nstars, SN=3.0, thetas=[0, 45, 105, 150], N=512):
+def sim_varpsf(nstars, SN=3.0, thetas=[0, 45, 105, 150], N=512, seed=None):
     frames = []
     for theta in thetas:
         X_FWHM = 5 + 5.0 * theta / 180.0
@@ -314,10 +325,12 @@ def sim_varpsf(nstars, SN=3.0, thetas=[0, 45, 105, 150], N=512):
         t_exp = 1
         max_fw = max(X_FWHM, Y_FWHM)
 
-        x = np.random.randint(
+        random = np.random.RandomState(seed=seed)
+
+        x = random.randint(
             low=6 * max_fw, high=N - 6 * max_fw, size=nstars / 4
         )
-        y = np.random.randint(
+        y = random.randint(
             low=6 * max_fw, high=N - 6 * max_fw, size=nstars / 4
         )
         xy = np.array([(x[i], y[i]) for i in range(nstars / 4)])

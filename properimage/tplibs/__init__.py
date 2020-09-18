@@ -9,9 +9,5 @@
 #
 
 """
-Properimage is a package for astronomical image processing, in particular
-for coaddition and subtraction of CCD images. The methodology follows a
-hypothesis test scheme.
+This package contains external libraries shipped with properimage
 """
-
-__version__ = "0.7"
