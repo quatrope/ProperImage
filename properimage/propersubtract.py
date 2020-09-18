@@ -59,17 +59,15 @@ def diff(
     iterative=False,
     fitted_psf=True,
 ):
-    """Function that takes a list of SingleImage instances
+    """
+    Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
     """
     logger = logging.getLogger()
     if fitted_psf:
-        try:
-            from .single_image_psfs import SingleImageGaussPSF as SI
+        from .single_image import SingleImageGaussPSF as SI
 
-            logger.info("using single psf, gaussian modeled")
-        except ImportError:
-            from .single_image import SingleImage as SI
+        logger.info("Using single psf, gaussian modeled")
     else:
         from .single_image import SingleImage as SI
 

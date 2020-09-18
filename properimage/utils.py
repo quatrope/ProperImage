@@ -51,48 +51,32 @@ aa.NUM_NEAREST_NEIGHBORS = 5
 aa.MIN_MATCHES_FRACTION = 0.6
 
 
-def encapsule_S(S, path=None):
-    if isinstance(S, np.ma.core.MaskedArray):
-        mask = S.mask.astype("int")
-        data = S.data
+def store_img(img, path=None):
+    if isinstance(img[0, 0], np.complex):
+        img = img.real
+
+    if isinstance(img, np.ma.core.MaskedArray):
+        mask = img.mask.astype("int")
+        data = img.data
         hdu_data = fits.PrimaryHDU(data)
         hdu_data.scale(type="float32")
         hdu_mask = fits.ImageHDU(mask, uint="uint8")
         hdu_mask.header["IMG_TYPE"] = "BAD_PIXEL_MASK"
         hdu = fits.HDUList([hdu_data, hdu_mask])
     else:
-        hdu = fits.PrimaryHDU(S)
+        hdu = fits.PrimaryHDU(img)
     if path is not None:
         hdu.writeto(path, overwrite=True)
     else:
         return hdu
 
 
-def encapsule_R(R, path=None, header=None):
-    if isinstance(R[0, 0], np.complex):
-        R = R.real
-    if isinstance(R, np.ma.core.MaskedArray):
-        mask = R.mask.astype("int")
-        data = R.data
-        hdu_data = fits.PrimaryHDU(data, uint="int16")
-        hdu_data.scale(type="int16")
-        hdu_mask = fits.ImageHDU(mask, uint="uint8")
-        hdu_mask.header["IMG_TYPE"] = "BAD_PIXEL_MASK"
-        hdu = fits.HDUList([hdu_data, hdu_mask])
-    else:
-        hdu = fits.PrimaryHDU(R)
-    if header is not None:
-        pass
-    if path is not None:
-        hdu.writeto(path, overwrite=True)
-    else:
-        return hdu
-
-
-def matching(
+def _matching(
     master, cat, masteridskey=None, angular=False, radius=1.5, masked=False
 ):
-    """Function to match stars between frames."""
+    """
+    Function to match stars between frames.
+    """
     if masteridskey is None:
         masterids = np.arange(len(master))
         master["masterindex"] = masterids
@@ -175,7 +159,7 @@ def transparency(images, master=None):
     #  Matching the sources
     for img in imglist:
         newcat = img.best_sources
-        ids, mask = matching(
+        ids, mask = _matching(
             mastercat,
             newcat,
             masteridskey="sourceid",
@@ -234,12 +218,12 @@ def transparency(images, master=None):
 
         meanmags = P[0][p:]
 
-        return zps, meanmags
+        return np.asarray(zps), np.asarray(meanmags)
     else:
         return np.ones(p), np.nan
 
 
-def convolve_psf_basis(image, psf_basis, a_fields, x, y):
+def _convolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
@@ -250,7 +234,7 @@ def convolve_psf_basis(image, psf_basis, a_fields, x, y):
     return imconvolved
 
 
-def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
+def _fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
@@ -263,7 +247,7 @@ def fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
     return imconvolved
 
 
-def lucy_rich(
+def _lucy_rich(
     image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
 ):
 
@@ -272,9 +256,9 @@ def lucy_rich(
     # time_ratio = 40.032 * fft_time / direct_time
 
     if fft:
-        convolve_method = fftconvolve_psf_basis
+        convolve_method = _fftconvolve_psf_basis
     else:
-        convolve_method = convolve_psf_basis
+        convolve_method = _convolve_psf_basis
 
     image = image.astype(np.float)
     image = np.ma.masked_invalid(image).filled(np.nan)
@@ -295,7 +279,7 @@ def lucy_rich(
     return im_deconv
 
 
-def align_for_diff(refpath, newpath, newmask=None):
+def _align_for_diff(refpath, newpath, newmask=None):
     """Function to align two images using their paths,
     and returning newpaths for differencing.
     We will allways rotate and align the new image to the reference,
@@ -334,7 +318,7 @@ def align_for_diff(refpath, newpath, newmask=None):
     return dest_file
 
 
-def align_for_diff_crop(refpath, newpath, bordersize=50):
+def _align_for_diff_crop(refpath, newpath, bordersize=50):
     """Function to align two images using their paths,
     and returning newpaths for differencing.
     We will allways rotate and align the new image to the reference,
@@ -373,15 +357,19 @@ def align_for_diff_crop(refpath, newpath, bordersize=50):
     return [dest_file_new, dest_file_ref]
 
 
-def align_for_coadd(imglist):
-    """Function to align a group of images for coadding, it uses
-    the
+def _align_for_coadd(imglist):
+    """
+    Function to align a group of images for coadding, it uses
+    the astroalign `align_image` tool.
     """
     ref = imglist[0]
+    new_list = [ref]
     for animg in imglist[1:]:
-        aa.estimate_transform("affine", animg.data, ref.data)
-
-    pass
+        new_img = aa.align_image(
+            ref.data.astype(float), animg.data.astype(float)
+        )
+        new_list.append(type(animg)(new_img))
+    return new_list
 
 
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
@@ -395,3 +383,35 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
         cat.append((y, x, (S_image[int(x), int(y)] - mean) / std))
 
     return cat
+
+
+def chunk_it(seq, num):
+    """Creates chunks of a sequence suitable for data parallelism using
+    multiprocessing.
+
+    Parameters
+    ----------
+    seq: list, array or sequence like object. (indexable)
+        data to separate in chunks
+
+    num: int
+        number of chunks required
+
+    Returns
+    -------
+    Sorted list.
+    List of chunks containing the data splited in num parts.
+
+    """
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+    while last < len(seq):
+        out.append(seq[int(last) : int(last + avg)])
+        last += avg
+    try:
+        return sorted(out, reverse=True)
+    except TypeError:
+        return out
+    except ValueError:
+        return out
