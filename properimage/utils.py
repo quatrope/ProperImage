@@ -236,11 +236,11 @@ def _convolve_psf_basis(image, psf_basis, a_fields, x, y, fft=False):
         psf = psf_basis[j]
 
         if fft:
-            imconvolved += convolve(
+            imconvolved += convolve_method(
                 a, psf, interpolate_nan=True, allow_huge=True
             )
         else:
-            imconvolved += convolve(a, psf, boundary="extend")
+            imconvolved += convolve_method(a, psf, boundary="extend")
 
     return imconvolved
 
