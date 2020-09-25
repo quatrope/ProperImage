@@ -71,9 +71,9 @@ def conv(*arg, **kwargs):
 
 class SingleImage(object):
     """Atomic processor class for a single image.
+
     Contains several tools for PSF measures, and different coadding
     building structures.
-
     It includes the pixel matrix data, as long as some descriptions.
     For statistical values of the pixel matrix the class' methods need to be
     called.
@@ -81,11 +81,13 @@ class SingleImage(object):
 
     Parameters
     ----------
-    img : `~numpy.ndarray` or :class:`~ccdproc.CCDData`,
-                `~astropy.io.fits.HDUList`  or a `str` naming the filename.
+    img: :class:`numpy.ndarray`, :class:`ccdproc.CCDData`, \
+      :class:`astropy.io.fits.HDUList` or :class:`str` with path to FITS file.
+
         The image object to work with
 
-    mask: `~numpy.ndarray` or a `str` naming the filename.
+    mask: :class:`numpy.ndarray` or :class:`str` with path to FITS file.
+
         The mask image
     """
 
@@ -365,12 +367,14 @@ class SingleImage(object):
 
     @property
     def best_sources(self):
-        """Property, a dictionary of best sources detected in the image.
+        """A dictionary of best sources detected in the image.
+
         Keys are:
-            fitshape: tuple, the size of the stamps on each source detected
-            sources: a table of sources, with the imformation from sep
-            positions: an array, with the position of each source stamp
-            n_sources: the total number of sources extracted
+
+          - fitshape: tuple, the size of the stamps on each source detected.
+          - sources: a table of sources, with the imformation from sep.
+          - positions: an array, with the position of each source stamp.
+          - n_sources: the total number of sources extracted.
         """
         if not hasattr(self, "_best_sources"):
             try:
@@ -795,37 +799,40 @@ class SingleImage(object):
             self._a_fields = a_fields
 
     def get_variable_psf(self, inf_loss=None, shape=None):
-        """Method to obtain the space variant PSF determination,
-        according to Lauer 2002 method with Karhunen Loeve transform.
+        """Method to obtain the space variant PSF determination.
+
+        Calculate variable PSF using Lauer 2002 method with Karhunen Loeve
+        transform.
 
         Parameters
         ----------
-        pow_th: float, between 0 and 1. It sets the minimum amount of
-        information that a PSF-basis of the Karhunen Loeve transformation
-        should have in order to be taken into account. A high value will return
-        only the most significant components. Default is 0.9
+        pow_th: float between 0 and 1.
+            It sets the minimum amount of information that a PSF-basis of the
+            Karhunen Loeve transformation should have in order to be taken into
+            account. A high value will return only the most significant
+            components. Default is 0.9
 
-        shape: tuple, the size of the stamps for source extraction.
-        This value affects the _best_srcs property, and should be settled in
-        the SingleImage instancing step. At this stage it will override the
-        value settled in the instancing step only if _best_srcs hasn't been
-        called yet, which is the case if you are performing context managed
-        image subtraction. (See propersubtract module)
+        shape: tuple
+
+            The size of the stamps for source extraction.
+            This value affects the _best_srcs property, and should be settled
+            inthe SingleImage instancing step. At this stage it will override
+            the value settled in the instancing step only if _best_srcs hasn't
+            been called yet, which is the case if you are performing context
+            managed image subtraction. (See propersubtract module)
 
         Returns
         -------
         [a_fields, psf_basis]: a list of two lists.
-        Basically it returns a sequence of psf-basis elements with its
-        associated coefficient.
 
-        The psf_basis elements are numpy arrays of the given fitshape
-        (or shape) size.
-
-        The a_fields are astropy.fitting fitted model functions, which need
-        arguments to return numpy array fields (for example a_fields[0](x, y)).
-        These can be generated using
-        x, y = np.mgrid[:self.imagedata.shape[0],
-                        :self.imagedata.shape[1]]
+            A sequence of psf-basis elements with its associated coefficients.
+            The psf_basis elements are numpy arrays of the given fitshape
+            (or shape) size.
+            The a_fields are astropy.fitting fitted model functions, which need
+            arguments to return numpy array fields
+            (for example a_fields[0](x, y)).
+            These can be generated using
+            x, y = np.mgrid[:self.imagedata.shape[0], :self.imagedata.shape[1]]
 
         """
         if shape is not None:
@@ -1069,12 +1076,12 @@ class SingleImageGaussPSF(SingleImage):
 
     def get_variable_psf(self, inf_loss=None, shape=None):
         """Method to obtain a unique Gaussian psf, non variable.
+
         Returns
         -------
-        An astropy model Gaussian2D instance, with the median parameters
-        for the fit of every star.
-
-
+        list: list
+            An astropy model Gaussian2D instance, with the median parameters
+            for the fit of every star.
         """
 
         def fit_gaussian2d(b, fitter=None):

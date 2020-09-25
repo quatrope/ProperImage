@@ -42,6 +42,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
     "nbsphinx",
+    "sphinx.ext.napoleon",
 ]
 
 exclude_patterns = ["_build", "source/.ipynb_checkpoints/*"]

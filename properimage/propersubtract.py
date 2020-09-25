@@ -59,9 +59,46 @@ def diff(
     iterative=False,
     fitted_psf=True,
 ):
-    """
-    Function that takes a list of SingleImage instances
-    and performs a stacking using properimage R estimator
+    """Do proper subtraction using Zackay et al method.
+
+    Parameters
+    ----------
+        ref:
+            The reference image. Either a numpy array, a string with the path
+            to a FITS file, or a HDU astropy object.
+        new:
+            The new image. Either a numpy array, a string with the path
+            to a FITS file, or a HDU astropy object.
+        align: boolean
+            A boolean to specify if alignment needs to be done.
+        inf_loss: boolean
+            Tolerance of the fraction of information lost when
+            calculating PSF fits. Default is 0.25 (25% loss).
+        beta:
+            A parameter.
+        shift:
+            A parameter.
+        iterative:
+            A boolean to specify if iteration is made.
+        fitted_psf:
+            A boolean to specify if psf is fitted.
+
+    Returns
+    -------
+    D:
+        The difference image with uncorrelated noise.
+    P:
+        The PSF of the difference image D.
+    Scorr:
+        The optimal statistic for source detection corrected for
+        underestimating noise level around sources.
+    mask:
+        A mask, True on bad pixels.
+
+    Raises
+    ------
+        Exception
+            If **ref** or **new** cannot be converted to SingleImage object.
     """
     logger = logging.getLogger()
     if fitted_psf:
@@ -393,5 +430,4 @@ def diff(
         ("Subtraction performed in {} seconds\n\n".format(time.time() - t0))
     )
 
-    # import ipdb; ipdb.set_trace()
     return D, P, S_corr.real, mix_mask

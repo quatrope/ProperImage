@@ -146,9 +146,28 @@ class StackCombinator(Process):
 
 
 def stack_R(si_list, align=True, inf_loss=0.2, n_procs=2):
-    """Function that takes a list of SingleImage instances
-    and performs a stacking using properimage R estimator
+    """Stack a list of SingleImage instances using properimage R estimator.
 
+    Parameters
+    ----------
+    si_list: list(SingleImage)
+        A list of SingleImage objects.
+
+    align: boolean
+        Perform alignment before stacking.
+
+    inf_loss: boolean
+        Tolerance of the fraction of information lost when calculating PSF
+        fits. Default is 0.25 (25% loss).
+
+    Returns
+    -------
+    R: numpy array
+        Stack of images
+    P_r: numpy array
+        PSF of stack
+    mix_mask: numpy array
+        The mask of R
     """
     logger = logging.getLogger()
     for i_img, animg in enumerate(si_list):
