@@ -238,7 +238,6 @@ def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
 
 def stack_R(*args, **kwargs):
     warnings.warn(
-        "This is being deprecated in favour of `coadd`",
-        DeprecationWarning
+        "This is being deprecated in favour of `coadd`", DeprecationWarning
     )
-    return(coadd(*args, **kwargs))
+    return coadd(*args, **kwargs)
