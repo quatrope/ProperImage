@@ -33,6 +33,7 @@ from scipy.ndimage.fourier import fourier_shift
 from . import utils
 from .single_image import SingleImage as si
 import logging
+import warnings
 
 try:
     import cPickle as pickle  # noqa
@@ -233,3 +234,11 @@ def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
         R = _ifftwn(S_hat / P_r_hat)
 
     return R, P_r, mix_mask
+
+
+def stack_R(*args, **kwargs):
+    warnings.warn(
+        "This is being deprecated in favour of `coadd`",
+        DeprecationWarning
+    )
+    return(coadd(*args, **kwargs))
