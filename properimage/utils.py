@@ -359,8 +359,8 @@ def _align_for_diff_crop(refpath, newpath, bordersize=50):
 
 def _align_for_coadd(imglist):
     """
-    Function to align a group of images for coadding, it uses
-    the astroalign `align_image` tool.
+    Function to align a group of images for coadding, it uses the astroalign
+    `align_image` tool.
     """
     ref = imglist[0]
     new_list = [ref]
