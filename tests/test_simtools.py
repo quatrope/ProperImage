@@ -3,9 +3,12 @@
 #
 #  test_simtools.py
 #
-#  Copyright 2016 Bruno S <bruno@oac.unc.edu.ar>
+#  Copyright 2020 Toros astro team
 #
-
+# This file is part of ProperImage (https://github.com/toros-astro/ProperImage)
+# License: BSD-3-Clause
+# Full Text: https://github.com/toros-astro/ProperImage/blob/master/LICENSE.txt
+#
 """
 test_simtools module from ProperImage
 for analysis of astronomical images
