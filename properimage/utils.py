@@ -52,6 +52,15 @@ aa.MIN_MATCHES_FRACTION = 0.6
 
 
 def store_img(img, path=None):
+    """
+    Function to store array into a fits image file.
+
+    Parameters
+    ----------
+    img: `np.ndarray` of floats or complex values
+
+    """
+
     if isinstance(img[0, 0], np.complex):
         img = img.real
 
@@ -74,9 +83,7 @@ def store_img(img, path=None):
 def _matching(
     master, cat, masteridskey=None, angular=False, radius=1.5, masked=False
 ):
-    """
-    Function to match stars between frames.
-    """
+    """Function to match stars between frames. """
     if masteridskey is None:
         masterids = np.arange(len(master))
         master["masterindex"] = masterids
@@ -224,6 +231,7 @@ def transparency(images, master=None):
 
 
 def _convolve_psf_basis(image, psf_basis, a_fields, x, y):
+    """Convolve image with a PSF modeled with K-L auto-psf."""
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
@@ -235,6 +243,7 @@ def _convolve_psf_basis(image, psf_basis, a_fields, x, y):
 
 
 def _fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
+    """Convolve image with a PSF modeled with K-L auto-psf using FFT."""
     imconvolved = np.zeros_like(image)
     for j in range(len(psf_basis)):
         a = a_fields[j](x, y) * image
@@ -250,7 +259,7 @@ def _fftconvolve_psf_basis(image, psf_basis, a_fields, x, y):
 def _lucy_rich(
     image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
 ):
-
+    """Run Lucy-Richardson deconvolution using K-L auto-psf."""
     # see whether the fourier transform convolution method or the direct
     # convolution method is faster (discussed in scikit-image PR #1792)
     # time_ratio = 40.032 * fft_time / direct_time
@@ -280,8 +289,10 @@ def _lucy_rich(
 
 
 def _align_for_diff(refpath, newpath, newmask=None):
-    """Function to align two images using their paths,
-    and returning newpaths for differencing.
+    """
+    Align two images.
+
+    We align them using their paths, and returning newpaths for differencing.
     We will allways rotate and align the new image to the reference,
     so it is easier to compare differences along time series.
     """
@@ -319,8 +330,10 @@ def _align_for_diff(refpath, newpath, newmask=None):
 
 
 def _align_for_diff_crop(refpath, newpath, bordersize=50):
-    """Function to align two images using their paths,
-    and returning newpaths for differencing.
+    """
+    Align two images and crop them to fit in same array.
+
+    We align them using their paths, and returning newpaths for differencing.
     We will allways rotate and align the new image to the reference,
     so it is easier to compare differences along time series.
 
@@ -359,8 +372,9 @@ def _align_for_diff_crop(refpath, newpath, bordersize=50):
 
 def _align_for_coadd(imglist):
     """
-    Function to align a group of images for coadding, it uses the astroalign
-    `align_image` tool.
+    Align a group of images for coadding.
+
+    Uses the astroalign `align_image` tool.
     """
     ref = imglist[0]
     new_list = [ref]
