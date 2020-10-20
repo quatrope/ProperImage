@@ -403,7 +403,6 @@ def subtract(
 
 def diff(*args, **kwargs):
     warnings.warn(
-        "This is being deprecated in favour of `subtract`",
-        DeprecationWarning
+        "This is being deprecated in favour of `subtract`", DeprecationWarning
     )
-    return(subtract(*args, **kwargs))
+    return subtract(*args, **kwargs)
