@@ -24,15 +24,19 @@ Cordoba - Argentina
 Of 301
 """
 
-import numpy as np
-from scipy import optimize
 import logging
+import time
+import warnings
+
+import astroalign as aa
+import numpy as np
+import sep
+
+from astropy.stats import sigma_clipped_stats
+from scipy import optimize
 from scipy.ndimage import center_of_mass
 from scipy.ndimage.fourier import fourier_shift
-from astropy.stats import sigma_clipped_stats
-import astroalign as aa
-import sep
-import time
+
 from . import utils as u
 
 try:
@@ -395,3 +399,11 @@ def subtract(
 
     # import ipdb; ipdb.set_trace()
     return D, P, S_corr.real, mix_mask
+
+
+def diff(*args, **kwargs):
+    warnings.warn(
+        "This is being deprecated in favour of `subtract`",
+        DeprecationWarning
+    )
+    return(subtract(*args, **kwargs))
