@@ -55,6 +55,7 @@ REQUIREMENTS = [
     "sep",
     "astroscrappy>=1.0.5",
     "astroalign>=1.0.3",
+    "tinynpydb",
     # "pytest>=3.6.2"
     # "pyFFTW>=0.10"
 ]
