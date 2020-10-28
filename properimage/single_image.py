@@ -56,11 +56,11 @@ from scipy.ndimage import convolve as convolve_scp
 from scipy.ndimage.fourier import fourier_shift
 from six.moves import range
 
+import tinynpydb as npdb
 import sep
 from astroscrappy import detect_cosmics
 
 from . import plot, utils
-from .tplibs import numpydb as npdb
 
 try:
     import pyfftw
@@ -496,7 +496,7 @@ class SingleImage(object):
         if not hasattr(self, "_stamps_pos") or _cond:
             if _cond:
                 self.stamp_shape = self._shape
-            self.db = npdb.NumPyDB_cPickle(self.dbname, mode="store")
+            self.db = npdb.NumPyDB(self.dbname, mode="store")
             pos = []
             jj = 0
             to_del = []

@@ -16,7 +16,9 @@ import numpy as np
 
 from astropy.io import fits
 from astropy.time import Time
-from properimage import numpydb as npdb
+
+import tinynpydb as npdb
+
 from properimage import simtools as sm
 from properimage import propercoadd as pc
 
