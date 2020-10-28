@@ -42,7 +42,6 @@ import scipy.ndimage as ndimage
 from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
-from astropy.convolution import convolve, convolve_fft
 from astroML import crossmatch as cx
 import astroalign as aa
 
@@ -71,12 +70,9 @@ def store_img(img, path=None):
         return hdu
 
 
-def _matching(
-    master, cat, masteridskey=None, angular=False, radius=1.5, masked=False
-):
-    """
-    Function to match stars between frames.
-    """
+def _matching(master, cat, masteridskey=None, radius=1.5, masked=False):
+    """Function to match stars between frames."""
+
     if masteridskey is None:
         masterids = np.arange(len(master))
         master["masterindex"] = masterids
@@ -84,37 +80,14 @@ def _matching(
     else:
         idkey = masteridskey
 
-    if angular:
-        masterRaDec = np.empty((len(master), 2), dtype=np.float64)
-        try:
-            masterRaDec[:, 0] = master["RA"]
-            masterRaDec[:, 1] = master["Dec"]
-        except KeyError:
-            masterRaDec[:, 0] = master["ra"]
-            masterRaDec[:, 1] = master["dec"]
-        imRaDec = np.empty((len(cat), 2), dtype=np.float64)
-        try:
-            imRaDec[:, 0] = cat["RA"]
-            imRaDec[:, 1] = cat["Dec"]
-        except KeyError:
-            imRaDec[:, 0] = cat["ra"]
-            imRaDec[:, 1] = cat["dec"]
-        radius2 = radius / 3600.0
-        dist, ind = cx.crossmatch_angular(
-            masterRaDec, imRaDec, max_distance=radius2 / 2.0
-        )
-        dist_, ind_ = cx.crossmatch_angular(
-            imRaDec, masterRaDec, max_distance=radius2 / 2.0
-        )
-    else:
-        masterXY = np.empty((len(master), 2), dtype=np.float64)
-        masterXY[:, 0] = master["x"]
-        masterXY[:, 1] = master["y"]
-        imXY = np.empty((len(cat), 2), dtype=np.float64)
-        imXY[:, 0] = cat["x"]
-        imXY[:, 1] = cat["y"]
-        dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
-        dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
+    masterXY = np.empty((len(master), 2), dtype=np.float64)
+    masterXY[:, 0] = master["x"]
+    masterXY[:, 1] = master["y"]
+    imXY = np.empty((len(cat), 2), dtype=np.float64)
+    imXY[:, 0] = cat["x"]
+    imXY[:, 1] = cat["y"]
+    dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
+    dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
 
     IDs = np.zeros_like(ind_) - 13133
     for i in range(len(ind_)):
@@ -163,7 +136,6 @@ def transparency(images, master=None):
             mastercat,
             newcat,
             masteridskey="sourceid",
-            angular=False,
             radius=2.0,
             masked=True,
         )
@@ -223,57 +195,6 @@ def transparency(images, master=None):
         return np.ones(p), np.nan
 
 
-def _convolve_psf_basis(image, psf_basis, a_fields, x, y, fft=False):
-    imconvolved = np.zeros_like(image)
-
-    if fft:
-        convolve_method = convolve_fft
-    else:
-        convolve_method = convolve
-
-    for j in range(len(psf_basis)):
-        a = a_fields[j](x, y) * image
-        psf = psf_basis[j]
-
-        if fft:
-            imconvolved += convolve_method(
-                a, psf, interpolate_nan=True, allow_huge=True
-            )
-        else:
-            imconvolved += convolve_method(a, psf, boundary="extend")
-
-    return imconvolved
-
-
-def _lucy_rich(
-    image, psf_basis, a_fields, adomain, iterations=50, clip=True, fft=False
-):
-
-    # see whether the fourier transform convolution method or the direct
-    # convolution method is faster (discussed in scikit-image PR #1792)
-    # time_ratio = 40.032 * fft_time / direct_time
-
-    image = image.astype(np.float)
-    image = np.ma.masked_invalid(image).filled(np.nan)
-    x, y = adomain
-
-    im_deconv = 0.5 * np.ones(image.shape)
-    psf_mirror = [psf[::-1, ::-1] for psf in psf_basis]
-
-    for _ in range(iterations):
-        rela_blur = image / _convolve_psf_basis(
-            im_deconv, psf_basis, a_fields, x, y, fft=fft
-        )
-        im_deconv *= _convolve_psf_basis(
-            rela_blur, psf_mirror, a_fields, x, y, fft=fft
-        )
-
-    if clip:
-        im_deconv = np.ma.masked_invalid(im_deconv).filled(-1.0)
-
-    return im_deconv
-
-
 def _align_for_diff(refpath, newpath, newmask=None):
     """Function to align two images using their paths,
     and returning newpaths for differencing.
@@ -311,45 +232,6 @@ def _align_for_diff(refpath, newpath, newmask=None):
         fits.writeto(dest_file, new2, hdr, overwrite=True)
 
     return dest_file
-
-
-def _align_for_diff_crop(refpath, newpath, bordersize=50):
-    """Function to align two images using their paths,
-    and returning newpaths for differencing.
-    We will allways rotate and align the new image to the reference,
-    so it is easier to compare differences along time series.
-
-    This special function differs from aligh_for_diff since it
-    crops the images, so they do not have borders with problems.
-    """
-    ref = fits.getdata(refpath)
-    hdr_ref = fits.getheader(refpath)
-
-    dest_file_ref = "cropped_" + os.path.basename(refpath)
-    dest_file_ref = os.path.join(os.path.dirname(refpath), dest_file_ref)
-
-    hdr_ref.set("comment", "cropped img " + refpath + " to " + newpath)
-    ref2 = ref[bordersize:-bordersize, bordersize:-bordersize]
-    fits.writeto(dest_file_ref, ref2, hdr_ref, overwrite=True)
-
-    new = fits.getdata(newpath)
-    hdr_new = fits.getheader(newpath)
-
-    dest_file_new = "aligned_" + os.path.basename(newpath)
-    dest_file_new = os.path.join(os.path.dirname(newpath), dest_file_new)
-
-    try:
-        new2 = aa.align_image(ref, new)
-    except ValueError:
-        ref = ref.astype(float)
-        new = new.astype(float)
-        new2 = aa.align_image(ref, new)
-
-    hdr_new.set("comment", "aligned img " + newpath + " to " + refpath)
-    new2 = new2[bordersize:-bordersize, bordersize:-bordersize]
-    fits.writeto(dest_file_new, new2, hdr_new, overwrite=True)
-
-    return [dest_file_new, dest_file_ref]
 
 
 def _align_for_coadd(imglist):
