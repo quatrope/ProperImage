@@ -116,9 +116,7 @@ def subtract(
 
     # make sure that the alignement has delivered arrays of size
     if new.data.data.shape != ref.data.data.shape:
-        import ipdb
-
-        ipdb.set_trace()
+        raise ValueError("N and R arrays are of different size")
 
     t0 = time.time()
     mix_mask = np.ma.mask_or(new.data.mask, ref.data.mask)
