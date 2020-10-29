@@ -157,9 +157,7 @@ def subtract(
         dx_ref, dy_ref = center_of_mass(p_r)  # [0])
         dx_new, dy_new = center_of_mass(p_n)  # [0])
         if dx_new < 0.0 or dy_new < 0.0:
-            import ipdb
-
-            ipdb.set_trace()
+            raise ValueError("Imposible to acquire center of PSF inside stamp")
 
     # rad_ref_sq = dx_ref*dx_ref + dy_ref*dy_ref
     # rad_new_sq = dx_new*dx_new + dy_new*dy_new
@@ -403,7 +401,6 @@ def subtract(
         ("Subtraction performed in {} seconds\n\n".format(time.time() - t0))
     )
 
-    # import ipdb; ipdb.set_trace()
     return D, P, S_corr.real, mix_mask
 
 

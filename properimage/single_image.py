@@ -683,9 +683,7 @@ class SingleImage(object):
                                 psfj_render.flatten(),
                             )
                             if inner is np.nan:
-                                import ipdb
-
-                                ipdb.set_trace()
+                                raise ValueError("PSFs inner prod is invalid")
 
                             covMat[i, j] = inner
                             covMat[j, i] = inner
@@ -1144,7 +1142,6 @@ class SingleImageGaussPSF(SingleImage):
         mean_th, med_th, std_th = sigma_clipped_stats(p_th)
         mean_am, med_am, std_am = sigma_clipped_stats(p_am)
 
-        # import ipdb; ipdb.set_trace()
         mean_model = models.Gaussian2D(
             x_mean=0,
             y_mean=0,
