@@ -1,0 +1,2 @@
+- name: Hercules Insights
+  uses: src-d/hercules@v10.7.2
