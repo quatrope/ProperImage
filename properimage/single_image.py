@@ -238,6 +238,7 @@ class SingleImage(object):
             dx, dy = self.crop
             self.__data = self.__data[dx[0] : -dx[1], dy[0] : -dy[1]]
         self.__data = self.__data * self.__gain
+        self.__data.soften_mask()
 
     @property
     def gain(self):
@@ -332,6 +333,17 @@ class SingleImage(object):
 
         self.__data.mask = ma.mask_or(self.__data.mask, mask_lower.mask)
         self.__data.mask = ma.mask_or(self.__data.mask, mask_greater.mask)
+
+        # this procedure makes the mask grow seven times, using 2 or more
+        # neighbor pixels masked. This is useful for avoiding ripples from fft
+        for i_enlarge in range(7):
+            enlarged_mask = convolve_scp(
+                self.__data.mask.astype(int),
+                np.ones((3, 3))
+            )
+            enlarged_mask = enlarged_mask.astype(int) > 2
+            self.__data.mask = ma.mask_or(self.__data.mask, enlarged_mask)
+
 
     @property
     def background(self):
@@ -982,7 +994,7 @@ class SingleImage(object):
     @property
     def interped(self):
         if not hasattr(self, "_interped"):
-            kernel = Box2DKernel(5)  # Gaussian2DKernel(stddev=2.5) #
+            kernel = Box2DKernel(10)  # Gaussian2DKernel(stddev=2.5) #
 
             crmask, _ = detect_cosmics(
                 indat=np.ascontiguousarray(self.bkg_sub_img.filled(-9999)),
