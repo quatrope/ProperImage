@@ -102,12 +102,12 @@ def subtract(
                 raise
 
     if align:
-        registered = aa.register(new.data, ref.data)
+        registrd, registrd_mask = aa.register(new.data, ref.data)
         new._clean()
-        registered = registered[: ref.data.shape[0], : ref.data.shape[1]]
+
         new = SI(
-            registered.data,
-            mask=registered.mask,
+            registrd[: ref.data.shape[0], : ref.data.shape[1]],
+            mask=registrd_mask[: ref.data.shape[0], : ref.data.shape[1]],
             borders=False,
             smooth_psf=smooth_psf,
         )
