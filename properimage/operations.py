@@ -159,9 +159,6 @@ def subtract(
         if dx_new < 0.0 or dy_new < 0.0:
             raise ValueError("Imposible to acquire center of PSF inside stamp")
 
-    # rad_ref_sq = dx_ref*dx_ref + dy_ref*dy_ref
-    # rad_new_sq = dx_new*dx_new + dy_new*dy_new
-
     psf_ref_hat = _fftwn(p_r, s=ref.data.shape, norm="ortho")
     psf_new_hat = _fftwn(p_n, s=new.data.shape, norm="ortho")
 
@@ -173,8 +170,6 @@ def subtract(
 
     D_hat_r = fourier_shift(psf_new_hat * ref.interped_hat, (-dx_new, -dy_new))
     D_hat_n = fourier_shift(psf_ref_hat * new.interped_hat, (-dx_ref, -dy_ref))
-    # D_hat_r = psf_new_hat * ref.interped_hat
-    # D_hat_n = psf_ref_hat * new.interped_hat
 
     norm_b = ref.var ** 2 * psf_new_hat * psf_new_hat_conj
     norm_a = new.var ** 2 * psf_ref_hat * psf_ref_hat_conj
@@ -185,8 +180,7 @@ def subtract(
     b = n_zp / r_zp
     norm = np.sqrt(norm_a + norm_b * b ** 2)
     if beta:
-        # start with beta=1
-        if shift:
+        if shift:  # beta==True & shift==True
 
             def cost(vec):
                 b, dx, dy = vec
@@ -200,7 +194,9 @@ def subtract(
                     - np.roll(gammap, (int(round(dx)), int(round(dy))))
                 )
 
-                cost = b_n.real[100:-100, 100:-100]
+                border = 100
+                cost = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
+                cost = cost[border:-border, border:-border]
                 cost = np.sum(np.abs(cost / (cost.shape[0] * cost.shape[1])))
 
                 return cost
@@ -231,7 +227,7 @@ def subtract(
                 b = n_zp / r_zp
                 dx = 0.0
                 dy = 0.0
-        elif iterative:
+        elif iterative:  # beta==True & shift==False & iterative==True
             bi = b
 
             def F(b):
@@ -244,8 +240,8 @@ def subtract(
                 )
                 # robust_stats = lambda b: sigma_clipped_stats(
                 #    b_n(b).real[100:-100, 100:-100])
-
-                return np.sum(np.abs(b_n.real))
+                cost = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
+                return np.sum(np.abs(cost))
 
             ti = time.time()
             solv_beta = optimize.minimize_scalar(
@@ -265,7 +261,7 @@ def subtract(
                 logger.info("Beta is overriden to be the zp ratio again")
                 b = n_zp / r_zp
             dx = dy = 0.0
-        else:
+        else:  # beta==True & shift==False & iterative==False
             bi = b
 
             def F(b):
@@ -276,8 +272,8 @@ def subtract(
                     - gammap
                     - b * _ifftwn(D_hat_r / norm, norm="ortho")
                 )
-
-                return np.sum(np.abs(b_n.real))
+                cost = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
+                return np.sum(np.abs(cost))
 
             ti = time.time()
             solv_beta = optimize.least_squares(
@@ -298,7 +294,7 @@ def subtract(
                 b = n_zp / r_zp
             dx = dy = 0.0
     else:
-        if shift:
+        if shift:  # beta==False & shift==True
             bi = n_zp / r_zp
             gammap = gamma / np.sqrt(new.var ** 2 + b ** 2 * ref.var ** 2)
             norm = np.sqrt(norm_a + norm_b * b ** 2)
@@ -312,7 +308,9 @@ def subtract(
                     - _ifftwn(fourier_shift(dhr, (dx, dy)), norm="ortho") * b
                     - np.roll(gammap, (int(round(dx)), int(round(dy))))
                 )
-                cost = b_n.real[100:-100, 100:-100]
+                border = 100
+                cost = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
+                cost = cost[border:-border, border:-border]
                 cost = np.sum(np.abs(cost / (cost.shape[0] * cost.shape[1])))
                 return cost
 
@@ -340,7 +338,7 @@ def subtract(
                 logger.info("Least squares could not find our shift  :(")
                 dx = 0.0
                 dy = 0.0
-        else:
+        else:  # beta==False & shift==False
             b = new.zp / ref.zp
             dx = 0.0
             dy = 0.0
