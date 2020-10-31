@@ -213,11 +213,11 @@ def _align_for_diff(refpath, newpath, newmask=None):
     dest_file = os.path.join(os.path.dirname(newpath), dest_file)
 
     try:
-        new2 = aa.register(new.filled(np.median(new)), ref)
+        new2 = aa.register(ref, new.filled(np.median(new)))
     except ValueError:
         ref = ref.astype(float)
         new = new.astype(float)
-        new2 = aa.register(new, ref)
+        new2 = aa.register(ref, new)
 
     hdr.set("comment", "aligned img " + newpath + " to " + refpath)
     if isinstance(new2, np.ma.masked_array):
@@ -242,10 +242,13 @@ def _align_for_coadd(imglist):
     ref = imglist[0]
     new_list = [ref]
     for animg in imglist[1:]:
-        new_img = aa.align_image(
-            ref.data.astype(float), animg.data.astype(float)
+        registrd, registrd_mask = aa.register(
+            animg.data, ref.data, propagate_mask=True
         )
-        new_list.append(type(animg)(new_img))
+        # [: ref.data.shape[0], : ref.data.shape[1]],  Deprecated
+        new_list.append(
+            type(animg)(registrd, mask=registrd_mask, borders=False)
+        )
     return new_list
 
 

@@ -104,7 +104,7 @@ def subtract(
     if align:
         registrd, registrd_mask = aa.register(new.data, ref.data)
         new._clean()
-
+        #  should it be new = type(new)(  ?
         new = SI(
             registrd[: ref.data.shape[0], : ref.data.shape[1]],
             mask=registrd_mask[: ref.data.shape[0], : ref.data.shape[1]],
@@ -361,6 +361,12 @@ def subtract(
 
     P = _ifftwn(P_hat, norm="ortho").real
     dx_p, dy_p = center_of_mass(P)
+
+    dx_pk, dy_pk = [val[0] for val in np.where(P == np.max(P))]
+    if (np.abs(dx_p - dx_pk) > 30) or (np.abs(dx_p - dx_pk) > 30):
+        logger.info("Resetting PSF center of mass to peak")
+        dx_p = dx_pk
+        dy_p = dy_pk
 
     S_hat = fourier_shift(d_zp * D_hat * P_hat.conj(), (dx_p, dy_p))
 

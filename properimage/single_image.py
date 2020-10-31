@@ -338,12 +338,10 @@ class SingleImage(object):
         # neighbor pixels masked. This is useful for avoiding ripples from fft
         for i_enlarge in range(7):
             enlarged_mask = convolve_scp(
-                self.__data.mask.astype(int),
-                np.ones((3, 3))
+                self.__data.mask.astype(int), np.ones((3, 3))
             )
             enlarged_mask = enlarged_mask.astype(int) > 2
             self.__data.mask = ma.mask_or(self.__data.mask, enlarged_mask)
-
 
     @property
     def background(self):
