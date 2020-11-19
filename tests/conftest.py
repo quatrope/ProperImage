@@ -32,7 +32,7 @@ from numpy.random import default_rng
 
 import pytest
 
-from properimage import single_image as s, simtools
+from properimage import SingleImage, simtools
 
 
 # =============================================================================
@@ -61,7 +61,7 @@ def random_simage():
     for i in range(10):
         mask = mask & random.integers(2, size=(128, 128))
 
-    img = s.SingleImage(pixel, mask)
+    img = SingleImage(pixel, mask)
 
     return img
 
@@ -106,4 +106,4 @@ def random_4psf_simage():
                 i + 2 * j
             ]
 
-    return s.SingleImage(frame)
+    return SingleImage(frame)

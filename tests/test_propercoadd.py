@@ -34,8 +34,8 @@ from numpy.random import default_rng
 
 from astropy.io import fits
 
-from properimage import operations as op
-from properimage import single_image as si
+from properimage import coadd
+from properimage import SingleImage
 from properimage import simtools
 from properimage import utils
 
@@ -86,7 +86,7 @@ class PropercoaddBase(object):
             self.paths.append(mockfits_path)
 
     def testChunkIt(self):
-        imgs = [si.SingleImage(img) for img in self.paths]
+        imgs = [SingleImage(img) for img in self.paths]
 
         for i in range(len(imgs)):
             chunks = utils.chunk_it(imgs, i + 1)
@@ -109,10 +109,10 @@ class PropercoaddBase(object):
 class TestCoaddSingleCore(PropercoaddBase, ProperImageTestCase):
     def setUp(self):
         super(TestCoaddSingleCore, self).setUp()
-        self.imgs = [si.SingleImage(img) for img in self.paths]
+        self.imgs = [SingleImage(img) for img in self.paths]
 
     def testCoaddSingleCore(self):
-        R, P_r, mask = op.coadd(self.imgs, align=False, n_procs=1)
+        R, P_r, mask = coadd(self.imgs, align=False, n_procs=1)
         self.assertIsInstance(R, np.ndarray)
         self.assertIsInstance(P_r, np.ndarray)
         self.assertIsInstance(mask, np.ndarray)
@@ -121,10 +121,10 @@ class TestCoaddSingleCore(PropercoaddBase, ProperImageTestCase):
 class TestCoadd2Core(PropercoaddBase, ProperImageTestCase):
     def setUp(self):
         super(TestCoadd2Core, self).setUp()
-        self.imgs = [si.SingleImage(img) for img in self.paths]
+        self.imgs = [SingleImage(img) for img in self.paths]
 
     def testCoadd2Core(self):
-        R, P_r, mask = op.coadd(self.imgs, align=False, n_procs=2)
+        R, P_r, mask = coadd(self.imgs, align=False, n_procs=2)
         self.assertIsInstance(R, np.ndarray)
         self.assertIsInstance(P_r, np.ndarray)
         self.assertIsInstance(mask, np.ndarray)
@@ -133,11 +133,11 @@ class TestCoadd2Core(PropercoaddBase, ProperImageTestCase):
 class TestCoaddMultCore1(PropercoaddBase, ProperImageTestCase):
     def setUp(self):
         super(TestCoaddMultCore1, self).setUp()
-        self.imgs = [si.SingleImage(img) for img in self.paths]
+        self.imgs = [SingleImage(img) for img in self.paths]
 
     def testCoaddMultipleCores(self):
-        R2, P_r2, mask2 = op.coadd(self.imgs, align=False, n_procs=2)
-        R, P_r, mask = op.coadd(self.imgs, align=False, n_procs=1)
+        R2, P_r2, mask2 = coadd(self.imgs, align=False, n_procs=2)
+        R, P_r, mask = coadd(self.imgs, align=False, n_procs=1)
 
         np.testing.assert_allclose(R.real, R2.real, rtol=0.2, atol=0.5)
         np.testing.assert_allclose(P_r.real, P_r2.real, rtol=0.2, atol=0.5)
@@ -147,11 +147,11 @@ class TestCoaddMultCore1(PropercoaddBase, ProperImageTestCase):
 class TestCoaddMultCore2(PropercoaddBase, ProperImageTestCase):
     def setUp(self):
         super(TestCoaddMultCore2, self).setUp()
-        self.imgs = [si.SingleImage(img) for img in self.paths]
+        self.imgs = [SingleImage(img) for img in self.paths]
 
     def testCoaddMultipleCores(self):
-        R2, P_r2, mask2 = op.coadd(self.imgs, align=False, n_procs=4)
-        R, P_r, mask = op.coadd(self.imgs, align=False, n_procs=2)
+        R2, P_r2, mask2 = coadd(self.imgs, align=False, n_procs=4)
+        R, P_r, mask = coadd(self.imgs, align=False, n_procs=2)
 
         np.testing.assert_allclose(R.real, R2.real, rtol=0.2, atol=0.5)
         np.testing.assert_allclose(P_r.real, P_r2.real, rtol=0.2, atol=0.5)

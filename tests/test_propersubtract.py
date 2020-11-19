@@ -35,8 +35,8 @@ from numpy.random import default_rng
 
 from astropy.io import fits
 
-from properimage import operations as op
-from properimage import single_image as si
+from properimage import subtract
+from properimage import SingleImage
 from properimage import simtools
 
 
@@ -109,11 +109,11 @@ class PropersubtractBase(object):
 class TestSubtract(PropersubtractBase, unittest.TestCase):
     def setUp(self):
         super(TestSubtract, self).setUp()
-        self.si_ref = si.SingleImage(self.paths[0])
-        self.si_new = si.SingleImage(self.paths[1])
+        self.si_ref = SingleImage(self.paths[0])
+        self.si_new = SingleImage(self.paths[1])
 
     def testSubtractNoBeta(self):
-        D, P, S_corr, mix_mask = op.subtract(
+        D, P, S_corr, mix_mask = subtract(
             self.si_ref, self.si_new, beta=False
         )
         self.assertIsInstance(D, np.ndarray)
@@ -122,7 +122,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractBetaIterative(self):
-        D, P, S_corr, mix_mask = op.subtract(
+        D, P, S_corr, mix_mask = subtract(
             self.si_ref, self.si_new, beta=True, iterative=True, shift=False
         )
         self.assertIsInstance(D, np.ndarray)
@@ -131,7 +131,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractBetaShift(self):
-        D, P, S_corr, mix_mask = op.subtract(
+        D, P, S_corr, mix_mask = subtract(
             self.si_ref, self.si_new, beta=True, iterative=False, shift=True
         )
         self.assertIsInstance(D, np.ndarray)
@@ -140,7 +140,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractOnlyBeta(self):
-        D, P, S_corr, mix_mask = op.subtract(
+        D, P, S_corr, mix_mask = subtract(
             self.si_ref, self.si_new, beta=True, iterative=False, shift=False
         )
         self.assertIsInstance(D, np.ndarray)
@@ -149,7 +149,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractOnlyShift(self):
-        D, P, S_corr, mix_mask = op.subtract(
+        D, P, S_corr, mix_mask = subtract(
             self.si_ref, self.si_new, beta=False, iterative=False, shift=True
         )
         self.assertIsInstance(D, np.ndarray)
@@ -158,7 +158,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.assertIsInstance(mix_mask, np.ndarray)
 
     def testSubtractNoFitPSF(self):
-        D, P, S_corr, mix_mask = op.subtract(
+        D, P, S_corr, mix_mask = subtract(
             self.si_ref,
             self.si_new,
             beta=False,
