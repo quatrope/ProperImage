@@ -48,6 +48,7 @@ from astropy.convolution import (
 )
 from astropy.io import fits
 from astropy.nddata.utils import extract_array
+from astropy.modeling import fitting, models
 from astropy.stats import sigma_clipped_stats
 from numpy import ma
 from scipy.ndimage import center_of_mass
