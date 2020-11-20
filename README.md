@@ -1,7 +1,7 @@
 # Proper image treatments
 
-[![Build Status](https://travis-ci.org/toros-astro/ProperImage.svg?branch=master)](https://travis-ci.org/toros-astro/ProperImage)
-[![codecov](https://codecov.io/gh/toros-astro/ProperImage/branch/master/graph/badge.svg)](https://codecov.io/gh/toros-astro/ProperImage)
+[![Build Status](https://travis-ci.com/quatrope/ProperImage.svg?branch=master)](https://travis-ci.com/quatrope/ProperImage)
+[![codecov](https://codecov.io/gh/quatrope/ProperImage/branch/master/graph/badge.svg)](https://codecov.io/gh/quatrope/ProperImage)
 [![Documentation Status](https://readthedocs.org/projects/properimage/badge/?version=latest)](http://properimage.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/pypi/l/properimage?color=blue)](https://tldrlegal.com/license/bsd-3-clause-license-(revised))
 [![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://badge.fury.io/py/properimage)
