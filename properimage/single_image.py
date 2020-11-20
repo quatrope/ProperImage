@@ -47,7 +47,6 @@ from astropy.convolution import (
     interpolate_replace_nans,
 )
 from astropy.io import fits
-from astropy.modeling import fitting, models
 from astropy.nddata.utils import extract_array
 from astropy.stats import sigma_clipped_stats
 from numpy import ma
@@ -1111,34 +1110,14 @@ class SingleImageGaussPSF(SingleImage):
 
 
         """
-
-        def fit_gaussian2d(b, fitter=None):
-            if fitter is None:
-                fitter = fitting.LevMarLSQFitter()
-
-            y2, x2 = np.mgrid[: b.shape[0], : b.shape[1]]
-            ampl = b.max() - b.min()
-            p = models.Gaussian2D(
-                x_mean=b.shape[1] / 2.0,
-                y_mean=b.shape[0] / 2.0,
-                x_stddev=1.0,
-                y_stddev=1.0,
-                theta=np.pi / 4.0,
-                amplitude=ampl,
-            )
-
-            p += models.Const2D(amplitude=b.min())
-            out = fitter(p, x2, y2, b, maxiter=1000)
-            return out
-
         p_xw = []
         p_yw = []
         p_th = []
         p_am = []
-        fitter = fitting.LevMarLSQFitter()
+        fitter = utils.fitting.LevMarLSQFitter()
         for i in range(self.n_sources):
             psfi_render = self.db.load(i)[0]
-            p = fit_gaussian2d(psfi_render, fitter=fitter)
+            p = utils.fit_gaussian2d(psfi_render, fitter=fitter)
             #  room for p checking
             gaussian = p[0]
             #  back = p[1]
@@ -1152,7 +1131,7 @@ class SingleImageGaussPSF(SingleImage):
         mean_th, med_th, std_th = sigma_clipped_stats(p_th)
         mean_am, med_am, std_am = sigma_clipped_stats(p_am)
 
-        mean_model = models.Gaussian2D(
+        mean_model = utils.models.Gaussian2D(
             x_mean=0,
             y_mean=0,
             x_stddev=mean_xw,

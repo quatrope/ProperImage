@@ -36,14 +36,16 @@ Of 301
 """
 
 import os
+
+import astroalign as aa
 import numpy as np
+import scipy.ndimage as ndimage
+from astropy.io import fits
+from astropy.modeling import fitting, models
+from astropy.stats import sigma_clipped_stats
+from numpy.lib.recfunctions import append_fields
 from scipy import sparse
 from scipy.spatial import cKDTree
-import scipy.ndimage as ndimage
-from numpy.lib.recfunctions import append_fields
-from astropy.io import fits
-from astropy.stats import sigma_clipped_stats
-import astroalign as aa
 
 aa.PIXEL_TOL = 0.3
 aa.NUM_NEAREST_NEIGHBORS = 5
@@ -331,3 +333,23 @@ def chunk_it(seq, num):
         return out
     except ValueError:
         return out
+
+
+def fit_gaussian2d(b, fitter=None):
+    if fitter is None:
+        fitter = fitting.LevMarLSQFitter()
+
+    y2, x2 = np.mgrid[: b.shape[0], : b.shape[1]]
+    ampl = b.max() - b.min()
+    p = models.Gaussian2D(
+        x_mean=b.shape[1] / 2.0,
+        y_mean=b.shape[0] / 2.0,
+        x_stddev=1.0,
+        y_stddev=1.0,
+        theta=np.pi / 4.0,
+        amplitude=ampl,
+    )
+
+    p += models.Const2D(amplitude=b.min())
+    out = fitter(p, x2, y2, b, maxiter=1000)
+    return out
