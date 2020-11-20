@@ -3,22 +3,11 @@
 #
 #  utils.py
 #
-#  Copyright 2016 Bruno S <bruno@oac.unc.edu.ar>
+#  Copyright 2020 QuatroPe
 #
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA 02110-1301, USA.
+# This file is part of ProperImage (https://github.com/quatrope/ProperImage)
+# License: BSD-3-Clause
+# Full Text: https://github.com/quatrope/ProperImage/blob/master/LICENSE.txt
 #
 
 """utils module from ProperImage,
@@ -336,8 +325,7 @@ def chunk_it(seq, num):
 
 
 def fit_gaussian2d(b, fitter=None):
-    if fitter is None:
-        fitter = fitting.LevMarLSQFitter()
+    fitter = fitting.LevMarLSQFitter() if fitter is None else fitter
 
     y2, x2 = np.mgrid[: b.shape[0], : b.shape[1]]
     ampl = b.max() - b.min()

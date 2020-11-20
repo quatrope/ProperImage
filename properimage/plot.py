@@ -1,5 +1,16 @@
-"""plot module from ProperImage,
-for coadding astronomical images.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#  plot.py
+#
+#  Copyright 2020 QuatroPe
+#
+# This file is part of ProperImage (https://github.com/quatrope/ProperImage)
+# License: BSD-3-Clause
+# Full Text: https://github.com/quatrope/ProperImage/blob/master/LICENSE.txt
+#
+
+"""plot module from ProperImagefor coadding astronomical images.
 
 Written by Bruno SANCHEZ
 

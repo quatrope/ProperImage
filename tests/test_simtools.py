@@ -3,7 +3,11 @@
 #
 #  test_simtools.py
 #
-#  Copyright 2016 Bruno S <bruno@oac.unc.edu.ar>
+#  Copyright 2020 QuatroPe
+#
+# This file is part of ProperImage (https://github.com/quatrope/ProperImage)
+# License: BSD-3-Clause
+# Full Text: https://github.com/quatrope/ProperImage/blob/master/LICENSE.txt
 #
 
 """
