@@ -30,6 +30,8 @@ import tempfile
 import shutil
 
 import numpy as np
+from numpy.random import default_rng
+
 from astropy.io import fits
 
 from properimage import operations as op
@@ -38,6 +40,8 @@ from properimage import simtools
 from properimage import utils
 
 from .core import ProperImageTestCase
+
+random = default_rng(seed=42)
 
 
 class PropercoaddBase(object):
@@ -48,10 +52,10 @@ class PropercoaddBase(object):
         # mock data
         psf = simtools.Psf(11, 2.5, 3.0)
 
-        self.mock_image_data = np.random.random((256, 256)) * 10.0
+        self.mock_image_data = random.random((256, 256)) * 10.0
         for i in range(50):
-            x = np.random.randint(7, 220)
-            y = np.random.randint(7, 120)
+            x = random.integers(7, 220)
+            y = random.integers(7, 120)
             # print x, y
             self.mock_image_data[x : x + 11, y : y + 11] += (
                 psf * float(i + 1) * 2000.0
@@ -59,8 +63,8 @@ class PropercoaddBase(object):
 
         psf = simtools.Psf(11, 3.0, 1.9)
         for i in range(50):
-            x = np.random.randint(7, 220)
-            y = np.random.randint(122, 220)
+            x = random.integers(7, 220)
+            y = random.integers(122, 220)
             # print x, y
             self.mock_image_data[x : x + 11, y : y + 11] += (
                 psf * float(i + 1) * 2000.0
@@ -69,11 +73,8 @@ class PropercoaddBase(object):
         # generate 4 images to coadd
         for j in range(4):
             # a numpy array
-            image_data = (
-                self.mock_image_data
-                + np.random.random((256, 256)) * 50.0
-                + 350
-            )
+            rand_pix = random.random((256, 256)) * 50.0 + 350
+            image_data = (self.mock_image_data + rand_pix)
 
             image_data[123, 123] = np.nan
 

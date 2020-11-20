@@ -30,6 +30,7 @@ import shutil
 import tempfile
 
 import numpy as np
+from numpy.random import default_rng
 
 from astropy.io import fits
 
@@ -41,6 +42,7 @@ import pytest
 from .core import ProperImageTestCase
 
 np.warnings.filterwarnings("ignore")
+random = default_rng(seed=42)
 
 
 class SingleImageBase(object):
@@ -52,12 +54,12 @@ class SingleImageBase(object):
         psf = simtools.Psf(11, 2.5, 3.0)
 
         # a numpy array
-        self.mock_image_data = np.random.random((256, 256)) * 50.0 + 350
+        self.mock_image_data = random.random((256, 256)) * 50.0 + 350
         self.mock_image_data[123, 123] = np.nan
 
         for i in range(50):
-            x = np.random.randint(7, 220)
-            y = np.random.randint(7, 120)
+            x = random.integers(7, 220)
+            y = random.integers(7, 120)
             # print x, y
             self.mock_image_data[x : x + 11, y : y + 11] += (
                 psf * float(i + 1) * 2000.0
@@ -65,8 +67,8 @@ class SingleImageBase(object):
 
         psf = simtools.Psf(11, 3.0, 1.9)
         for i in range(50):
-            x = np.random.randint(7, 220)
-            y = np.random.randint(122, 220)
+            x = random.integers(7, 220)
+            y = random.integers(122, 220)
             # print x, y
             self.mock_image_data[x : x + 11, y : y + 11] += (
                 psf * float(i + 1) * 2000.0
@@ -77,9 +79,9 @@ class SingleImageBase(object):
         self.mock_image_mask[123, 123] = 1
 
         for i in range(6):
-            x, y = np.random.randint(20, 240, size=2)
-            l, h = np.random.randint(2, 6, size=2)
-            self.mock_image_mask[x : x + l, y : y + h] = np.random.randint(
+            x, y = random.integers(20, 240, size=2)
+            l, h = random.integers(2, 6, size=2)
+            self.mock_image_mask[x : x + l, y : y + h] = random.integers(
                 0, 32, size=(l, h)
             )
 
@@ -245,8 +247,8 @@ class SingleImageBase(object):
             afields, psfs = self.si.get_variable_psf(an_inf_loss)
             xs, ys = self.si.data.shape
             for i in range(10):
-                xc = np.random.randint(xs - 60) + 30
-                yc = np.random.randint(ys - 60) + 30
+                xc = random.integers(xs - 60) + 30
+                yc = random.integers(ys - 60) + 30
                 psfxy = self.si.get_psf_xy(xc, yc)
                 np.testing.assert_approx_equal(
                     np.sum(psfxy), 1.0, significant=2
@@ -355,7 +357,7 @@ class TestFitsExtension(SingleImageBase, ProperImageTestCase):
 
 class TestNoSources(ProperImageTestCase):
     def setUp(self):
-        self.no_sources_image = np.random.random((256, 256))
+        self.no_sources_image = random.random((256, 256))
 
     def testNoSources(self):
         with self.assertRaises(ValueError):
@@ -489,7 +491,7 @@ class TestFitsExtensionPicky(SingleImageBase, ProperImageTestCase):
 
 class TestNoSourcesPicky(ProperImageTestCase):
     def setUp(self):
-        self.no_sources_image = np.random.random((256, 256))
+        self.no_sources_image = random.random((256, 256))
 
     def testNoSources(self):
         with self.assertRaises(ValueError):

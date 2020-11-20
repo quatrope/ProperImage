@@ -28,6 +28,7 @@ Cordoba - Argentina Of 301
 # =============================================================================
 
 import numpy as np
+from numpy.random import default_rng
 
 import pytest
 
@@ -39,7 +40,7 @@ from properimage import single_image as s, simtools
 # =============================================================================
 
 # FIX the random state
-random = np.random.RandomState(42)
+random = default_rng(seed=42)
 
 
 # =============================================================================
@@ -53,12 +54,12 @@ def random_simage():
     # Add some stars to it
     star = [[35, 38, 35], [38, 90, 39], [35, 39, 34]]
     for i in range(25):
-        x, y = random.randint(120, size=2)
+        x, y = random.integers(120, size=2)
         pixel[x : x + 3, y : y + 3] = star
 
-    mask = random.randint(2, size=(128, 128))
+    mask = random.integers(2, size=(128, 128))
     for i in range(10):
-        mask = mask & random.randint(2, size=(128, 128))
+        mask = mask & random.integers(2, size=(128, 128))
 
     img = s.SingleImage(pixel, mask)
 
@@ -70,7 +71,7 @@ def random_4psf_simage():
 
     frames = []
     for theta in [0, 45, 105, 150]:
-        image_seed = int(random.rand() * 1000)
+        image_seed = int(random.random() * 1000)
 
         N = 512  # side
         X_FWHM = 5 + 5.5 * theta / 180
@@ -78,8 +79,8 @@ def random_4psf_simage():
         t_exp = 5
         max_fw = max(X_FWHM, Y_FWHM)
 
-        x = random.randint(low=6 * max_fw, high=N - 6 * max_fw, size=80)
-        y = random.randint(low=6 * max_fw, high=N - 6 * max_fw, size=80)
+        x = random.integers(low=6 * max_fw, high=N - 6 * max_fw, size=80)
+        y = random.integers(low=6 * max_fw, high=N - 6 * max_fw, size=80)
         xy = [(x[i], y[i]) for i in range(80)]
 
         SN = 30.0  # SN para poder medir psf

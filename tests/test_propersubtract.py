@@ -31,11 +31,16 @@ import shutil
 import unittest
 
 import numpy as np
+from numpy.random import default_rng
+
 from astropy.io import fits
 
 from properimage import operations as op
 from properimage import single_image as si
 from properimage import simtools
+
+
+random = default_rng(seed=42)
 
 
 class PropersubtractBase(object):
@@ -46,10 +51,10 @@ class PropersubtractBase(object):
         # mock data
         psf = simtools.Psf(11, 2.5, 3.0)
 
-        self.mock_image_data = np.random.random((256, 256)) * 10.0
+        self.mock_image_data = random.random((256, 256)) * 10.0
         for i in range(50):
-            x = np.random.randint(7, 220)
-            y = np.random.randint(7, 120)
+            x = random.integers(7, 220)
+            y = random.integers(7, 120)
             # print x, y
             self.mock_image_data[x : x + 11, y : y + 11] += (
                 psf * float(i + 1) * 2000.0
@@ -57,8 +62,8 @@ class PropersubtractBase(object):
 
         psf = simtools.Psf(11, 3.0, 1.9)
         for i in range(50):
-            x = np.random.randint(7, 220)
-            y = np.random.randint(122, 220)
+            x = random.integers(7, 220)
+            y = random.integers(122, 220)
             # print x, y
             self.mock_image_data[x : x + 11, y : y + 11] += (
                 psf * float(i + 1) * 2000.0
@@ -69,7 +74,7 @@ class PropersubtractBase(object):
         # a reference
         refimage_data = (
             self.mock_image_data * 10.0
-            + np.random.random((256, 256)) * 50.0
+            + random.random((256, 256)) * 50.0
             + 350
         )
 
@@ -81,11 +86,8 @@ class PropersubtractBase(object):
         self.paths.append(refmockfits_path)
 
         # a new image
-        newimage_data = (
-            self.mock_image_data * 3.0
-            + np.random.random((256, 256)) * 50.0
-            + 750
-        )
+        rand_pix = random.random((256, 256)) * 50.0 + 750
+        newimage_data = (self.mock_image_data * 3.0 + rand_pix)
 
         newimage_data[123, 123] = np.nan
 

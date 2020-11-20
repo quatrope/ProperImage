@@ -22,12 +22,16 @@ Of 301
 """
 
 import numpy as np
+from numpy.random import default_rng
 
 from scipy.ndimage.interpolation import rotate
 
 from properimage import simtools as sm
 
 from .core import ProperImageTestCase
+
+
+random = default_rng(seed=42)
 
 
 class TestSimulationSuite(ProperImageTestCase):
@@ -51,25 +55,38 @@ class TestSimulationSuite(ProperImageTestCase):
         self.assertAlmostEqual(module, 1.0)
 
     def test_airy_patron(self):
-        size = np.random.randint(8, 32)
-        width = np.random.randint(1, size)
+        size = random.integers(8, 32)
+        width = random.integers(1, size)
         pattern1 = sm.airy_patron(size, width)
         np.testing.assert_equal(size, pattern1.shape[0])
         np.testing.assert_equal(size, pattern1.shape[1])
 
     def test_gal_sersic(self):
         size = 256
-        n = np.random.random() * 4.0
+        n = random.random() * 4.0
         gal = sm.gal_sersic(size, n)
         np.testing.assert_equal(size, gal.shape[0])
         np.testing.assert_equal(size, gal.shape[1])
 
     def test_convol_gal_psf_fft(self):
-        pat_size = np.random.randint(4, 8) * 2
-        width = np.random.randint(1, pat_size / 2)
+        pat_size = random.integers(4, 8) * 2
+        width = random.integers(1, pat_size / 2)
         pattern1 = sm.airy_patron(pat_size, width)
         gal_size = 128
-        n = np.random.random() * 4.0
+        n = random.random() * 4.0
         gal = sm.gal_sersic(gal_size, n)
         conv = sm.convol_gal_psf_fft(gal, pattern1)
         np.testing.assert_equal(gal_size, conv.shape[1])
+
+    def test_sim_varpsf(self):
+        nstars = 20
+        size = 128
+        thetas = [0, 45, 105, 150]
+        im1 = sm.sim_varpsf(nstars, SN=30.0, thetas=thetas, N=size, seed=42)
+        im2 = sm.sim_varpsf(nstars, SN=30.0, thetas=thetas, N=size, seed=42)
+        im3 = sm.sim_varpsf(nstars, SN=30.0, thetas=thetas, N=size, seed=None)
+
+        assert np.all(im1 > 0.0)
+        assert np.all(im1 != im3)
+        assert im1.shape[0] == 2 * size
+        np.testing.assert_array_almost_equal(im1, im2)

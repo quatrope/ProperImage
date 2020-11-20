@@ -26,6 +26,7 @@ Of 301
 import os
 from functools import reduce
 import numpy as np
+from numpy.random import default_rng
 
 import scipy as sp
 from scipy import signal as sg
@@ -36,6 +37,8 @@ from scipy import stats
 from astropy.modeling import models
 from astropy.io import fits
 from astropy.time import Time
+
+random_def = default_rng(seed=110112)
 
 
 def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
@@ -208,11 +211,10 @@ def delta_point(N, center=True, xy=None, weights=None):
 
     Example:
     N = 100
-    x = [np.random.randint(10, 80) for j in range(10)]
-    y = [np.random.randint(10, 80) for j in range(10)]
-    xy = [(x[i], y[i]) for i in range(10)]
+    x = np.random.integers(10, 80, size=10)
+    y = np.random.integers(10, 80, size=10)
 
-    m = delta_point(N, center=False, xy=xy)
+    m = delta_point(N, center=False, xy=zip(x, y))
     """
     m = np.zeros(shape=(N, N))
 
@@ -240,6 +242,7 @@ def image(
     bkg_pdf="poisson",
     std=None,
     seed=None,
+    bias=100.0,
 ):
     """
     funcion que genera una imagen con ruido y seeing a partir
@@ -255,7 +258,7 @@ def image(
     bkg_pdf : distribucion de probabilidad del ruido background
     std : en caso que bkg_pdf sea gaussian, valor de std
     """
-    random = np.random.RandomState(seed=seed)
+    random = default_rng(seed=seed) if seed is not None else random_def
 
     FWHM = max(X_FWHM, Y_FWHM)
     PSF = Psf(5 * FWHM, X_FWHM, Y_FWHM, theta)
@@ -271,7 +274,7 @@ def image(
         mean = 0
         std = b / SN
         C = random.normal(mean, std, (N, N))
-    return C + IM + 100.0
+    return C + IM + bias
 
 
 def store_fits(gal, t, t_exp, i, zero, path="."):
@@ -308,7 +311,10 @@ def store_fits(gal, t, t_exp, i, zero, path="."):
     return path_fits
 
 
-def sim_varpsf(nstars, SN=3.0, thetas=[0, 45, 105, 150], N=512, seed=None):
+def sim_varpsf(nstars, SN=30.0, thetas=[0, 45, 105, 150], N=512, seed=None):
+
+    random = default_rng(seed=seed) if seed is not None else random_def
+
     frames = []
     for theta in thetas:
         X_FWHM = 5 + 5.0 * theta / 180.0
@@ -317,18 +323,14 @@ def sim_varpsf(nstars, SN=3.0, thetas=[0, 45, 105, 150], N=512, seed=None):
         t_exp = 1
         max_fw = max(X_FWHM, Y_FWHM)
 
-        random = np.random.RandomState(seed=seed)
+        max_pix = N - 3 * max_fw
+        min_pix = 3 * max_fw
 
-        x = random.randint(
-            low=6 * max_fw, high=N - 6 * max_fw, size=nstars / 4
-        )
-        y = random.randint(
-            low=6 * max_fw, high=N - 6 * max_fw, size=nstars / 4
-        )
-        xy = np.array([(x[i], y[i]) for i in range(nstars / 4)])
+        x = random.integers(low=min_pix, high=max_pix, size=nstars // 4)
+        y = random.integers(low=min_pix, high=max_pix, size=nstars // 4)
 
-        weights = list(np.linspace(100.0, 10000.0, len(xy)))
-        m = delta_point(N, center=False, xy=xy, weights=weights)
+        weights = list(np.linspace(100.0, 10000.0, len(x)))
+        m = delta_point(N, center=False, xy=zip(x, y), weights=weights)
         im = image(
             m,
             N,
@@ -338,6 +340,8 @@ def sim_varpsf(nstars, SN=3.0, thetas=[0, 45, 105, 150], N=512, seed=None):
             theta=theta,
             SN=SN,
             bkg_pdf="gaussian",
+            seed=seed,
+            bias=bias,
         )
         frames.append(im + bias)
 

@@ -26,8 +26,9 @@ Of 301
 """
 
 import os
-import numpy as np
 import tempfile
+import numpy as np
+from numpy.random import default_rng
 
 from astropy.io import fits
 
@@ -36,6 +37,9 @@ from properimage import utils
 from .core import ProperImageTestCase
 
 from properimage import simtools as sm
+
+
+random = default_rng(seed=42)
 
 
 class UtilsBase(ProperImageTestCase):
@@ -51,12 +55,12 @@ class UtilsBase(ProperImageTestCase):
         theta = 0
         xfwhm = 4
         yfwhm = 3
-        weights = np.random.random(100) * 20000 + 10
+        weights = random.random(100) * 20000 + 10
 
         zero = 10  # for zero in [5, 10, 25]:
         filenames = []
-        x = np.random.randint(low=30, high=900, size=100)
-        y = np.random.randint(low=30, high=900, size=100)
+        x = random.integers(low=30, high=900, size=100)
+        y = random.integers(low=30, high=900, size=100)
 
         xy = [(x[i], y[i]) for i in range(100)]
         m = sm.delta_point(N, center=False, xy=xy, weights=weights)
@@ -105,7 +109,7 @@ class UtilsBase(ProperImageTestCase):
 
 class TestChunkIt(ProperImageTestCase):
     def setUp(self):
-        self.data = np.random.random(20)
+        self.data = random.random(20)
 
     def testChunks(self):
         for i in range(len(self.data)):
