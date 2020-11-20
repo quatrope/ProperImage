@@ -97,7 +97,7 @@ def crossmatch(X1, X2, max_distance=np.inf):
     N2, D2 = X2.shape
 
     if D != D2:
-        raise ValueError('Arrays must have the same second dimension')
+        raise ValueError("Arrays must have the same second dimension")
 
     kdt = cKDTree(X2)
 
