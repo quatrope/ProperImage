@@ -29,6 +29,8 @@ jobs:
           env: TOXENV=coverage
         - python: 3.8
           env: TOXENV=docs
+        - python: 3.8
+          env: TOXENV=docstyle
 
 after_success:
     - codecov --token=4022c5c1-b038-4f9b-bf1b-9d3b3d2b4628
