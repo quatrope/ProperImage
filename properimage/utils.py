@@ -10,18 +10,10 @@
 # Full Text: https://github.com/quatrope/ProperImage/blob/master/LICENSE.txt
 #
 
-"""utils module from ProperImage,
-for coadding astronomical images.
+"""utils module of ProperImage package for astronomical image analysis.
 
-Written by Bruno SANCHEZ
-
-PhD of Astromoy - UNC
-bruno@oac.unc.edu.ar
-
-Instituto de Astronomia Teorica y Experimental (IATE) UNC
-Cordoba - Argentina
-
-Of 301
+This module contains utilities for general image manipulation such as I/O,
+catalog matching, image registering, etc.
 """
 
 import os
@@ -223,10 +215,26 @@ def transparency(images, master=None):
 
 
 def _align_for_diff(refpath, newpath, newmask=None):
-    """Function to align two images using their paths,
-    and returning newpaths for differencing.
-    We will allways rotate and align the new image to the reference,
-    so it is easier to compare differences along time series.
+    """Align two images for subtraction.
+
+    Parameters
+    ----------
+    refpath : str
+        reference image path
+    newpath : str
+        new image path
+    newmask : array_like, optional
+        the mask of the new image
+
+    Returns
+    -------
+    destfile : str
+        The path of the new image aligned to match the reference image.
+
+    Notes
+    -----
+        We will allways rotate and align the new image to the reference,
+        so it is easier to compare differences along time series.
     """
     ref = np.ma.masked_invalid(fits.getdata(refpath))
     new = fits.getdata(newpath)
@@ -263,8 +271,7 @@ def _align_for_diff(refpath, newpath, newmask=None):
 
 def _align_for_coadd(imglist):
     """
-    Function to align a group of images for coadding, it uses
-    the astroalign `align_image` tool.
+    Algin a group of images for coadding with astroalign.
     """
     ref = imglist[0]
     new_list = [ref]
@@ -280,6 +287,25 @@ def _align_for_coadd(imglist):
 
 
 def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
+    """Find local maximae in a S-type image subtraction.
+
+    Parameters
+    ----------
+    S_image : array_like
+        The cross convolved image subtraction from Zackay et al.
+    threshold : float
+        The S/N ratio threshold for detection
+    neighborhood_size : float
+        The number of neighbor pixels to trigger detection
+
+    Returns
+    -------
+    catalog : list
+        A list of tuples with the form of
+            (x, y, significance)
+        with x and y the image coordinates and significance being
+        the SNR of detection
+    """
     mean, median, std = sigma_clipped_stats(S_image, maxiters=3)
     labeled, num_objects = ndimage.label((S_image - mean) / std > threshold)
     xy = np.array(
@@ -293,8 +319,7 @@ def find_S_local_maxima(S_image, threshold=2.5, neighborhood_size=5):
 
 
 def chunk_it(seq, num):
-    """Creates chunks of a sequence suitable for data parallelism using
-    multiprocessing.
+    """Create chunks of a sequence suitable for data parallelism.
 
     Parameters
     ----------
@@ -308,7 +333,6 @@ def chunk_it(seq, num):
     -------
     Sorted list.
     List of chunks containing the data splited in num parts.
-
     """
     avg = len(seq) / float(num)
     out = []
@@ -324,20 +348,21 @@ def chunk_it(seq, num):
         return out
 
 
-def fit_gaussian2d(b, fitter=None):
+def fit_gaussian2d(arr, fitter=None):
+    """Fit a 2D Gaussian profile to a matrix of pixels."""
     fitter = fitting.LevMarLSQFitter() if fitter is None else fitter
 
-    y2, x2 = np.mgrid[: b.shape[0], : b.shape[1]]
-    ampl = b.max() - b.min()
+    y2, x2 = np.mgrid[: arr.shape[0], : arr.shape[1]]
+    ampl = arr.max() - arr.min()
     p = models.Gaussian2D(
-        x_mean=b.shape[1] / 2.0,
-        y_mean=b.shape[0] / 2.0,
+        x_mean=arr.shape[1] / 2.0,
+        y_mean=arr.shape[0] / 2.0,
         x_stddev=1.0,
         y_stddev=1.0,
         theta=np.pi / 4.0,
         amplitude=ampl,
     )
 
-    p += models.Const2D(amplitude=b.min())
-    out = fitter(p, x2, y2, b, maxiter=1000)
+    p += models.Const2D(amplitude=arr.min())
+    out = fitter(p, x2, y2, arr, maxiter=1000)
     return out

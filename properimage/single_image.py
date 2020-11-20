@@ -10,18 +10,9 @@
 # Full Text: https://github.com/quatrope/ProperImage/blob/master/LICENSE.txt
 #
 
-"""single_image module from ProperImage,z
-for analysis of astronomical images.
+"""single_image module of ProperImage package for astronomical image analysis.
 
-Written by Bruno SANCHEZ
-
-PhD of Astromoy - UNC
-bruno@oac.unc.edu.ar
-
-Instituto de Astronomia Teorica y Experimental (IATE) UNC
-Cordoba - Argentina
-
-Of 301
+This module contains main class SingleImage, and derived classes.
 """
 
 import logging

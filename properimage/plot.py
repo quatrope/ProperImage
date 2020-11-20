@@ -12,15 +12,7 @@
 
 """plot module from ProperImagefor coadding astronomical images.
 
-Written by Bruno SANCHEZ
-
-PhD of Astromoy - UNC
-bruno@oac.unc.edu.ar
-
-Instituto de Astronomia Teorica y Experimental (IATE) UNC
-Cordoba - Argentina
-
-Of 301
+This module contains plotting utilities and plugins.
 """
 
 import logging

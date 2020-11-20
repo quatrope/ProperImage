@@ -8,6 +8,4 @@
 # Full Text: https://github.com/toros-astro/ProperImage/blob/master/LICENSE.txt
 #
 
-"""
-This package contains external libraries shipped with properimage
-"""
+"""This package contains external libraries shipped with properimage."""

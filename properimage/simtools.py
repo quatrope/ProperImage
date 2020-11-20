@@ -11,18 +11,9 @@
 #
 
 """
-simtools module from ProperImage, with
-utilities for mocking images, and simulating data
+simtools module of ProperImage package for astronomical image analysis.
 
-Written by Bruno SANCHEZ
-
-PhD of Astromoy - UNC
-bruno@oac.unc.edu.ar
-
-Instituto de Astronomia Teorica y Experimental (IATE) UNC
-Cordoba - Argentina
-
-Of 301
+This module contains utilities for mocking images, and simulating data.
 """
 
 import os

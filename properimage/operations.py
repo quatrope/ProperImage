@@ -10,18 +10,10 @@
 # Full Text: https://github.com/quatrope/ProperImage/blob/master/LICENSE.txt
 #
 
-"""operations module from ProperImage,
-for coadding and subtracting astronomical images.
+"""operations module of ProperImage package for astronomical image analysis.
 
-Written by Bruno SANCHEZ
-
-PhD of Astromoy - UNC
-bruno@oac.unc.edu.ar
-
-Instituto de Astronomia Teorica y Experimental (IATE) UNC
-Cordoba - Argentina
-
-Of 301
+This module contains algorithm implementations for coadding and subtracting
+astronomical images.
 """
 
 import logging
