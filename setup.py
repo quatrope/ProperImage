@@ -85,7 +85,7 @@ def do_setup():
         py_modules=["ez_setup"],
         license="BSD 3",
         keywords="astronomy image",
-        classifiers=(
+        classifiers=[
             "Development Status :: 4 - Beta",
             "Intended Audience :: Education",
             "Intended Audience :: Science/Research",
@@ -98,7 +98,7 @@ def do_setup():
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Scientific/Engineering",
-        ),
+        ],
         packages=setuptools.find_packages(),  # exclude=['test*']),
         install_requires=REQUIREMENTS,
     )

@@ -74,6 +74,41 @@ def subtract(
     """
     Function that takes a list of SingleImage instances
     and performs a stacking using properimage R estimator
+
+    Parameters:
+    -----------
+    align : bool
+        Whether to align the images before subtracting, default to False
+    inf_loss : float
+        Value of information loss in PSF estimation, lower limit is 0,
+        upper is 1. Only valid if fitted_psf=False. Default is 0.25
+    smooth_psf : bool
+        Whether to smooth the PSF, using a noise reduction technique.
+        Default to False.
+    beta : bool
+        Specify if using the relative flux scale estimation.
+        Default to True.
+    shift : bool
+        Whether to include a shift parameter in the iterative
+        methodology, in order to correct for misalignments.
+        Default to True.
+    iterative : bool
+        Specify if an iterative estimation of the subtraction relative
+        flux scale must be used. Default to False.
+    fitted_psf : bool
+        Whether to use a Gaussian fitted PSF. Overrides the use of
+        auto-psf determination. Default to True.
+
+    Returns:
+    --------
+    D : np.ndarray(n, m) of float
+        Subtracion image, Zackay's decorrelated D.
+    P : np.ndarray(n, m) of float
+        Subtracion image PSF. This is a full PSF image, with a size equal to D
+    S_corr : np.ndarray of float
+        Subtracion image S, Zackay's cross-correlated D x P
+    mix_mask : np.ndarray of bool
+        Mask of bad pixels for subtracion image, with True marking bad pixels
     """
     logger = logging.getLogger()
     if fitted_psf:

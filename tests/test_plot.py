@@ -153,21 +153,24 @@ def test_plot_autopsf(random_4psf_simage, fig_test, fig_ref):
     # expected
     a_fields, psf_basis = simg.get_variable_psf(inf_loss=0.15)
 
-    xsh, ysh = psf_basis[1].shape
+    xsh, ysh = psf_basis[0].shape
 
     N = len(psf_basis)
     p = plot.primes(N)
+
     if N == 2:
-        subplots = (2, 1)
+        subplots = (1, 2)
+    if N == 3:
+        subplots = (1, 3)
     elif p == N:
         subplots = (round(np.sqrt(N)), round(np.sqrt(N) + 1))
     else:
         rows = N // p
         rows += N % p
-        subplots = (p, rows)
+        subplots = (rows, p)
 
-    width = plot.DEFAULT_WIDTH * subplots[0]
-    height = plot.DEFAULT_HEIGHT * subplots[1]
+    height = plot.DEFAULT_HEIGHT * subplots[0]
+    width = plot.DEFAULT_WIDTH * subplots[1]
 
     fig_ref.set_size_inches(w=width, h=height)
     exp_axs = fig_ref.subplots(*subplots)
@@ -244,12 +247,14 @@ def test_plot_autopsf_coef(random_4psf_simage, fig_test, fig_ref):
     p = plot.primes(N)
 
     if N == 2:
-        subplots = (2, 1)
+        subplots = (1, 2)
+    if N == 3:
+        subplots = (1, 3)
     elif p == N:
         subplots = (round(np.sqrt(N)), round(np.sqrt(N) + 1))
     else:
         rows = int((N // p) + (N % p))
-        subplots = (p, rows)
+        subplots = (rows, p)
 
     width = plot.DEFAULT_WIDTH * subplots[0]
     height = plot.DEFAULT_HEIGHT * subplots[1]

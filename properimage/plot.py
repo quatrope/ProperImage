@@ -163,16 +163,20 @@ class Plot:
 
             fig = plt.gcf()
 
+            if N == 1:
+                subplots = (1, 1)
             if N == 2:
-                subplots = (2, 1)
+                subplots = (1, 2)
+            if N == 3:
+                subplots = (1, 3)
             elif p == N:
                 subplots = (round(np.sqrt(N)), round(np.sqrt(N) + 1))
             else:
                 rows = int((N // p) + (N % p))
-                subplots = (p, rows)
+                subplots = (rows, p)
 
-            width = DEFAULT_WIDTH * subplots[0]
-            height = DEFAULT_HEIGHT * subplots[1]
+            height = DEFAULT_HEIGHT * subplots[0]
+            width = DEFAULT_WIDTH * subplots[1]
 
             fig.set_size_inches(w=width, h=height)
             axs = fig.subplots(*subplots)
@@ -182,7 +186,7 @@ class Plot:
                 f"You must provide at least {N} axs. Found {len(axs)}"
             )
 
-        xsh, ysh = psf_basis[1].shape
+        xsh, ysh = psf_basis[0].shape
 
         kwargs.setdefault("interpolation", "none")
 
@@ -225,15 +229,17 @@ class Plot:
             fig = plt.gcf()
 
             if N == 2:
-                subplots = (2, 1)
+                subplots = (1, 2)
+            if N == 3:
+                subplots = (1, 3)
             elif p == N:
                 subplots = (round(np.sqrt(N)), round(np.sqrt(N) + 1))
             else:
                 rows = int((N // p) + (N % p))
-                subplots = (p, rows)
+                subplots = (rows, p)
 
-            width = DEFAULT_WIDTH * subplots[0]
-            height = DEFAULT_HEIGHT * subplots[1]
+            height = DEFAULT_HEIGHT * subplots[0]
+            width = DEFAULT_WIDTH * subplots[1]
 
             fig.set_size_inches(w=width, h=height)
             axs = fig.subplots(*subplots)
