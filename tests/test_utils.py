@@ -75,7 +75,7 @@ class UtilsBase(ProperImageTestCase):
                 bkg_pdf="gaussian",
             )
             filenames.append(
-                sm.capsule_corp(
+                sm.store_fits(
                     im, t, t_exp=i + 1, i=i, zero=zero + i, path=img_dir
                 )
             )

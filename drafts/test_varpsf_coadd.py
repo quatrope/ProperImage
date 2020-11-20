@@ -54,7 +54,7 @@ for k in range(10):
     now = '2016-05-17T00:00:00.1234567'
     t = Time(now)
     filenames.append(
-        simtools.capsule_corp(frame, t, t_exp=1, i=k,
+        simtools.store_fits(frame, t, t_exp=1, i=k,
                               zero=3.1415, path=test_dir))
 
 # =============================================================================
@@ -87,7 +87,7 @@ for k in range(10):
     now = '2016-05-17T00:00:00.1234567'
     t = Time(now)
     filenames.append(
-        simtools.capsule_corp(frame, t, t_exp=1, i=k,
+        simtools.store_fits(frame, t, t_exp=1, i=k,
                               zero=3.1415, path=test_dir))
 
 

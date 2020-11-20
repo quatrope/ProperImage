@@ -362,7 +362,36 @@ class TestNoSources(ProperImageTestCase):
             s.SingleImage(self.no_sources_image)
 
 
-#      Test with picky star stamp strategy
+class TestNpArrayMinSrcs(SingleImageBase, ProperImageTestCase):
+    def setUp(self):
+        super(TestNpArrayMinSrcs, self).setUp()
+        print(self.mock_image_data.shape)
+        self.si = s.SingleImage(self.mock_image_data, min_sources=6)
+
+    def testMask(self):
+        nanmask = np.zeros((256, 256))
+        nanmask[123, 123] = 1
+        np.testing.assert_array_equal(nanmask, self.si.mask)
+
+    def testHeader(self):
+        self.assertDictEqual(self.si.header, {})
+
+
+class TestNpArrayCtxt(SingleImageBase, ProperImageTestCase):
+    def setUp(self):
+        super(TestNpArrayCtxt, self).setUp()
+        print(self.mock_image_data.shape)
+        self.si = s.SingleImage(self.mock_image_data)
+
+    def testCtxt(self):
+        with s.SingleImage(self.mock_image_data) as sim:
+            np.testing.assert_array_equal(
+                self.si.data.data,
+                sim.data.data
+            )
+
+
+# Test with picky star stamp strategy
 class TestNpArrayPicky(SingleImageBase, ProperImageTestCase):
     def setUp(self):
         super(TestNpArrayPicky, self).setUp()

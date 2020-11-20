@@ -46,7 +46,7 @@ for i in range(100):
     im = simtools.image(m, N, t_exp=1, X_FWHM=FWHM, SN=SN, bkg_pdf='gaussian')
 
     filenames.append(
-        simtools.capsule_corp(im, t, t_exp=1, i=i, zero=3.1415, path=test_dir))
+        simtools.store_fits(im, t, t_exp=1, i=i, zero=3.1415, path=test_dir))
 
 S = np.zeros(shape=(N,N))
 psf = simtools.Psf(N, FWHM)

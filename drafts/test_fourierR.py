@@ -52,7 +52,7 @@ if not os.path.exists(img_dir):
 for i in range(40):
     im = sm.image(m, N, t_exp=i+1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
                   theta=theta, SN=SN, bkg_pdf='poisson')
-    filenames.append(sm.capsule_corp(im, t, t_exp=i+1, i=i,
+    filenames.append(sm.store_fits(im, t, t_exp=i+1, i=i,
                     zero=zero+i, path=img_dir))
 
 ensemble = pc.ImageEnsemble(filenames)

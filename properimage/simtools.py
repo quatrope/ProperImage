@@ -215,22 +215,23 @@ def delta_point(N, center=True, xy=None, weights=None):
     m = delta_point(N, center=False, xy=xy)
     """
     m = np.zeros(shape=(N, N))
-    if center is False:
+
+    if center:
+        m[int(N / 2.0), int(N / 2.0)] = 1.0
+    else:
         if weights is None:
-            weights = list(np.repeat(1.0, len(xy)))
+            weights = np.ones(shape=len(xy))
         j = -1
         for x, y in xy:
             w = weights[j]
             m[int(x), int(y)] = 1.0 * w
             j -= 1
-    else:
-        m[int(N / 2.0), int(N / 2.0)] = 1.0
     return m
 
 
 def image(
     MF,
-    N2,
+    N,
     t_exp,
     X_FWHM,
     SN,
@@ -249,65 +250,56 @@ def image(
     IMC : imagen Master
     FWHM : tamaño en pixeles del FWHM del seeing
     t_exp : tiempo exposicion de la imagen
-    N2 : tamaño de la imagen final, pixelizada
+    N : tamaño de la imagen final, pixelizada
     SN : es la relacion señal ruido con el fondo del cielo
     bkg_pdf : distribucion de probabilidad del ruido background
     std : en caso que bkg_pdf sea gaussian, valor de std
     """
     random = np.random.RandomState(seed=seed)
 
-    N = np.shape(MF)[0]
     FWHM = max(X_FWHM, Y_FWHM)
     PSF = Psf(5 * FWHM, X_FWHM, Y_FWHM, theta)
     IM = convol_gal_psf_fft(MF, PSF)
 
-    if N != N2:
-        image = IM  # pixelize(N/N2, IM)  overriden
-    else:
-        image = IM
-
-    b = np.max(image)  # image[int(N2/2), int(N2/2)]
+    b = np.max(IM)  # image[int(N2/2), int(N2/2)]
 
     if bkg_pdf == "poisson":
         mean = b / SN
-        C = random.poisson(mean, (N2, N2)).astype(np.float32)
+        C = random.poisson(mean, (N, N)).astype(np.float32)
 
     elif bkg_pdf == "gaussian":
         mean = 0
         std = b / SN
-        C = random.normal(mean, std, (N2, N2))
-    bias = 100.0
-    F = C + image + bias
-    return F
+        C = random.normal(mean, std, (N, N))
+    return C + IM + 100.
 
 
-def capsule_corp(gal, t, t_exp, i, zero, path=".", round_int=False):
+def store_fits(gal, t, t_exp, i, zero, path="."):
     """
-    funcion que encapsula las imagenes generadas en fits
-    gal        :   Imagen (matriz) a encapsular
-    t          :   Tiempo en dias julianos de esta imagen
-    t_exp      :   Tiempo de exposicion de la imagen
-    i          :   Numero de imagen
-    zero       :   Punto cero de la fotometria
+    Stores an array as a fits image
+    gal : array_like
+        Base image to store
+    t : astropy.time.Time
+        Time of observation
+    t_exp : float
+        Exposure time of image
+    i : int
+        Image number
+    zero : float
+        Photometric zeropoint
     """
-    if round_int:
-        gal = gal.astype(int)
-
-    file1 = fits.PrimaryHDU(gal)
-    hdulist = fits.HDUList([file1])
+    file = fits.PrimaryHDU(gal)
+    hdulist = fits.HDUList([file])
     hdr = hdulist[0].header
     if isinstance(t, Time):
-        #  t.__class__.__name__ == "Time":
-        dia = t.iso[0:10]
-        hora = t.iso[11:24]
-        jd = t.jd
+        tt = t
     else:
-        time = Time(t, format="jd", scale="utc")
-        dia = time.iso[0:10]
-        hora = time.iso[11:24]
-        jd = time.jd
-    hdr.set("TIME-OBS", hora)
-    hdr.set("DATE-OBS", dia)
+        tt = Time(t, format="jd", scale="utc")
+    day = tt.iso[0:10]
+    hour = tt.iso[11:24]
+    jd = tt.jd
+    hdr.set("TIME-OBS", hour)
+    hdr.set("DATE-OBS", day)
     hdr.set("EXPTIME", t_exp)
     hdr.set("JD", jd)
     hdr.set("ZERO_P", zero)

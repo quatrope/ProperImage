@@ -58,7 +58,7 @@ class TestSimulationSuite(ProperImageTestCase):
         np.testing.assert_equal(size, pattern1.shape[1])
 
     def test_gal_sersic(self):
-        size = 64
+        size = 256
         n = np.random.random() * 4.0
         gal = sm.gal_sersic(size, n)
         np.testing.assert_equal(size, gal.shape[0])

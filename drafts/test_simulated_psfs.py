@@ -53,7 +53,7 @@ for xfwhm in [4, 5, 6]:
             for i in range(12):
                 im = sm.image(m, N, t_exp=1, X_FWHM=xfwhm, Y_FWHM=yfwhm,
                               theta=theta, SN=SN, bkg_pdf='poisson')
-                filenames.append(sm.capsule_corp(im, t, t_exp=1, i=i,
+                filenames.append(sm.store_fits(im, t, t_exp=1, i=i,
                                 zero=3.1415, path=img_dir))
 
             cmd = ' '
