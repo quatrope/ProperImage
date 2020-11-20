@@ -271,7 +271,7 @@ def image(
         mean = 0
         std = b / SN
         C = random.normal(mean, std, (N, N))
-    return C + IM + 100.
+    return C + IM + 100.0
 
 
 def store_fits(gal, t, t_exp, i, zero, path="."):

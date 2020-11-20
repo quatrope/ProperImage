@@ -385,10 +385,7 @@ class TestNpArrayCtxt(SingleImageBase, ProperImageTestCase):
 
     def testCtxt(self):
         with s.SingleImage(self.mock_image_data) as sim:
-            np.testing.assert_array_equal(
-                self.si.data.data,
-                sim.data.data
-            )
+            np.testing.assert_array_equal(self.si.data.data, sim.data.data)
 
 
 # Test with picky star stamp strategy
