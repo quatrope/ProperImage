@@ -68,6 +68,7 @@ logger = logging.getLogger()
 
 
 def conv(*arg, **kwargs):
+    """Bake scipy convolution function with custom FFTW implementation."""
     return convolve_fft(fftn=_fftwn, ifftn=_ifftwn, *arg, **kwargs)
 
 
@@ -104,6 +105,7 @@ class SingleImage(object):
         smooth_psf=False,
         gain=None,
     ):
+        """Create instance of SingleImage."""
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
         self._strict_star_pick = strict_star_pick  # pick stars VERY carefully?
@@ -126,12 +128,15 @@ class SingleImage(object):
         self._plot = plot.Plot(self)
 
     def __enter__(self):
+        """Open context manager."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Exit context manager."""
         self._clean()
 
     def __repr__(self):
+        """Output representation of instance."""
         return f"SingleImage {self.data.shape[0]}, {self.data.shape[1]}"
 
     def _clean(self):
@@ -144,10 +149,15 @@ class SingleImage(object):
 
     @property
     def attached_to(self):
+        """Property.
+
+        Information on the original data from which we create this instance.
+        """
         return self.__attached_to
 
     @attached_to.setter
     def attached_to(self, img):
+        """Property setter."""
         if isinstance(img, str):
             self.__attached_to = img
         else:
@@ -155,10 +165,12 @@ class SingleImage(object):
 
     @property
     def data(self):
+        """Get data property value."""
         return self.__data
 
     @data.setter
     def data(self, img):
+        """Set data property."""
         if isinstance(img, str):
             self.__data = ma.asarray(fits.getdata(img)).astype("<f4")
         elif isinstance(img, np.ndarray):
@@ -222,6 +234,7 @@ class SingleImage(object):
 
     @property
     def gain(self):
+        """Get gain property value."""
         return self.__gain
 
     @gain.setter
@@ -236,6 +249,7 @@ class SingleImage(object):
 
     @property
     def header(self):
+        """Get header property value."""
         return self.__header
 
     @header.setter
@@ -251,6 +265,7 @@ class SingleImage(object):
 
     @property
     def mask(self):
+        """Get mask property value."""
         return self.__data.mask
 
     @mask.setter
@@ -354,10 +369,12 @@ class SingleImage(object):
 
     @property
     def bkg_sub_img(self):
+        """Get background subtracted image."""
         return self.data - self.__bkg
 
     @property
     def stamp_shape(self):
+        """Get star stamp shapes."""
         return self.__stamp_shape
 
     @stamp_shape.setter
@@ -378,7 +395,9 @@ class SingleImage(object):
 
     @property
     def best_sources(self):
-        """Property, a dictionary of best sources detected in the image.
+        """Get best_sources property value.
+
+        This is a dictionary of best sources detected in the image.
         Keys are:
             fitshape: tuple, the size of the stamps on each source detected
             sources: a table of sources, with the imformation from sep
@@ -466,6 +485,7 @@ class SingleImage(object):
         return self._best_sources
 
     def update_sources(self, new_sources=None):
+        """Update best source property."""
         del self._best_sources
         if new_sources is None:
             foo = self.best_sources  # noqa
@@ -477,6 +497,7 @@ class SingleImage(object):
 
     @property
     def stamps_pos(self):
+        """Get star stamp positions propery value."""
         _cond = (
             hasattr(self, "_shape")
             and self._shape != self.stamp_shape
@@ -637,6 +658,7 @@ class SingleImage(object):
 
     @property
     def n_sources(self):
+        """Get number of source property value."""
         try:
             return self._n_sources
         except AttributeError:
@@ -645,7 +667,9 @@ class SingleImage(object):
 
     @property
     def cov_matrix(self):
-        """Determines the covariance matrix of the psf measured directly from
+        """Get covariance matrix property value.
+
+        Determines the covariance matrix of the psf measured directly from
         the stamps of the detected stars in the image.
 
         """
@@ -682,6 +706,7 @@ class SingleImage(object):
 
     @property
     def eigenv(self):
+        """Get the eigen values of covariance matrix."""
         if not hasattr(self, "_eigenv"):
             try:
                 self._eigenv = np.linalg.eigh(self.cov_matrix)
@@ -691,13 +716,13 @@ class SingleImage(object):
 
     @property
     def kl_basis(self):
+        """Get the Karhunen-Loeve basis elements."""
         if not hasattr(self, "_kl_basis"):
             self._setup_kl_basis()
         return self._kl_basis
 
     def _setup_kl_basis(self, inf_loss=None):
-        """Determines the KL psf_basis from
-        stars detected in the field."""
+        """Determines the KL psf_basis from stars detected in the field."""
         inf_loss_update = (inf_loss is not None) and (
             self.inf_loss != inf_loss
         )
@@ -757,18 +782,18 @@ class SingleImage(object):
 
     @property
     def kl_afields(self):
+        """Get the Karhunen-Loeve coefficients."""
         if not hasattr(self, "_a_fields"):
             self._setup_kl_a_fields()
         return self._a_fields
 
     def get_afield_domain(self):
+        """Get KL coefficient domain grid of coordinates."""
         x, y = np.mgrid[: self.data.data.shape[0], : self.data.data.shape[1]]
         return x, y
 
     def _setup_kl_a_fields(self, inf_loss=None, updating=False):
-        """
-        Calculate the coefficients of the expansion in basis of KLoeve
-        """
+        """Calculate coefficients of Karhunen-Loeve expansion."""
         inf_loss_update = (inf_loss is not None) and (
             self.inf_loss != inf_loss
         )
@@ -806,38 +831,42 @@ class SingleImage(object):
             self._a_fields = a_fields
 
     def get_variable_psf(self, inf_loss=None, shape=None):
-        """Method to obtain the space variant PSF determination,
+        """
+
+        Method to obtain the space variant PSF determination,
         according to Lauer 2002 method with Karhunen Loeve transform.
 
         Parameters
         ----------
-        pow_th: float, between 0 and 1. It sets the minimum amount of
-        information that a PSF-basis of the Karhunen Loeve transformation
-        should have in order to be taken into account. A high value will return
-        only the most significant components. Default is 0.9
+        pow_th : float,
+            between 0 and 1. It sets the minimum amount of
+            information that a PSF-basis of the Karhunen Loeve
+            transformation should have in order to be taken into account.
+            A high value will return only the most significant components.
+            Default is 0.9
 
-        shape: tuple, the size of the stamps for source extraction.
-        This value affects the _best_srcs property, and should be settled in
-        the SingleImage instancing step. At this stage it will override the
-        value settled in the instancing step only if _best_srcs hasn't been
-        called yet, which is the case if you are performing context managed
-        image subtraction. (See propersubtract module)
+        shape : tuple
+            the size of the stamps for source extraction.
+            This value affects the _best_srcs property, it should be settled in
+            the SingleImage instancing step. At this stage it will override the
+            value settled in the instancing step only if _best_srcs hasn't been
+            called yet, which is the case if you are performing context managed
+            image subtraction. (See propersubtract module)
 
         Returns
         -------
-        [a_fields, psf_basis]: a list of two lists.
-        Basically it returns a sequence of psf-basis elements with its
-        associated coefficient.
+        [a_fields, psf_basis] : list of two lists.
+            Basically it returns a sequence of psf-basis elements with its
+            associated coefficient.
 
+        Notes
+        -----
         The psf_basis elements are numpy arrays of the given fitshape
         (or shape) size.
 
         The a_fields are astropy.fitting fitted model functions, which need
         arguments to return numpy array fields (for example a_fields[0](x, y)).
-        These can be generated using
-        x, y = np.mgrid[:self.imagedata.shape[0],
-                        :self.imagedata.shape[1]]
-
+        These can be generated using `get_afield_domain`.
         """
         if shape is not None:
             self._shape = shape
@@ -856,9 +885,9 @@ class SingleImage(object):
 
     @property
     def normal_image(self):
-        """Calculates the PSF normalization image given in Lauer 2002,
-        for this image using the psf-basis elements and coefficients.
+        """Calculate the PSF normalization image given in Lauer 2002.
 
+        It uses the psf-basis elements and coefficients.
         """
         if not hasattr(self, "_normal_image"):
             a_fields, psf_basis = self.get_variable_psf()
@@ -877,6 +906,7 @@ class SingleImage(object):
 
     @property
     def min_sources(self):
+        """Get minimum number of sources property value."""
         if not hasattr(self, "_min_sources"):
             return 20
         else:
@@ -888,6 +918,7 @@ class SingleImage(object):
 
     @property
     def maskthresh(self):
+        """Get mask threshold value."""
         if not hasattr(self, "_maskthresh"):
             return 16
         else:
@@ -902,6 +933,7 @@ class SingleImage(object):
 
     @property
     def zp(self):
+        """Get zeropoint property value."""
         if not hasattr(self, "_zp"):
             return 1.0
         else:
@@ -913,6 +945,7 @@ class SingleImage(object):
 
     @property
     def var(self):
+        """Get globalrms variance value."""
         return self._bkg.globalrms
 
     @property

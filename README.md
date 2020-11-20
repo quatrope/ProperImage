@@ -1,12 +1,12 @@
 # Proper image treatments
 
+[![QuatroPe](https://img.shields.io/badge/QuatroPe-Applications-1c5896)](https://quatrope.github.io/)
 [![Build Status](https://travis-ci.com/quatrope/ProperImage.svg?branch=master)](https://travis-ci.com/quatrope/ProperImage)
 [![codecov](https://codecov.io/gh/quatrope/ProperImage/branch/master/graph/badge.svg)](https://codecov.io/gh/quatrope/ProperImage)
 [![Documentation Status](https://readthedocs.org/projects/properimage/badge/?version=latest)](http://properimage.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/pypi/l/properimage?color=blue)](https://tldrlegal.com/license/bsd-3-clause-license-(revised))
 [![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://badge.fury.io/py/properimage)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
-[![QuatroPe](https://img.shields.io/badge/QuatroPe-Applications-1c5896)](https://quatrope.github.io/)
 
 This code is inspired on [Zackay & Ofek 2017](http://arxiv.org/abs/1512.06872)  papers *How to coadd images?* (see References below).
 

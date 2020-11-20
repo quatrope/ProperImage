@@ -54,8 +54,10 @@ def store_img(img, path=None):
 
 
 def crossmatch(X1, X2, max_distance=np.inf):
-    """Cross-match the values between X1 and X2
+    """Cross-match the values between X1 and X2.
+
     By default, this uses a KD Tree for speed.
+
     Parameters
     ----------
     X1 : array_like
@@ -65,6 +67,7 @@ def crossmatch(X1, X2, max_distance=np.inf):
     max_distance : float (optional)
         maximum radius of search.  If no point is within the given radius,
         then inf will be returned.
+
     Returns
     -------
     dist, ind: ndarrays
@@ -90,8 +93,7 @@ def crossmatch(X1, X2, max_distance=np.inf):
 
 
 def _matching(master, cat, masteridskey=None, radius=1.5, masked=False):
-    """Function to match stars between frames."""
-
+    """Match stars between two images."""
     if masteridskey is None:
         masterids = np.arange(len(master))
         master["masterindex"] = masterids
@@ -124,8 +126,22 @@ def _matching(master, cat, masteridskey=None, radius=1.5, masked=False):
 
 
 def transparency(images, master=None):
-    """Transparency calculator, using Ofek method."""
+    """Calculate relative transparencies of list of images using Ofek method.
 
+    Parameters
+    ----------
+    images : list of SingleImage instances
+        List of images to use for calculation
+    master : SingleImage instance, optional
+        A master image to use as reference for source matching
+
+    Returns
+    -------
+    zps : array_like
+        The relative zeropoints
+    meanmags : array_like
+        The mean magnitude of each image source list catalog.
+    """
     if master is None:
         p = len(images)
         master = images[0]
@@ -272,6 +288,21 @@ def _align_for_diff(refpath, newpath, newmask=None):
 def _align_for_coadd(imglist):
     """
     Algin a group of images for coadding with astroalign.
+
+    Parameters
+    ----------
+    imglist : list
+        list of images to align
+
+    Returns
+    -------
+    newlist : list
+        list of new SingleImage instances with aligned images
+
+    Notes
+    -----
+        We will allways rotate and align the images using the firs one
+        as reference.
     """
     ref = imglist[0]
     new_list = [ref]

@@ -64,8 +64,7 @@ def subtract(
     fitted_psf=True,
 ):
     """
-    Function that takes a list of SingleImage instances
-    and performs a stacking using properimage R estimator
+    Subtract a pair of SingleImage instances.
 
     Parameters:
     -----------
@@ -436,6 +435,10 @@ def subtract(
 
 
 def diff(*args, **kwargs):
+    """Subtract images.
+
+    Wrapper of `subtract`.
+    """
     warnings.warn(
         "This is being deprecated in favour of `subtract`", DeprecationWarning
     )
@@ -444,6 +447,7 @@ def diff(*args, **kwargs):
 
 class StackCombinator(Process):
     """Combination engine.
+
     An engine for image combination in parallel, using multiprocessing.Process
     class.
     Uses an ensemble of images and a queue to calculate the propercoadd of
@@ -511,6 +515,7 @@ class StackCombinator(Process):
         *args,
         **kwargs,
     ):
+        """Create instance of combination engine."""
         super(StackCombinator, self).__init__(*args, **kwargs)
         self.list_to_combine = img_list
         self.queue = queue
@@ -519,6 +524,7 @@ class StackCombinator(Process):
         # self.zps = ensemble.transparencies
 
     def run(self):
+        """Run workers of combination engine."""
         S_hat = np.zeros(self.global_shape).astype(np.complex128)
         psf_hat_sum = np.zeros(self.global_shape).astype(np.complex128)
         mix_mask = self.list_to_combine[0].data.mask
@@ -539,9 +545,27 @@ class StackCombinator(Process):
 
 
 def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
-    """Function that takes a list of SingleImage instances
-    and performs a stacking using properimage R estimator
+    """Coadd a list of SingleImage instances using R estimator.
 
+    Parameters:
+    -----------
+    align : bool
+        Whether to align the images before subtracting, default to False
+    inf_loss : float
+        Value of information loss in PSF estimation, lower limit is 0,
+        upper is 1. Only valid if fitted_psf=False. Default is 0.25
+    n_procs : int
+        Number of processes to use. If value is one then no multiprocessing
+        is being used. Default 2.
+
+    Returns:
+    --------
+    R : np.ndarray(n, m) of float
+        Coadd image, Zackay's decorrelated R.
+    P : np.ndarray(n, m) of float
+        Coadd image PSF. This is a full PSF image, with a size equal to R
+    mix_mask : np.ndarray of bool
+        Mask of bad pixels for subtracion image, with True marking bad pixels
     """
     logger = logging.getLogger()
     for i_img, animg in enumerate(si_list):
@@ -629,6 +653,10 @@ def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
 
 
 def stack_R(*args, **kwargs):
+    """Subtract images.
+
+    Wrapper of `subtract`.
+    """
     warnings.warn(
         "This is being deprecated in favour of `coadd`", DeprecationWarning
     )

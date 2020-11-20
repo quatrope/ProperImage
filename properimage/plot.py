@@ -51,6 +51,8 @@ logger = logging.getLogger()
 
 
 class NoDataToPlot(ValueError):
+    """Exception for empty data."""
+
     pass
 
 
@@ -58,8 +60,8 @@ class NoDataToPlot(ValueError):
 # FUNCTIONS
 # =============================================================================
 
-
 def primes(n):
+    """Get maximum prime number factor."""
     divisors = [d for d in range(2, n // 2 + 1) if n % d == 0]
     prims = [
         d for d in divisors if all(d % od != 0 for od in divisors if od != d)
@@ -73,6 +75,21 @@ def primes(n):
 
 
 def plot_S(S, path=None, nbook=False):
+    """Plot an S-type image subtraction.
+
+    Parameters
+    ----------
+    S : array_like
+        Image to plot
+    path : str, optional
+        Path to store the plot
+    nbook : bool, optional
+        Whether we are plotting in a notebook
+
+    Returns
+    -------
+    ax : matplotlib axes
+    """
     if isinstance(S, np.ma.masked_array):
         S = S.filled()
     mean, med, std = sigma_clipped_stats(S)
@@ -91,10 +108,25 @@ def plot_S(S, path=None, nbook=False):
         plt.show()
     if not nbook:
         plt.close()
-    return
+    return plt.gca()
 
 
 def plot_R(R, path=None, nbook=False):
+    """Plot an D-type image subtraction.
+
+    Parameters
+    ----------
+    R : array_like
+        Image to plot
+    path : str, optional
+        Path to store the plot
+    nbook : bool, optional
+        Whether we are plotting in a notebook
+
+    Returns
+    -------
+    ax : matplotlib axes
+    """
     if isinstance(R[0, 0], np.complex):
         R = R.real
     if isinstance(R, np.ma.masked_array):
@@ -118,12 +150,14 @@ def plot_R(R, path=None, nbook=False):
 
 @attr.s(frozen=True, repr=False, eq=False, order=False)
 class Plot:
+    """Plotting plug-in object for SingleImage class."""
 
     DEFAULT_PLOT = "imshow"
 
     si = attr.ib()
 
     def __call__(self, plot=None, **kwargs):
+        """Execute plot."""
         if plot is not None and (
             plot.startswith("_") or not hasattr(self, plot)
         ):
@@ -134,6 +168,7 @@ class Plot:
         return method(**kwargs)
 
     def imshow(self, ax=None, **kwargs):
+        """Plot 2d image."""
         if ax is None:
             fig = plt.gcf()
             ax = plt.gca()
@@ -156,6 +191,7 @@ class Plot:
         iso_kw=None,
         **kwargs,
     ):
+        """Plot autopsf basis components."""
         _, psf_basis = self.si.get_variable_psf(inf_loss=inf_loss, shape=shape)
 
         # here we plot
@@ -217,6 +253,7 @@ class Plot:
     def autopsf_coef(
         self, axs=None, inf_loss=None, shape=None, cmap_kw=None, **kwargs
     ):
+        """Plot autopsf basis component coefficients."""
         a_fields, _ = self.si.get_variable_psf(inf_loss=inf_loss, shape=shape)
         if a_fields == [None]:
             raise NoDataToPlot("No coeficients for this PSF")
