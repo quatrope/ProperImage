@@ -87,7 +87,7 @@ class PropersubtractBase(object):
 
         # a new image
         rand_pix = random.random((256, 256)) * 50.0 + 750
-        newimage_data = (self.mock_image_data * 3.0 + rand_pix)
+        newimage_data = self.mock_image_data * 3.0 + rand_pix
 
         newimage_data[123, 123] = np.nan
 

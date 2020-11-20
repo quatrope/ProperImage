@@ -74,7 +74,7 @@ class PropercoaddBase(object):
         for j in range(4):
             # a numpy array
             rand_pix = random.random((256, 256)) * 50.0 + 350
-            image_data = (self.mock_image_data + rand_pix)
+            image_data = self.mock_image_data + rand_pix
 
             image_data[123, 123] = np.nan
 
