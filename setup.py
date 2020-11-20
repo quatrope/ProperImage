@@ -50,7 +50,6 @@ REQUIREMENTS = [
     "scipy >= 1.0",
     "astropy >= 2.0",
     "matplotlib",
-    "astroML",
     "sep",
     "astroscrappy>=1.0.5",
     "astroalign>=1.0.3",

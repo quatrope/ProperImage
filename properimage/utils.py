@@ -38,11 +38,11 @@ Of 301
 import os
 import numpy as np
 from scipy import sparse
+from scipy.spatial import cKDTree
 import scipy.ndimage as ndimage
 from numpy.lib.recfunctions import append_fields
 from astropy.io import fits
 from astropy.stats import sigma_clipped_stats
-from astroML import crossmatch as cx
 import astroalign as aa
 
 aa.PIXEL_TOL = 0.3
@@ -70,6 +70,42 @@ def store_img(img, path=None):
         return hdu
 
 
+def crossmatch(X1, X2, max_distance=np.inf):
+    """Cross-match the values between X1 and X2
+    By default, this uses a KD Tree for speed.
+    Parameters
+    ----------
+    X1 : array_like
+        first dataset, shape(N1, D)
+    X2 : array_like
+        second dataset, shape(N2, D)
+    max_distance : float (optional)
+        maximum radius of search.  If no point is within the given radius,
+        then inf will be returned.
+    Returns
+    -------
+    dist, ind: ndarrays
+        The distance and index of the closest point in X2 to each point in X1
+        Both arrays are length N1.
+        Locations with no match are indicated by
+        dist[i] = inf, ind[i] = N2
+    """
+    X1 = np.asarray(X1, dtype=float)
+    X2 = np.asarray(X2, dtype=float)
+
+    N1, D = X1.shape
+    N2, D2 = X2.shape
+
+    if D != D2:
+        raise ValueError('Arrays must have the same second dimension')
+
+    kdt = cKDTree(X2)
+
+    dist, ind = kdt.query(X1, k=1, distance_upper_bound=max_distance)
+
+    return dist, ind
+
+
 def _matching(master, cat, masteridskey=None, radius=1.5, masked=False):
     """Function to match stars between frames."""
 
@@ -86,8 +122,8 @@ def _matching(master, cat, masteridskey=None, radius=1.5, masked=False):
     imXY = np.empty((len(cat), 2), dtype=np.float64)
     imXY[:, 0] = cat["x"]
     imXY[:, 1] = cat["y"]
-    dist, ind = cx.crossmatch(masterXY, imXY, max_distance=radius)
-    dist_, ind_ = cx.crossmatch(imXY, masterXY, max_distance=radius)
+    dist, ind = crossmatch(masterXY, imXY, max_distance=radius)
+    dist_, ind_ = crossmatch(imXY, masterXY, max_distance=radius)
 
     IDs = np.zeros_like(ind_) - 13133
     for i in range(len(ind_)):
