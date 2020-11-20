@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/pypi/l/properimage?color=blue)](https://tldrlegal.com/license/bsd-3-clause-license-(revised))
 [![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://badge.fury.io/py/properimage)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
-[![QuatroPe](https://img.shields.io/badge/QuatroPe-PowerHouse-blue)](https://quatrope.github.io/)
+[![QuatroPe](https://img.shields.io/badge/QuatroPe-Applications-1c5896)](https://quatrope.github.io/)
 
 This code is inspired on [Zackay & Ofek 2017](http://arxiv.org/abs/1512.06872)  papers *How to coadd images?* (see References below).
 
