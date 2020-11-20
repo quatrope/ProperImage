@@ -18,3 +18,5 @@ __version__ = "0.7"
 
 from .operations import subtract, coadd
 from .single_image import SingleImage
+
+__all__ = ["subtract", "coadd", "SingleImage"]
