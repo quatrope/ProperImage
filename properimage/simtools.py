@@ -35,14 +35,9 @@ random_def = default_rng(seed=110112)
 
 
 def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
-    """Psf mocks a point spread function, of size NxN, with a symmetric
-    gaussian in both axis.
-    theta is in degrees
+    """Mock a point spread function PSF, of size NxN.
 
-    FASTER
-    %timeit simtools.Psf(128, 10)
-    1 loops, best of 3: 234 ms per loop
-
+    It uses a gaussian in both axis.
     """
     if Y_FWHM == 0:
         Y_FWHM = X_FWHM
@@ -65,12 +60,11 @@ def Psf(N, X_FWHM, Y_FWHM=0, theta=0):
 
 
 def astropy_Psf(N, FWHM):
-    """Psf es una funcion que proporciona una matriz 2D con una gaussiana
-    simétrica en ambos ejes. con N se especifica el tamaño en pixeles que
-    necesitamos y con FWHM el ancho sigma de la gaussiana en pixeles
+    """Mock a gaussian point spread function PSF, of size NxN.
 
-    %timeit simtools.astropy_Psf(128, 10)
-    1 loops, best of 3: 338 ms per loop
+    Psf es una funcion que proporciona una matriz 2D con una gaussiana
+    simétrica en ambos ejes. con N se especifica el tamaño en pixeles que
+    necesitamos y con FWHM el ancho sigma de la gaussiana en pixeles.
     """
     psf = np.zeros((N, N))
     mu = (N - 1) / 2.0
@@ -87,7 +81,8 @@ def astropy_Psf(N, FWHM):
 
 
 def _airy_func(rr, width, amplitude=1.0):
-    """
+    """Evaluate Airy Disc function.
+
     For a simple radially symmetric airy function, returns the value at a given
     (normalized) radius
     """
@@ -96,7 +91,8 @@ def _airy_func(rr, width, amplitude=1.0):
 
 
 def airy_patron(N, width):
-    """
+    """Generate Airy disc pattern in a 2D array.
+
     Function that generates an Airy disc pattern, in a 2D array,
     which represents the telescope pupil optical transfer function,
     with a functional form of
@@ -107,8 +103,8 @@ def airy_patron(N, width):
     minimum, Lambda is the light wavelength, and D is the pupil
     aperture diameter.
 
-    Parameters:
-
+    Parameters
+    ----------
     N: integer, the array size (in pixels)
     width: the theta angle already estimated in pixel units.
     """
@@ -122,7 +118,8 @@ def airy_patron(N, width):
 
 
 def convol_gal_psf_fft(gal, a):
-    """
+    """Convolve two matrices.
+
     Esta funcion convoluciona dos matrices, a pesar de su nombre es una FFT
     para matrices 2D, y se usa con el patron de airy tambien
 
@@ -137,7 +134,8 @@ def convol_gal_psf_fft(gal, a):
 
 
 def perfilsersic(r_e, I_e, n, r):
-    """
+    """Evaluate a Sersic Profile.
+
     funcion que evalua a un dado radio r el valor de
     brillo correspondiente a un perfil de sersic
          r_e  :  Radio de escala
@@ -152,11 +150,7 @@ def perfilsersic(r_e, I_e, n, r):
 
 
 def gal_sersic(N, n):
-    """
-    esta funcion genera una matriz 2D que posee en sus componentes
-    un perfil de sersic centrado en la matriz cuadrada, con un tamaño N
-    y que posee un indice de sersic n
-    """
+    """Generate a 2D NxN matrix with a Sersic galaxy profile."""
     gal = np.zeros((N, N))
     mu = (N - 1) / 2.0  # calculo posicion del pixel central
     # radio de escala, tomado como un
@@ -173,8 +167,7 @@ def gal_sersic(N, n):
 
 
 def cartesian_product(arrays):
-    """
-    Creates a cartesian product array from a list of arrays.
+    """Create a cartesian product array from a list of arrays.
 
     It is used to create x-y coordinates array from x and y arrays.
 
@@ -193,8 +186,8 @@ def cartesian_product(arrays):
 
 
 def delta_point(N, center=True, xy=None, weights=None):
-    """
-    Function to create delta sources in a square NxN matrix.
+    """Create delta sources in a square NxN matrix.
+
     If center is True (default) it will locate a unique delta
     in the center of the image.
     Else it will need a xy list of positions where to put the deltas.
@@ -237,19 +230,24 @@ def image(
     seed=None,
     bias=100.0,
 ):
-    """
-    funcion que genera una imagen con ruido y seeing a partir
-    de un master frame, y la pixeliza hasta tamaño N2
+    """Generate an image with noise and a seeing profile for stars.
 
-    Parametros
+    Parameters
     ----------
-    IMC : imagen Master
-    FWHM : tamaño en pixeles del FWHM del seeing
-    t_exp : tiempo exposicion de la imagen
-    N : tamaño de la imagen final, pixelizada
-    SN : es la relacion señal ruido con el fondo del cielo
-    bkg_pdf : distribucion de probabilidad del ruido background
-    std : en caso que bkg_pdf sea gaussian, valor de std
+    MF : array_like
+        master image for image creating
+    FWHM : float
+        Seeing FWHM in pixels
+    t_exp : float
+        Exposure time of image
+    N : int
+        Final image size
+    SN : float
+        Signal to Noise ratio related to sky noise
+    bkg_pdf : str, "poisson" or "gaussian"
+        probability distribution of sky noise
+    std : float
+        For gaussian kind of background the standard deviation.
     """
     random = default_rng(seed=seed) if seed is not None else random_def
 
@@ -271,8 +269,8 @@ def image(
 
 
 def store_fits(gal, t, t_exp, i, zero, path="."):
-    """
-    Stores an array as a fits image
+    """Store an array as a fits image.
+
     gal : array_like
         Base image to store
     t : astropy.time.Time
@@ -305,7 +303,20 @@ def store_fits(gal, t, t_exp, i, zero, path="."):
 
 
 def sim_varpsf(nstars, SN=30.0, thetas=[0, 45, 105, 150], N=512, seed=None):
+    """Simulate an image with variable PSF.
 
+    Args:
+        nstars : int
+            Number of stars
+        SN (float, optional): SN ratio. Defaults to 30.0.
+        thetas (list, optional): angles of PSF. Defaults to [0, 45, 105, 150].
+        N (int, optional): size of image. Defaults to 512.
+        seed (int, optional): random seed. Defaults to None.
+
+    Returns:
+        frame : array_like
+            Simulated image.
+    """
     random = default_rng(seed=seed) if seed is not None else random_def
 
     frames = []

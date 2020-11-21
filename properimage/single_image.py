@@ -74,6 +74,7 @@ def conv(*arg, **kwargs):
 
 class SingleImage(object):
     """Atomic processor class for a single image.
+
     Contains several tools for PSF measures, and different coadding
     building structures.
 
@@ -341,6 +342,7 @@ class SingleImage(object):
     @property
     def background(self):
         """Image background subtracted property of SingleImage.
+
         The background is estimated using sep.
 
         Returns
@@ -470,7 +472,7 @@ class SingleImage(object):
                 best_big & best_flag & best_small & hig_flux & low_flux
             ]
 
-            if len(best_srcs) == 0:
+            if len(best_srcs) < 5:
                 self.warning(
                     "Best sources are too few- Using everything we have!"
                 )
@@ -536,6 +538,7 @@ class SingleImage(object):
             n_cand_srcs = len(self.best_sources)
             if n_cand_srcs <= 20:
                 self.strict_star_pick = False
+
             for row in self.best_sources:
                 position = (row["y"], row["x"])
                 sub_array_data = extract_array(
@@ -642,6 +645,11 @@ class SingleImage(object):
                 self._best_sources = np.delete(
                     self._best_sources, to_del, axis=0
                 )
+            else:
+                logger.warning(
+                    """Attempted to use strict star pick, but we had less
+                    than 15 srcs to work on. Overriding this."""
+                )
             # Adding extra border to ramp to 0
             self.stamp_shape = (
                 self.stamp_shape[0] + 6,
@@ -654,6 +662,7 @@ class SingleImage(object):
             )
             self._stamps_pos = np.array(pos)
             self._n_sources = len(pos)
+            logger.info(f"We have {self._n_sources} total sources detected.")
         return self._stamps_pos
 
     @property
@@ -711,7 +720,9 @@ class SingleImage(object):
             try:
                 self._eigenv = np.linalg.eigh(self.cov_matrix)
             except np.linalg.LinAlgError:
-                raise
+                # print('cov matx, nsrcs', self.cov_matrix, self.n_sources)
+                raise ValueError(f'LinAlgError. Mat = {self.cov_matrix}')
+
         return self._eigenv
 
     @property
@@ -722,7 +733,7 @@ class SingleImage(object):
         return self._kl_basis
 
     def _setup_kl_basis(self, inf_loss=None):
-        """Determines the KL psf_basis from stars detected in the field."""
+        """Determine the KL psf_basis from stars detected in the field."""
         inf_loss_update = (inf_loss is not None) and (
             self.inf_loss != inf_loss
         )
@@ -832,6 +843,7 @@ class SingleImage(object):
 
     def get_variable_psf(self, inf_loss=None, shape=None):
         """
+        Get the variable PSF KL decomposition.
 
         Method to obtain the space variant PSF determination,
         according to Lauer 2002 method with Karhunen Loeve transform.
@@ -950,6 +962,7 @@ class SingleImage(object):
 
     @property
     def s_hat_comp(self):
+        """Get the fourier transform of S image."""
         if (
             not hasattr(self, "_s_hat_comp")
             or self._s_hat_inf_loss != self.inf_loss
@@ -989,10 +1002,10 @@ class SingleImage(object):
 
     @property
     def s_component(self):
-        """Calculates the matched filter S (from propercoadd) component
-        from the image. Uses the measured psf, and is psf space
-        variant capable.
+        """Calculate S image component from the image.
 
+        Uses the measured psf to calculate the matched filter S
+        (from propercoadd), and is psf space variant capable.
         """
         if not hasattr(self, "_s_component"):
             self._s_component = _ifftwn(self.s_hat_comp, norm="ortho").real
@@ -1004,6 +1017,10 @@ class SingleImage(object):
 
     @property
     def interped(self):
+        """Get the interpolated image.
+
+        Used to clean for cosmic rays and NaN pixels across the image.
+        """
         if not hasattr(self, "_interped"):
             kernel = Box2DKernel(10)  # Gaussian2DKernel(stddev=2.5) #
 
@@ -1032,15 +1049,18 @@ class SingleImage(object):
 
     @property
     def interped_hat(self):
+        """Get the fourier transform of the interpolated image."""
         if not hasattr(self, "_interped_hat"):
             self._interped_hat = _fftwn(self.interped, norm="ortho")
         return self._interped_hat
 
     @property
     def plot(self):
+        """Get the plot plugin object property."""
         return self._plot
 
     def psf_hat_sqnorm(self):
+        """Get the squared norm of the PSF fourier transform."""
         psf_basis = self.kl_basis
         a_fields = self.kl_afields
         if a_fields is None:
@@ -1057,6 +1077,7 @@ class SingleImage(object):
         return p_hat_sqnorm
 
     def p_sqnorm(self):
+        """Get the PSF squared norm."""
         phat = self.psf_hat_sqnorm()
         return _ifftwn(
             fourier_shift(
@@ -1066,6 +1087,7 @@ class SingleImage(object):
         )
 
     def get_psf_xy(self, x, y):
+        """Get the variable PSF coefficient domain coordinate grid."""
         psf_basis = self.kl_basis
         a_fields = self.kl_afields
 
@@ -1091,6 +1113,7 @@ class SingleImage(object):
 
 class SingleImageGaussPSF(SingleImage):
     """Atomic processor class for a single image.
+
     Contains several tools for PSF measures, and different coadding
     building structures.
 
@@ -1113,16 +1136,16 @@ class SingleImageGaussPSF(SingleImage):
     """
 
     def __init__(self, *arg, **kwargs):
+        """Initialize class object."""
         super(SingleImageGaussPSF, self).__init__(*arg, **kwargs)
 
     def get_variable_psf(self, inf_loss=None, shape=None):
-        """Method to obtain a unique Gaussian psf, non variable.
+        """Obtain a unique Gaussian psf, non variable.
+
         Returns
         -------
         An astropy model Gaussian2D instance, with the median parameters
         for the fit of every star.
-
-
         """
         p_xw = []
         p_yw = []

@@ -34,6 +34,15 @@ aa.MIN_MATCHES_FRACTION = 0.6
 
 
 def store_img(img, path=None):
+    """Store an image.
+
+    Args:
+        img (array_like): the image frame to store
+        path (str, optional): path where to store it. Defaults to None.
+
+    Returns:
+        HDUList: The astropy.io.fits.HDUList image
+    """
     if isinstance(img[0, 0], np.complex):
         img = img.real
 
