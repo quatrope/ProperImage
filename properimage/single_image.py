@@ -721,7 +721,7 @@ class SingleImage(object):
                 self._eigenv = np.linalg.eigh(self.cov_matrix)
             except np.linalg.LinAlgError:
                 # print('cov matx, nsrcs', self.cov_matrix, self.n_sources)
-                raise ValueError(f'LinAlgError. Mat = {self.cov_matrix}')
+                raise ValueError(f"LinAlgError. Mat = {self.cov_matrix}")
 
         return self._eigenv
 

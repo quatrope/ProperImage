@@ -159,7 +159,7 @@ def gal_sersic(N, n):
     for i in range(N - 1):
         for j in range(N - 1):
             r_pix = np.sqrt((i - mu) ** 2 + (j - mu) ** 2)
-            if r_pix <= (4.5 * R_e):
+            if r_pix <= (4.0 * R_e):
                 gal[i, j] = perfilsersic(R_e, 10, n, r_pix)
             else:
                 gal[i, j] = 0

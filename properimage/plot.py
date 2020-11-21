@@ -60,6 +60,7 @@ class NoDataToPlot(ValueError):
 # FUNCTIONS
 # =============================================================================
 
+
 def primes(n):
     """Get maximum prime number factor."""
     divisors = [d for d in range(2, n // 2 + 1) if n % d == 0]
