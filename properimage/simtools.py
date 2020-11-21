@@ -195,7 +195,8 @@ def delta_point(N, center=True, xy=None, weights=None):
 
     Returns a NxN numpy array.
 
-    Example:
+    Example
+    -------
     N = 100
     x = np.random.integers(10, 80, size=10)
     y = np.random.integers(10, 80, size=10)
