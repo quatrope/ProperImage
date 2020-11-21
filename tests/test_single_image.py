@@ -57,7 +57,7 @@ class SingleImageBase(object):
         self.mock_image_data = random.random((256, 256)) * 50.0 + 350
         self.mock_image_data[123, 123] = np.nan
 
-        for i in range(50):
+        for i in range(30):
             x = random.integers(7, 220)
             y = random.integers(7, 120)
             # print x, y
@@ -66,7 +66,7 @@ class SingleImageBase(object):
             )
 
         psf = simtools.Psf(11, 3.0, 1.9)
-        for i in range(50):
+        for i in range(30):
             x = random.integers(7, 220)
             y = random.integers(122, 220)
             # print x, y
@@ -368,7 +368,7 @@ class TestNpArrayMinSrcs(SingleImageBase, ProperImageTestCase):
     def setUp(self):
         super(TestNpArrayMinSrcs, self).setUp()
         print(self.mock_image_data.shape)
-        self.si = s.SingleImage(self.mock_image_data, min_sources=6)
+        self.si = SingleImage(self.mock_image_data, min_sources=6)
 
     def testMask(self):
         nanmask = np.zeros((256, 256))
@@ -383,10 +383,10 @@ class TestNpArrayCtxt(SingleImageBase, ProperImageTestCase):
     def setUp(self):
         super(TestNpArrayCtxt, self).setUp()
         print(self.mock_image_data.shape)
-        self.si = s.SingleImage(self.mock_image_data)
+        self.si = SingleImage(self.mock_image_data)
 
     def testCtxt(self):
-        with s.SingleImage(self.mock_image_data) as sim:
+        with SingleImage(self.mock_image_data) as sim:
             np.testing.assert_array_equal(self.si.data.data, sim.data.data)
 
 

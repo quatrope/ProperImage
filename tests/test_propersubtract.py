@@ -113,9 +113,7 @@ class TestSubtract(PropersubtractBase, unittest.TestCase):
         self.si_new = SingleImage(self.paths[1])
 
     def testSubtractNoBeta(self):
-        D, P, S_corr, mix_mask = subtract(
-            self.si_ref, self.si_new, beta=False
-        )
+        D, P, S_corr, mix_mask = subtract(self.si_ref, self.si_new, beta=False)
         self.assertIsInstance(D, np.ndarray)
         self.assertIsInstance(P, np.ndarray)
         self.assertIsInstance(S_corr, np.ndarray)
