@@ -99,7 +99,7 @@ class SingleImage(object):
         mask=None,
         maskthresh=None,
         stamp_shape=None,
-        borders=True,
+        borders=False,
         crop=((0, 0), (0, 0)),
         min_sources=None,
         strict_star_pick=False,
