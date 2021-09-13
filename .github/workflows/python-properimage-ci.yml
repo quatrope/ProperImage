@@ -42,3 +42,4 @@ jobs:
     - name: Test with tox
       run: |
         tox -r
+        codecov --token=4022c5c1-b038-4f9b-bf1b-9d3b3d2b4628
