@@ -20,8 +20,9 @@ import os
 import pathlib
 import tempfile
 
-from astropy.convolution import (Box2DKernel, convolve_fft,
-                                 interpolate_replace_nans)
+from astropy.convolution import Box2DKernel
+from astropy.convolution import convolve_fft
+from astropy.convolution import interpolate_replace_nans
 from astropy.io import fits
 from astropy.modeling import fitting, models
 from astropy.nddata.utils import extract_array
