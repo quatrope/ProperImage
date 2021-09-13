@@ -26,19 +26,16 @@ Of 301
 """
 
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
+
+from astropy.io import fits
 
 import numpy as np
 from numpy.random import default_rng
 
-from astropy.io import fits
-
-from properimage import subtract
-from properimage import SingleImage
-from properimage import simtools
-
+from properimage import SingleImage, simtools, subtract
 
 random = default_rng(seed=42)
 

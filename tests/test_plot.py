@@ -42,9 +42,9 @@ from matplotlib.testing.decorators import check_figures_equal
 
 import numpy as np
 
-import pytest
-
 from properimage import plot
+
+import pytest
 
 # =============================================================================
 # TEST PRIMES

@@ -17,13 +17,13 @@ This module contains plotting utilities and plugins.
 
 import logging
 
-import numpy as np
-
 from astropy.stats import sigma_clipped_stats
+
+import attr
 
 import matplotlib.pyplot as plt
 
-import attr
+import numpy as np
 
 
 # =============================================================================

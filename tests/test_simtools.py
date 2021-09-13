@@ -28,12 +28,11 @@ Of 301
 import numpy as np
 from numpy.random import default_rng
 
-from scipy.ndimage.interpolation import rotate
-
 from properimage import simtools as sm
 
-from .core import ProperImageTestCase
+from scipy.ndimage.interpolation import rotate
 
+from .core import ProperImageTestCase
 
 random = default_rng(seed=42)
 

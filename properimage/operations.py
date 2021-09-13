@@ -17,27 +17,25 @@ astronomical images.
 """
 
 import logging
+import pickle
 import time
 import warnings
+from multiprocessing import Process, Queue
 
-import sep
-import numpy as np
 import astroalign as aa
 
 from astropy.stats import sigma_clipped_stats
+
+import numpy as np
+
 from scipy import optimize
 from scipy.ndimage import center_of_mass
 from scipy.ndimage.fourier import fourier_shift
-from multiprocessing import Process, Queue
+
+import sep
 
 from . import utils as u
-
 from .single_image import SingleImage as si
-
-try:
-    import cPickle as pickle  # noqa
-except ImportError:
-    import pickle
 
 try:
     import pyfftw

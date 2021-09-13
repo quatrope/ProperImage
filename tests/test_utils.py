@@ -27,17 +27,16 @@ Of 301
 
 import os
 import tempfile
-import numpy as np
-from numpy.random import default_rng
 
 from astropy.io import fits
 
+import numpy as np
+from numpy.random import default_rng
+
+from properimage import simtools as sm
 from properimage import utils
 
 from .core import ProperImageTestCase
-
-from properimage import simtools as sm
-
 
 random = default_rng(seed=42)
 

@@ -26,18 +26,15 @@ Of 301
 """
 
 import os
-import tempfile
 import shutil
+import tempfile
+
+from astropy.io import fits
 
 import numpy as np
 from numpy.random import default_rng
 
-from astropy.io import fits
-
-from properimage import coadd
-from properimage import SingleImage
-from properimage import simtools
-from properimage import utils
+from properimage import SingleImage, coadd, simtools, utils
 
 from .core import ProperImageTestCase
 

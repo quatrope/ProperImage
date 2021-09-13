@@ -19,14 +19,18 @@ catalog matching, image registering, etc.
 import os
 
 import astroalign as aa
-import numpy as np
-import scipy.ndimage as ndimage
+
 from astropy.io import fits
 from astropy.modeling import fitting, models
 from astropy.stats import sigma_clipped_stats
+
+import numpy as np
 from numpy.lib.recfunctions import append_fields
+
+import scipy.ndimage as ndimage
 from scipy import sparse
 from scipy.spatial import cKDTree
+
 
 aa.PIXEL_TOL = 0.3
 aa.NUM_NEAREST_NEIGHBORS = 5

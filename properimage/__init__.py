@@ -16,7 +16,8 @@ of CCD images. The methodology follows a hypothesis test scheme.
 
 __version__ = "0.7.1"
 
-from .operations import subtract, coadd
+from .operations import coadd, subtract
 from .single_image import SingleImage
+
 
 __all__ = ["subtract", "coadd", "SingleImage"]

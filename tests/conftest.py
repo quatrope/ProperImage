@@ -30,10 +30,9 @@ Cordoba - Argentina Of 301
 import numpy as np
 from numpy.random import default_rng
 
-import pytest
-
 from properimage import SingleImage, simtools
 
+import pytest
 
 # =============================================================================
 # CONSTANTS

@@ -20,25 +20,27 @@ import os
 import pathlib
 import tempfile
 
-import numpy as np
-from astropy.convolution import (
-    Box2DKernel,
-    convolve_fft,
-    interpolate_replace_nans,
-)
+from astropy.convolution import (Box2DKernel, convolve_fft,
+                                 interpolate_replace_nans)
 from astropy.io import fits
-from astropy.nddata.utils import extract_array
 from astropy.modeling import fitting, models
+from astropy.nddata.utils import extract_array
 from astropy.stats import sigma_clipped_stats
+
+from astroscrappy import detect_cosmics
+
+import numpy as np
 from numpy import ma
+
 from scipy.ndimage import center_of_mass
 from scipy.ndimage import convolve as convolve_scp
 from scipy.ndimage.fourier import fourier_shift
+
+import sep
+
 from six.moves import range
 
 import tinynpydb as npdb
-import sep
-from astroscrappy import detect_cosmics
 
 from . import plot, utils
 
