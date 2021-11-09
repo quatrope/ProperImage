@@ -44,8 +44,8 @@ $ pip install properimage
 To create a proper-subtraction of images:
 
 ```python
->>> from properimage import propersubtract as ps
->>> D, P, Scorr, mask = ps.subtract(ref=ref_path, new=new_path, smooth_psf=False, fitted_psf=True,
+>>> from properimage.operations import subtract
+>>> D, P, Scorr, mask = subtract(ref=ref_path, new=new_path, smooth_psf=False, fitted_psf=True,
 ...                             align=False, iterative=False, beta=False, shift=False)
 ```
 
