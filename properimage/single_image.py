@@ -63,7 +63,7 @@ TEMP_DIR = tempfile.mkdtemp(suffix="_properimage")
 
 TEMP_PATH = pathlib.Path(TEMP_DIR)
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # API

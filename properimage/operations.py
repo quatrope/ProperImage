@@ -46,6 +46,8 @@ except ImportError:
     _fftwn = np.fft.fft2
     _ifftwn = np.fft.ifft2
 
+logger = logging.getLogger(__name__)
+
 aa.PIXEL_TOL = 0.5
 eps = np.finfo(np.float64).eps
 
@@ -99,7 +101,7 @@ def subtract(
     mix_mask : np.ndarray of bool
         Mask of bad pixels for subtracion image, with True marking bad pixels
     """
-    logger = logging.getLogger()
+
     if fitted_psf:
         from .single_image import SingleImageGaussPSF as SI
 
