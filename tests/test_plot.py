@@ -273,7 +273,7 @@ def test_plot_autopsf_coef(random_4psf_simage, fig_test, fig_ref):
         img = ax.imshow(a, vmax=med + 2 * std, vmin=med - 2 * std)
         fig_ref.colorbar(img, ax=ax, **cmap_kw)
 
-        title = title_tpl.format(j=idx + 1, sum=np.sqrt(np.sum(a ** 2)))
+        title = title_tpl.format(j=idx + 1, sum=np.sqrt(np.sum(a**2)))
         ax.set_title(title)
 
     # fig test

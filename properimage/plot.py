@@ -309,7 +309,7 @@ class Plot:
             img = ax.imshow(a, **imshow_kw)
             fig.colorbar(img, ax=ax, **cmap_kw)
 
-            title = title_tpl.format(j=idx + 1, sum=np.sqrt(np.sum(a ** 2)))
+            title = title_tpl.format(j=idx + 1, sum=np.sqrt(np.sum(a**2)))
             ax.set_title(title)
 
         return axs

@@ -605,7 +605,7 @@ class SingleImage(object):
                     xcm = np.array([xcm[0], ycm[0]])
 
                     delta = xcm - np.asarray(new_shape) / 2.0
-                    if np.sqrt(np.sum(delta ** 2)) > new_shape[0] / 5.0:
+                    if np.sqrt(np.sum(delta**2)) > new_shape[0] / 5.0:
                         to_del.append(jj)
                         jj += 1
                         continue
@@ -634,7 +634,7 @@ class SingleImage(object):
                         ymax, xmax, thmax = outl_cat[0]
                         xcm = np.array([xmax, ymax])
                         delta = xcm - np.asarray(new_shape) / 2.0
-                        if np.sqrt(np.sum(delta ** 2)) > new_shape[0] / 5.0:
+                        if np.sqrt(np.sum(delta**2)) > new_shape[0] / 5.0:
                             to_del.append(jj)
                             jj += 1
                             continue
@@ -998,7 +998,7 @@ class SingleImage(object):
                     conv = fourier_shift(conv, (+dx, +dy))
                     np.add(conv, s_hat, out=s_hat)
 
-            self._s_hat_comp = (self.zp / (var ** 2)) * s_hat
+            self._s_hat_comp = (self.zp / (var**2)) * s_hat
             self._s_hat_inf_loss = self.inf_loss
 
         return self._s_hat_comp

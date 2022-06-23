@@ -197,21 +197,21 @@ def subtract(
     D_hat_r = fourier_shift(psf_new_hat * ref.interped_hat, (-dx_new, -dy_new))
     D_hat_n = fourier_shift(psf_ref_hat * new.interped_hat, (-dx_ref, -dy_ref))
 
-    norm_b = ref.var ** 2 * psf_new_hat * psf_new_hat_conj
-    norm_a = new.var ** 2 * psf_ref_hat * psf_ref_hat_conj
+    norm_b = ref.var**2 * psf_new_hat * psf_new_hat_conj
+    norm_a = new.var**2 * psf_ref_hat * psf_ref_hat_conj
 
     new_back = sep.Background(new.interped).back()
     ref_back = sep.Background(ref.interped).back()
     gamma = new_back - ref_back
     b = n_zp / r_zp
-    norm = np.sqrt(norm_a + norm_b * b ** 2)
+    norm = np.sqrt(norm_a + norm_b * b**2)
     if beta:
         if shift:  # beta==True & shift==True
 
             def cost(vec):
                 b, dx, dy = vec
-                gammap = gamma / np.sqrt(new.var ** 2 + b ** 2 * ref.var ** 2)
-                norm = np.sqrt(norm_a + norm_b * b ** 2)
+                gammap = gamma / np.sqrt(new.var**2 + b**2 * ref.var**2)
+                norm = np.sqrt(norm_a + norm_b * b**2)
                 dhn = D_hat_n / norm
                 dhr = D_hat_r / norm
                 b_n = (
@@ -257,8 +257,8 @@ def subtract(
             bi = b
 
             def F(b):
-                gammap = gamma / np.sqrt(new.var ** 2 + b ** 2 * ref.var ** 2)
-                norm = np.sqrt(norm_a + norm_b * b ** 2)
+                gammap = gamma / np.sqrt(new.var**2 + b**2 * ref.var**2)
+                norm = np.sqrt(norm_a + norm_b * b**2)
                 b_n = (
                     _ifftwn(D_hat_n / norm, norm="ortho")
                     - gammap
@@ -291,8 +291,8 @@ def subtract(
             bi = b
 
             def F(b):
-                gammap = gamma / np.sqrt(new.var ** 2 + b ** 2 * ref.var ** 2)
-                norm = np.sqrt(norm_a + norm_b * b ** 2)
+                gammap = gamma / np.sqrt(new.var**2 + b**2 * ref.var**2)
+                norm = np.sqrt(norm_a + norm_b * b**2)
                 b_n = (
                     _ifftwn(D_hat_n / norm, norm="ortho")
                     - gammap
@@ -322,8 +322,8 @@ def subtract(
     else:
         if shift:  # beta==False & shift==True
             bi = n_zp / r_zp
-            gammap = gamma / np.sqrt(new.var ** 2 + b ** 2 * ref.var ** 2)
-            norm = np.sqrt(norm_a + norm_b * b ** 2)
+            gammap = gamma / np.sqrt(new.var**2 + b**2 * ref.var**2)
+            norm = np.sqrt(norm_a + norm_b * b**2)
             dhn = D_hat_n / norm
             dhr = D_hat_r / norm
 
@@ -369,7 +369,7 @@ def subtract(
             dx = 0.0
             dy = 0.0
 
-    norm = norm_a + norm_b * b ** 2
+    norm = norm_a + norm_b * b**2
 
     if dx == 0.0 and dy == 0.0:
         D_hat = (D_hat_n - b * D_hat_r) / np.sqrt(norm)
@@ -382,7 +382,7 @@ def subtract(
     if np.any(np.isnan(D.real)):
         pass
 
-    d_zp = b / np.sqrt(ref.var ** 2 * b ** 2 + new.var ** 2)
+    d_zp = b / np.sqrt(ref.var**2 * b**2 + new.var**2)
     P_hat = (psf_ref_hat * psf_new_hat * b) / (np.sqrt(norm) * d_zp)
 
     P = _ifftwn(P_hat, norm="ortho").real
@@ -408,13 +408,13 @@ def subtract(
 
     V_en = _ifftwn(
         _fftwn(new.data.filled(0) + 1.0, norm="ortho")
-        * _fftwn(kn ** 2, s=new.data.shape),
+        * _fftwn(kn**2, s=new.data.shape),
         norm="ortho",
     )
 
     V_er = _ifftwn(
         _fftwn(ref.data.filled(0) + 1.0, norm="ortho")
-        * _fftwn(kr ** 2, s=ref.data.shape),
+        * _fftwn(kr**2, s=ref.data.shape),
         norm="ortho",
     )
 
