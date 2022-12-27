@@ -1,6 +1,6 @@
-ipython>=7.17.0
-Sphinx>=1.6.5
-nbsphinx>=0.2.12
-sphinx-autobuild
-sphinx-rtd-theme>=0.2.4
+ipython>=8
+Sphinx>=5
+nbsphinx>=0.8
+sphinx-autobuild>=2021
+sphinx-rtd-theme>=1
 
