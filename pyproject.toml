@@ -5,4 +5,66 @@
 
 [tool.black]
 line-length = 79
-target-version = ["py36", "py37", "py38"]
+target-version = ["py38"]
+
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+
+# =============================================================================
+# PACKAGING
+# =============================================================================
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "properimage"
+version = "0.7.1"
+authors = [{name = "Bruno O. Sanchez & QuatroPe", email = "bruno.sanchez@duke.edu"}]
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+description = "Proper Astronomic Image Analysis"
+keywords = [
+    "astronomy",
+    "image",
+    "difference",
+    "transient",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+]
+urls = { Homepage = "https://properimage.readthedocs.io/en/latest/", Repository = "https://github.com/quatrope/properimage" }
+dependencies = [
+    "numpy",
+    "scipy",
+    "astropy",
+    "matplotlib",
+    "sep",
+    "astroscrappy>=1.0.5",
+    "astroalign>=1.0.3",
+    "tinynpydb>=0.1",
+    "pyFFTW>=0.12",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["properimage", "properimage.*"]
+namespaces = false

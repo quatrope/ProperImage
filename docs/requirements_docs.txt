@@ -3,4 +3,3 @@ Sphinx>=5
 nbsphinx>=0.8
 sphinx-autobuild>=2021
 sphinx-rtd-theme>=1
-

@@ -22,18 +22,18 @@ jobs:
           env: TOXENV=py37
         - python: 3.8
           env: TOXENV=py38
-        - python: 3.9
-          env: TOXENV=py39
+        - python: 3.10
+          env: TOXENV=py310
 
-        - python: 3.8
+        - python: 3.10
           env: TOXENV=style
-        - python: 3.8
+        - python: 3.10
           env: TOXENV=coverage
-        - python: 3.8
+        - python: 3.10
           env: TOXENV=docs
-        - python: 3.8
+        - python: 3.10
           env: TOXENV=docstyle
-        - python: 3.8
+        - python: 3.10
           env: TOXENV=check-manifest
 
 
