@@ -13,5 +13,4 @@ env:
 
 jobs:
   testing:
-    uses: quatrope/ProperImage/.github/workflows/testing.yml
-
+    uses: quatrope/ProperImage/.github/workflows/testing.yml@4b29d50cb9d70038be0539f92bd9521a8ba878b8
