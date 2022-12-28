@@ -43,7 +43,11 @@ extensions = [
     "nbsphinx",
 ]
 
-exclude_patterns = ["_build", "source/.ipynb_checkpoints/*"]
+exclude_patterns = [
+    "_build",
+    "source/.ipynb_checkpoints/*",
+    "source/tutorial/.ipynb_checkpoints/*"
+]
 
 numpydoc_class_members_toctree = False
 
