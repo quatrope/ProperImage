@@ -62,8 +62,8 @@ jobs:
       - name: tox -re ${{ matrix.tox_env }}
         run: tox -re ${{ matrix.tox_env }}
 
-      - name: Report coverage
-        run: |
-          tox -e coverage
-          codecov --token=4022c5c1-b038-4f9b-bf1b-9d3b3d2b4628
+      # - name: Report coverage
+      #   run: |
+      #     tox -e coverage
+      #     codecov --token=4022c5c1-b038-4f9b-bf1b-9d3b3d2b4628
 
