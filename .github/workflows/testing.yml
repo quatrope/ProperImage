@@ -23,9 +23,6 @@ jobs:
           - tox_env: style
           - tox_env: docs
           - tox_env: check-manifest
-          #- tox_env: check-testdir
-          #- tox_env: check-headers
-          #- tox_end: check-apidocsdir
           - tox_env: coverage
           - tox_env: docs
             pandoc: true
@@ -33,8 +30,9 @@ jobs:
     # The operative sistem
     runs-on: ${{ matrix.os || 'ubuntu-latest' }}
 
+    # the steps of the CI
     steps:
-    - uses: actions/checkout@master
+      - uses: actions/checkout@master
 
       # optionals
       - name: Install pandoc
