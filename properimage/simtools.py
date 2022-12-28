@@ -19,13 +19,16 @@ This module contains utilities for mocking images, and simulating data.
 import os
 from functools import reduce
 
-import numpy as np
-import scipy as sp
+
 # from astropy.convolution import convolve_fft
 from astropy.io import fits
 from astropy.modeling import models
 from astropy.time import Time
+
+import numpy as np
 from numpy.random import default_rng
+
+import scipy as sp
 from scipy import signal as sg
 from scipy import stats
 from scipy.ndimage import rotate

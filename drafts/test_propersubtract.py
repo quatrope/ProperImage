@@ -71,8 +71,8 @@ def main(args):
                 continue
             print(x,y)
             noise = np.random.normal(loc=med, scale=st, size=animg.stamp_shape)
-            animg.data.data[np.int(x-sx/2.):np.int(x+sx/2.),
-                                 np.int(y-sy/2.):np.int(y+sy/2.)] = noise
+            animg.data.data[int(x-sx/2.):int(x+sx/2.),
+                                 int(y-sy/2.):int(y+sy/2.)] = noise
 
         ##  Adding stars
         #~ foo = animg.cov_matrix
