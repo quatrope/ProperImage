@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: testing
+name: Testing
 
 on:
   push:
@@ -21,7 +21,6 @@ jobs:
         tox_env: [py37, py38, py39, py310]
         include:
           - tox_env: style
-          - tox_env: docs
           - tox_env: check-manifest
           - tox_env: coverage
           - tox_env: docs
