@@ -30,7 +30,7 @@ import numpy as np
 
 from scipy import optimize
 from scipy.ndimage import center_of_mass
-from scipy.ndimage.fourier import fourier_shift
+from scipy.ndimage import fourier_shift
 
 import sep
 
@@ -609,7 +609,7 @@ def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
 
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
-        mix_mask = np.zeros(global_shape, dtype=np.bool)
+        mix_mask = np.zeros(global_shape, dtype=np.bool_)
         for q in queues:
             serialized = q.get()
             logger.info("loading pickles")

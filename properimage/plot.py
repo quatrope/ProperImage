@@ -128,7 +128,7 @@ def plot_R(R, path=None, nbook=False):
     -------
     ax : matplotlib axes
     """
-    if isinstance(R[0, 0], np.complex):
+    if isinstance(R[0, 0], complex):
         R = R.real
     if isinstance(R, np.ma.masked_array):
         R = R.filled()

@@ -35,7 +35,7 @@ from numpy import ma
 
 from scipy.ndimage import center_of_mass
 from scipy.ndimage import convolve as convolve_scp
-from scipy.ndimage.fourier import fourier_shift
+from scipy.ndimage import fourier_shift
 
 import sep
 
@@ -1097,7 +1097,7 @@ class SingleImage(object):
         if a_fields[0] is not None:
             psf_at_xy = np.zeros_like(psf_basis[0])
             delta = int((psf_at_xy.shape[0] - 1) / 2)
-            xp, yp = np.int(np.round(x)), np.int(np.round(y))
+            xp, yp = int(np.round(x)), int(np.round(y))
             xmin = xp - delta
             xmax = xp + delta + 1
             ymin = yp - delta

@@ -47,7 +47,7 @@ def store_img(img, path=None):
     Returns:
         HDUList: The astropy.io.fits.HDUList image
     """
-    if isinstance(img[0, 0], np.complex):
+    if isinstance(img[0, 0], complex):
         img = img.real
 
     if isinstance(img, np.ma.core.MaskedArray):

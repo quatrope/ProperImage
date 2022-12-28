@@ -19,18 +19,16 @@ This module contains utilities for mocking images, and simulating data.
 import os
 from functools import reduce
 
+import numpy as np
+import scipy as sp
 # from astropy.convolution import convolve_fft
 from astropy.io import fits
 from astropy.modeling import models
 from astropy.time import Time
-
-import numpy as np
 from numpy.random import default_rng
-
-import scipy as sp
 from scipy import signal as sg
 from scipy import stats
-from scipy.ndimage.interpolation import rotate
+from scipy.ndimage import rotate
 
 random_def = default_rng(seed=110112)
 
@@ -145,8 +143,8 @@ def perfilsersic(r_e, I_e, n, r):
          r    :  Radio medido desde el centro en pixeles
     """
     b = 1.999 * n - 0.327
-    I_r = I_e * np.exp(-b * (((r / r_e) ** (1 / np.float(n))) - 1))
-    I_r = I_r / (I_e * np.exp(-b * (((0.0 / r_e) ** (1 / np.float(n))) - 1)))
+    I_r = I_e * np.exp(-b * (((r / r_e) ** (1 / float(n))) - 1))
+    I_r = I_r / (I_e * np.exp(-b * (((0.0 / r_e) ** (1 / float(n))) - 1)))
     return I_r
 
 

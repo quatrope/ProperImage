@@ -30,7 +30,7 @@ from numpy.random import default_rng
 
 from properimage import simtools as sm
 
-from scipy.ndimage.interpolation import rotate
+from scipy.ndimage import rotate
 
 from .core import ProperImageTestCase
 

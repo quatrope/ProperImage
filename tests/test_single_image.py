@@ -28,6 +28,7 @@ Of 301
 import os
 import shutil
 import tempfile
+import warnings
 
 from astropy.io import fits
 
@@ -40,7 +41,8 @@ import pytest
 
 from .core import ProperImageTestCase
 
-np.warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore")
+
 random = default_rng(seed=42)
 
 
