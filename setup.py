@@ -23,12 +23,12 @@
 import os
 import sys
 
-from ez_setup import use_setuptools
+#from ez_setup import use_setuptools
 
 import setuptools
 
 
-use_setuptools()
+#use_setuptools()
 
 
 # =============================================================================
@@ -88,7 +88,7 @@ def do_setup():
         author="Bruno Sanchez",
         author_email="bruno@oac.unc.edu.ar",
         url="https://github.com/toros-astro/ProperImage",
-        py_modules=["ez_setup"],
+        #py_modules=["ez_setup"],
         license="BSD 3",
         keywords="astronomy image",
         classifiers=[
@@ -99,7 +99,6 @@ def do_setup():
             "Operating System :: OS Independent",
             "Programming Language :: Python",
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",

@@ -4,13 +4,10 @@
 name: Testing
 
 on:
-  workflow_call:
-
-# on:
-#   push:
-#     branches: [ master ]
-#   pull_request:
-#     branches: [ master ]
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 env:
   default-python: 3.10
