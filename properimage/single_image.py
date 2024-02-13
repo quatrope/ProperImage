@@ -320,6 +320,11 @@ class SingleImage(object):
                                 self.__data = ma.masked_invalid(
                                     self.__data.data
                                 )
+
+                    else:
+                        masked = ma.masked_greater(self.__data, 65000.0)
+                        if not np.sum(~masked.mask) < 1000.0:
+                            self.__data = masked
                 except IOError:
                     self.__data = ma.masked_invalid(self.__data)
         else:
@@ -335,12 +340,16 @@ class SingleImage(object):
 
         # this procedure makes the mask grow seven times, using 2 or more
         # neighbor pixels masked. This is useful for avoiding ripples from fft
-        for i_enlarge in range(7):
-            enlarged_mask = convolve_scp(
-                self.__data.mask.astype(int), np.ones((3, 3))
-            )
-            enlarged_mask = enlarged_mask.astype(int) > 2
-            self.__data.mask = ma.mask_or(self.__data.mask, enlarged_mask)
+        if self.__data.mask.shape != ():
+            for i_enlarge in range(7):
+                enlarged_mask = convolve_scp(
+                    self.__data.mask.astype(int), np.ones((3, 3))
+                )
+                enlarged_mask = enlarged_mask.astype(int) > 2
+                self.__data.mask = ma.mask_or(self.__data.mask, enlarged_mask)
+        else:
+            self.__data.mask = np.zeros_like(self.__data.data)
+            
 
     @property
     def background(self):
@@ -476,7 +485,7 @@ class SingleImage(object):
             ]
 
             if len(best_srcs) < 5:
-                self.warning(
+                logger.warning(
                     "Best sources are too few- Using everything we have!"
                 )
                 best_srcs = srcs
