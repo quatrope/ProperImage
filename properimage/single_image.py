@@ -349,7 +349,6 @@ class SingleImage(object):
                 self.__data.mask = ma.mask_or(self.__data.mask, enlarged_mask)
         else:
             self.__data.mask = np.zeros_like(self.__data.data)
-            
 
     @property
     def background(self):
