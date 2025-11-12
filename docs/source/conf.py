@@ -19,10 +19,6 @@
 import os
 import sys
 
-from pygments.lexers import get_lexer_by_name
-from pygments.lexers.special import IPythonConsoleLexer
-from pygments.lexers import _mapping
-
 sys.path.insert(0, os.path.abspath("."))
 
 ON_RTD = os.environ.get("READTHEDOCS", None) == "True"
@@ -47,6 +43,9 @@ extensions = [
     "nbsphinx",
 ]
 
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+# This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = [
     "_build",
     "source/.ipynb_checkpoints/*",
@@ -55,7 +54,11 @@ exclude_patterns = [
 
 numpydoc_class_members_toctree = False
 
-# nbsphinx_execute = 'never'
+# nbsphinx configuration - don't execute notebooks by default
+nbsphinx_execute = 'never'
+
+# Allow nbsphinx to use fallback lexer for unknown languages
+nbsphinx_codecell_lexer = 'ipython3'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -97,13 +100,11 @@ release = __version__
 # Usually you set "language" from the command line for these cases.
 language = 'en'
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = []
-
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
+
+# Suppress warnings about unknown highlighting languages
+suppress_warnings = ['misc.highlighting_failure']
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
@@ -228,12 +229,17 @@ epub_exclude_files = ["search.html"]
 import subs
 
 if not ON_RTD:  # only import and set the theme if we're building docs locally
-    import sphinx_rtd_theme
+    try:
+        import sphinx_rtd_theme
 
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+        html_theme = "sphinx_rtd_theme"
+    except ImportError:
+        pass  # Use default theme if sphinx_rtd_theme is not available
 else:
-    from mock import Mock as MagicMock
+    try:
+        from unittest.mock import Mock as MagicMock
+    except ImportError:
+        from mock import Mock as MagicMock
 
     class Mock(MagicMock):
         @classmethod
@@ -248,10 +254,5 @@ rst_epilog = "\n".join(
     # ~ [".. |{}| replace:: {}".format(k, v) for k, v in subs.SUBSTITUTIONS.items()]
 )
 
-# Monkey-patch 'ipython3' to use 'ipython'
-_mapping.LEXERS['IPython3Lexer'] = (
-    'pygments.lexers.special',
-    'IPythonConsoleLexer',
-    ('ipython3',),
-    ('text/x-ipython3',)
-)
+# nbsphinx handles IPython syntax highlighting automatically in modern versions
+# No manual lexer registration needed
