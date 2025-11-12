@@ -19,6 +19,10 @@
 import os
 import sys
 
+from pygments.lexers import get_lexer_by_name
+from pygments.lexers.special import IPythonConsoleLexer
+from pygments.lexers import _mapping
+
 sys.path.insert(0, os.path.abspath("."))
 
 ON_RTD = os.environ.get("READTHEDOCS", None) == "True"
@@ -242,4 +246,12 @@ else:
 rst_epilog = "\n".join(
     [".. _{}: {}".format(k, v) for k, v in subs.TARGETS.items()]
     # ~ [".. |{}| replace:: {}".format(k, v) for k, v in subs.SUBSTITUTIONS.items()]
+)
+
+# Monkey-patch 'ipython3' to use 'ipython'
+_mapping.LEXERS['IPython3Lexer'] = (
+    'pygments.lexers.special',
+    'IPythonConsoleLexer',
+    ('ipython3',),
+    ('text/x-ipython3',)
 )
