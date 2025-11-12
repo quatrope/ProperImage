@@ -10,7 +10,7 @@ on:
     branches: [ master ]
 
 env:
-  default-python: 3.10
+  default-python: "3.12"
 
 jobs:
   build:
@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        tox_env: [py37, py38, py39, py310]
+        tox_env: [py39, py310, py311, py312]
         include:
           - tox_env: style
           - tox_env: check-manifest
