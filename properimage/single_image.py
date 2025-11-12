@@ -39,8 +39,6 @@ from scipy.ndimage import fourier_shift
 
 import sep
 
-from six.moves import range
-
 import tinynpydb as npdb
 
 from . import plot, utils
