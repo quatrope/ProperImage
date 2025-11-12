@@ -19,7 +19,7 @@ import logging
 
 from astropy.stats import sigma_clipped_stats
 
-import attr
+import attrs
 
 import matplotlib.pyplot as plt
 
@@ -149,13 +149,13 @@ def plot_R(R, path=None, nbook=False):
 # =============================================================================
 
 
-@attr.s(frozen=True, repr=False, eq=False, order=False)
+@attrs.frozen(repr=False, eq=False, order=False)
 class Plot:
     """Plotting plug-in object for SingleImage class."""
 
     DEFAULT_PLOT = "imshow"
 
-    si = attr.ib()
+    si: object = attrs.field()
 
     def __call__(self, plot=None, **kwargs):
         """Execute plot."""
