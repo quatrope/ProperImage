@@ -59,6 +59,20 @@ except ImportError:
 
 TEMP_DIR = tempfile.mkdtemp(suffix="_properimage")
 
+# Source detection and quality thresholds
+MASK_LOWER_THRESHOLD = -50.0  # Minimum pixel value for masking
+PERCENTILE_SIZING_FACTOR = 3.0  # Factor for p_sizes calculation
+SEP_THRESH = {
+    "default": 8,  # Default threshold multiplier
+    "high": 35,  # High threshold for bright sources
+    "low": 3,  # Low threshold for faint sources
+}
+MARGIN_CHECK_THRESHOLD = 3.5  # Margin quality check threshold (in RMS units)
+MAX_SRCS_LIMIT = 1800  # Maximum number of sources to process
+STAMP_PADSIZE = 6  # Border padding for stamp shape
+PSF_CTR_TOL = 5.0  # PSF center offset tolerance (new_shape[0] / this)
+
+
 TEMP_PATH = pathlib.Path(TEMP_DIR)
 
 logger = logging.getLogger(__name__)
@@ -106,8 +120,10 @@ class SingleImage(object):
         strict_star_pick=False,
         smooth_psf=False,
         gain=None,
+        guessmask=True,
     ):
         """Create instance of SingleImage."""
+        self.guessmask = guessmask
         self.borders = borders  # try to find zero border padding?
         self.crop = crop  # crop edge?
         self._strict_star_pick = strict_star_pick  # pick stars VERY carefully?
@@ -173,17 +189,30 @@ class SingleImage(object):
     @data.setter
     def data(self, img):
         """Set data property."""
+        logger.debug(f"Setting data from {type(img).__name__}")
         if isinstance(img, str):
+            logger.info(f"Loading image data from file: {img}")
             self.__data = ma.asarray(fits.getdata(img)).astype("<f4")
+            logger.debug(f"Loaded data shape: {self.__data.shape}")
         elif isinstance(img, np.ndarray):
+            logger.debug(
+                f"Converting numpy array to MaskedArray, shape: {img.shape}"
+            )
             self.__data = ma.MaskedArray(img, mask=False).astype("<f4")
         elif isinstance(img, fits.HDUList):
             if img[0].is_image:
+                logger.debug(
+                    f"Extracting data from HDUList, shape: {img[0].data.shape}"
+                )
                 self.__data = ma.asarray(img[0].data).astype("<f4")
         elif isinstance(img, fits.PrimaryHDU):
             if img.is_image:
+                logger.debug(
+                    f"Extracting data from PrimaryHDU, shape: {img.data.shape}"
+                )
                 self.__data = ma.asarray(img.data).astype("<f4")
         if self.borders:
+            logger.debug("Detecting and removing image borders")
             sx, sy = self.__data.shape
             line = self.__data.data[sx // 2, :]
             pxsum = 0
@@ -227,10 +256,17 @@ class SingleImage(object):
                 if not np.sum(self.__data.data[:, -dy - 1 :]) == 0:
                     rdy = sy - dy
                     break
+            logger.info(f"Cropping borders: x[{ldx}:{rdx}], y[{ldy}:{rdy}]")
             self.__data = self.__data[ldx:rdx, ldy:rdy]
+            logger.debug(
+                f"Data shape after border removal: {self.__data.shape}"
+            )
         if not np.sum(self.crop) == 0.0:
             dx, dy = self.crop
+            logger.info(f"Applying crop: dx={dx}, dy={dy}")
             self.__data = self.__data[dx[0] : -dx[1], dy[0] : -dy[1]]
+            logger.debug(f"Data shape after crop: {self.__data.shape}")
+        logger.debug(f"Applying gain factor: {self.__gain}")
         self.__data = self.__data * self.__gain
         self.__data.soften_mask()
 
@@ -244,10 +280,13 @@ class SingleImage(object):
         if imggain is None:
             try:
                 self.__gain = self.header["GAIN"]
+                logger.debug(f"Using GAIN from header: {self.__gain}")
             except KeyError:
                 self.__gain = 1.0
+                logger.debug("No GAIN in header, using default: 1.0")
         else:
             self.__gain = imggain
+            logger.debug(f"Using provided gain value: {self.__gain}")
 
     @property
     def header(self):
@@ -257,12 +296,18 @@ class SingleImage(object):
     @header.setter
     def header(self, img):
         if isinstance(img, str):
+            logger.debug(f"Loading header from file: {img}")
             self.__header = fits.getheader(img)
         elif isinstance(img, np.ndarray):
+            logger.debug(
+                "No header available for numpy array, using empty dict"
+            )
             self.__header = {}
         elif isinstance(img, fits.HDUList):
+            logger.debug("Extracting header from HDUList")
             self.__header = img[0].header
         elif isinstance(img, fits.PrimaryHDU):
+            logger.debug("Extracting header from PrimaryHDU")
             self.__header = img.header
 
     @property
@@ -272,40 +317,93 @@ class SingleImage(object):
 
     @mask.setter
     def mask(self, mask):
+        logger.debug(f"Setting mask, input type: {type(mask).__name__}")
         if isinstance(mask, str):
+            logger.info(f"Loading mask from file: {mask}")
             fitsmask = fits.getdata(mask)
+            logger.debug(
+                f"Mask shape: {fitsmask.shape}, "
+                f"median: {np.median(fitsmask)}, "
+                f"threshold: {self.maskthresh}"
+            )
             if np.median(fitsmask) == 0:
+                logger.debug(
+                    f"Mask median is 0, using >= threshold ({self.maskthresh})"
+                )
                 self.__data.mask = fitsmask >= self.maskthresh
             else:
+                logger.debug(
+                    f"Mask median is non-zero, using <= threshold "
+                    f"({self.maskthresh})"
+                )
                 self.__data.mask = fitsmask <= self.maskthresh
+            logger.info(
+                f"Mask loaded: {self.__data.mask.sum()} pixels masked ("
+                f"{100 * self.__data.mask.sum() / self.__data.mask.size:.2f}%)"
+            )
         # if the mask is a separated array
         elif isinstance(mask, np.ndarray):
+            logger.debug(
+                f"Using provided numpy array as mask, shape: {mask.shape}"
+            )
             self.__data.mask = mask
+            logger.info(
+                f"Applied array mask: {self.__data.mask.sum()} pixels masked ("
+                f"{100 * self.__data.mask.sum() / self.__data.mask.size:.2f}%)"
+            )
         # if the mask is not given
-        elif mask is None:
+        elif mask is None and self.guessmask:
+            logger.debug(
+                "No mask provided, attempting to detect from image source"
+            )
             # check the fits file and try to find it as an extension
             if self.attached_to == "PrimaryHDU":
+                logger.debug("Source is PrimaryHDU, masking invalid values")
                 self.__data = ma.masked_invalid(self.__img.data)
 
             elif self.attached_to == "ndarray":
+                logger.debug("Source is ndarray, masking invalid values")
                 self.__data = ma.masked_invalid(self.__img)
             elif self.attached_to == "HDUList":
                 if self.header["EXTEND"]:
+                    logger.info(
+                        "HDUList has extensions, loading mask from extension 1"
+                    )
                     fitsmask = self.__img[1].data
+                    logger.debug(
+                        f"Extension mask shape: {fitsmask.shape}, median: "
+                        f"{np.median(fitsmask)}"
+                    )
                     if np.median(fitsmask) == 0:
                         self.__data.mask = fitsmask >= self.maskthresh
                     else:
                         self.__data.mask = fitsmask <= self.maskthresh
+                    logger.info(
+                        f"Extension mask applied: {self.__data.mask.sum()} "
+                        "pixels masked"
+                    )
                 else:
+                    logger.debug("No extensions found, masking invalid values")
                     self.__data = ma.masked_invalid(self.__img[0].data)
             # if a path is given where we find a fits file search on extensions
             else:
                 try:
+                    logger.debug(
+                        f"Attempting to open FITS file: {self.attached_to}"
+                    )
                     ff = fits.open(self.attached_to)
                     if "EXTEND" in ff[0].header.keys():
                         if ff[0].header["EXTEND"]:
                             try:
+                                logger.info(
+                                    "FITS file has extensions, "
+                                    "loading mask from extension 1"
+                                )
                                 fitsmask = ff[1].data
+                                logger.debug(
+                                    f"Extension mask median: "
+                                    f"{np.median(fitsmask)}"
+                                )
                                 if np.median(fitsmask) == 0:
                                     self.__data.mask = (
                                         fitsmask >= self.maskthresh
@@ -314,39 +412,94 @@ class SingleImage(object):
                                     self.__data.mask = (
                                         fitsmask <= self.maskthresh
                                     )
+                                logger.info(
+                                    f"Extension mask applied: "
+                                    f"{self.__data.mask.sum()} pixels masked"
+                                )
                             except IndexError:
+                                logger.warning(
+                                    "Extension 1 not found, masking invalid"
+                                )
                                 self.__data = ma.masked_invalid(
                                     self.__data.data
                                 )
 
                     else:
+                        logger.debug("No EXTEND header, checking saturation")
                         masked = ma.masked_greater(self.__data, 65000.0)
                         if not np.sum(~masked.mask) < 1000.0:
+                            logger.info(
+                                f"Applying saturation mask (>65000): "
+                                f"{masked.mask.sum()} pixels masked"
+                            )
                             self.__data = masked
-                except IOError:
+                except IOError as e:
+                    logger.warning(
+                        f"Could not open FITS file ({e}), masking invalid"
+                    )
                     self.__data = ma.masked_invalid(self.__data)
         else:
+            logger.debug("Checking for saturated pixels (>65000)")
             masked = ma.masked_greater(self.__data, 65000.0)
             if not np.sum(~masked.mask) < 1000.0:
+                logger.info(
+                    f"Saturation mask applied: "
+                    f"{masked.mask.sum()} pixels masked"
+                )
                 self.__data = masked
 
-        mask_lower = ma.masked_less(self.__data, -50.0)
+        logger.debug(
+            f"Applying additional mask filters (lower bound: "
+            f"{MASK_LOWER_THRESHOLD}, upper: 65000)"
+        )
+        mask_lower = ma.masked_less(self.__data, MASK_LOWER_THRESHOLD)
         mask_greater = ma.masked_greater(self.__data, 65000.0)
 
+        initial_mask_count = (
+            self.__data.mask.sum() if self.__data.mask.shape != () else 0
+        )
         self.__data.mask = ma.mask_or(self.__data.mask, mask_lower.mask)
         self.__data.mask = ma.mask_or(self.__data.mask, mask_greater.mask)
+        added_pixels = (
+            self.__data.mask.sum() if self.__data.mask.shape != () else 0
+        ) - initial_mask_count
+        if added_pixels > 0:
+            logger.debug(
+                f"Additional {added_pixels} pixels masked by threshold filters"
+            )
 
         # this procedure makes the mask grow seven times, using 2 or more
         # neighbor pixels masked. This is useful for avoiding ripples from fft
         if self.__data.mask.shape != ():
+            logger.debug("Enlarging mask to avoid FFT ripples (7 iterations)")
+            initial_total = self.__data.mask.sum()
             for i_enlarge in range(7):
                 enlarged_mask = convolve_scp(
                     self.__data.mask.astype(int), np.ones((3, 3))
                 )
                 enlarged_mask = enlarged_mask.astype(int) > 2
                 self.__data.mask = ma.mask_or(self.__data.mask, enlarged_mask)
+            final_total = self.__data.mask.sum()
+            logger.info(
+                f"Mask enlargement complete: {initial_total} → {final_total} "
+                f"pixels masked (+{final_total - initial_total})"
+            )
         else:
+            logger.debug("Creating empty mask (no masked pixels initially)")
             self.__data.mask = np.zeros_like(self.__data.data)
+
+        total_masked = (
+            self.__data.mask.sum() if self.__data.mask.shape != () else 0
+        )
+        total_pixels = (
+            self.__data.mask.size
+            if self.__data.mask.shape != ()
+            else self.__data.data.size
+        )
+        logger.info(
+            f"Final mask: {total_masked}/{total_pixels} pixels masked "
+            f"({100 * total_masked / total_pixels:.2f}%)"
+        )
 
     @property
     def background(self):
@@ -367,7 +520,13 @@ class SingleImage(object):
 
     @_bkg.setter
     def _bkg(self, maskthresh):
+        logger.debug("Estimating background with SEP")
         if self.mask.any():
+            masked_pixels = self.mask.sum()
+            logger.debug(
+                f"Background estimation with mask "
+                f"({masked_pixels} pixels masked)"
+            )
             if maskthresh is not None:
                 back = sep.Background(self.data.data, mask=self.mask)
                 self.__bkg = back
@@ -375,8 +534,13 @@ class SingleImage(object):
                 back = sep.Background(self.data.data, mask=self.mask)
                 self.__bkg = back
         else:
+            logger.debug("Background estimation without mask")
             back = sep.Background(self.data.data)
             self.__bkg = back
+        logger.info(
+            f"Background estimated - global mean: {self.__bkg.globalback:.2f},"
+            f"RMS: {self.__bkg.globalrms:.4f}"
+        )
 
     @property
     def bkg_sub_img(self):
@@ -393,7 +557,7 @@ class SingleImage(object):
         if not hasattr(self, "__stamp_shape"):
             if shape is None:
                 percent = np.percentile(self.best_sources["npix"], q=65)
-                p_sizes = 3.0 * np.sqrt(percent)
+                p_sizes = PERCENTILE_SIZING_FACTOR * np.sqrt(percent)
 
                 if p_sizes > 5:
                     dx = int(p_sizes)
@@ -416,64 +580,126 @@ class SingleImage(object):
             n_sources: the total number of sources extracted
         """
         if not hasattr(self, "_best_sources"):
+            logger.debug(
+                f"Detecting sources with background RMS: "
+                f"{self.__bkg.globalrms:.4f}"
+            )
             try:
+                thresh_default = SEP_THRESH["default"] * self.__bkg.globalrms
+                logger.debug(
+                    f"Attempting extraction with default threshold: "
+                    f"{thresh_default:.4f} (minarea=9)"
+                )
                 srcs = sep.extract(
                     self.bkg_sub_img.data,
-                    thresh=8 * self.__bkg.globalrms,
+                    thresh=thresh_default,
                     mask=self.mask,
                     minarea=9,
                 )
-            except Exception:
+                logger.info(
+                    f"SEP extraction (default): found {len(srcs)} sources"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Default extraction failed: {e}, trying high threshold"
+                )
                 try:
                     sep.set_extract_pixstack(3600000)
+                    thresh_high = SEP_THRESH["high"] * self.__bkg.globalrms
+                    logger.debug(
+                        f"Attempting extraction with high threshold: "
+                        f"{thresh_high:.4f} (minarea=9)"
+                    )
                     srcs = sep.extract(
                         self.bkg_sub_img.data,
-                        thresh=35 * self.__bkg.globalrms,
+                        thresh=thresh_high,
                         mask=self.mask,
                         minarea=9,
                     )
-                except Exception:
+                    logger.info(
+                        f"SEP extraction (high): found {len(srcs)} sources"
+                    )
+                except Exception as e2:
+                    logger.error(
+                        f"High threshold extraction also failed: {e2}"
+                    )
                     raise
             if len(srcs) < self.min_sources:
+                logger.warning(
+                    f"Only {len(srcs)} sources found, below minimum "
+                    f"{self.min_sources}. Trying lower threshold"
+                )
                 old_srcs = srcs
                 try:
+                    thresh_low = SEP_THRESH["low"] * self.__bkg.globalrms
+                    logger.debug(
+                        f"Attempting extraction with low threshold: "
+                        f"{thresh_low:.4f} (minarea=5)"
+                    )
                     srcs = sep.extract(
                         self.bkg_sub_img.data,
-                        thresh=3 * self.__bkg.globalrms,
+                        thresh=thresh_low,
                         mask=self.mask,
                         minarea=5,
                     )
-                except Exception:
+                    logger.info(
+                        f"SEP extract (low, minarea=5): found {len(srcs)} srcs"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Low threshold (minarea=5) failed: {e}, "
+                        "trying minarea=9"
+                    )
                     sep.set_extract_pixstack(900000)
                     srcs = sep.extract(
                         self.bkg_sub_img.data,
-                        thresh=3 * self.__bkg.globalrms,
+                        thresh=SEP_THRESH["low"] * self.__bkg.globalrms,
                         mask=self.mask,
                         minarea=9,
                     )
+                    logger.info(
+                        f"SEP extract (low, minarea=9): found {len(srcs)} srcs"
+                    )
                 if len(old_srcs) > len(srcs):
+                    logger.info(
+                        f"Reverting to original {len(old_srcs)} sources "
+                        f"(better than {len(srcs)})"
+                    )
                     srcs = old_srcs
 
             if len(srcs) == 0:
+                logger.error(
+                    "No sources detected on image. Check image quality and "
+                    "background estimation."
+                )
                 raise ValueError("Few sources detected on image")
             elif len(srcs) == 1:
                 m, med, st = sigma_clipped_stats(
                     self.bkg_sub_img.data.flatten()
                 )  # noqa
+                logger.warning(
+                    f"Only 1 source detected. Image stats: mean={m:.2f}, "
+                    f"median={med:.2f}, std={st:.4f}"
+                )
                 if st <= 0.1:
+                    logger.error("Image std too low, image appears constant")
                     raise ValueError("Image is constant, possible saturated")
                 if m >= 65535.0:
+                    logger.error(f"Image mean {m:.2f} indicates saturation")
                     raise ValueError("Image is saturated")
                 else:
                     raise ValueError("Only one source. Possible saturation")
 
+            logger.debug(f"Filtering {len(srcs)} sources by quality criteria")
             p_sizes = np.percentile(srcs["npix"], q=[20, 50, 80])
+            logger.debug(f"Source size percentiles [20, 50, 80]: {p_sizes}")
 
             best_big = srcs["npix"] >= p_sizes[0]
             best_small = srcs["npix"] <= p_sizes[2]
             best_flag = srcs["flag"] == 0
 
             fluxes_quartiles = np.percentile(srcs["flux"], q=[15, 85])
+            logger.debug(f"Flux percentiles [15, 85]: {fluxes_quartiles}")
             low_flux = srcs["flux"] >= fluxes_quartiles[0]
             hig_flux = srcs["flux"] <= fluxes_quartiles[1]
 
@@ -481,17 +707,34 @@ class SingleImage(object):
                 best_big & best_flag & best_small & hig_flux & low_flux
             ]
 
+            logger.info(
+                f"After quality filtering: {len(best_srcs)} of "
+                f"{len(srcs)} sources remain"
+            )
+            logger.debug(
+                f"Filter breakdown - size: {best_big.sum()}, flag: "
+                f"{best_flag.sum()}, flux: {(low_flux & hig_flux).sum()}"
+            )
+
             if len(best_srcs) < 5:
                 logger.warning(
-                    "Best sources are too few- Using everything we have!"
+                    f"Best sources are too few ({len(best_srcs)} < 5) - "
+                    f"Using all {len(srcs)} sources!"
                 )
                 best_srcs = srcs
 
-            if len(best_srcs) > 1800:
-                jj = np.random.choice(len(best_srcs), 1800, replace=False)
+            if len(best_srcs) > MAX_SRCS_LIMIT:
+                logger.info(
+                    f"Too many sources ({len(best_srcs)}), randomly selecting "
+                    f"{MAX_SRCS_LIMIT}"
+                )
+                jj = np.random.choice(
+                    len(best_srcs), MAX_SRCS_LIMIT, replace=False
+                )
                 best_srcs = best_srcs[jj]
 
             self._best_sources = best_srcs
+            logger.info(f"Final best_sources count: {len(self._best_sources)}")
 
         return self._best_sources
 
@@ -499,9 +742,10 @@ class SingleImage(object):
         """Update best source property."""
         del self._best_sources
         if new_sources is None:
-            foo = self.best_sources  # noqa
-            foo = self.stamp_shape  # noqa
-            foo = self.n_sources  # noqa
+            # Force evaluation of lazy properties to trigger computation
+            _ = self.best_sources
+            _ = self.stamp_shape
+            _ = self.n_sources
         else:
             self._best_sources = new_sources
         return
@@ -537,15 +781,21 @@ class SingleImage(object):
                 margs_s = np.std(margs)
 
                 if (
-                    margs_m + margs_s > 3.5 * rms
-                    or margs_m - margs_s < 3.5 * rms
+                    margs_m + margs_s > MARGIN_CHECK_THRESHOLD * rms
+                    or margs_m - margs_s < MARGIN_CHECK_THRESHOLD * rms
                 ):
                     check_shape = True
 
                 return check_shape
 
             n_cand_srcs = len(self.best_sources)
+            logger.debug(
+                f"Processing {n_cand_srcs} candidate sources for stamp extract"
+            )
             if n_cand_srcs <= 20:
+                logger.info(
+                    f"{n_cand_srcs} candidates, disabling strict star pick"
+                )
                 self.strict_star_pick = False
 
             for row in self.best_sources:
@@ -559,6 +809,7 @@ class SingleImage(object):
                 )
 
                 if np.any(np.isnan(sub_array_data)):
+                    logger.debug(f"Source {jj} rejected: contains NaN values")
                     to_del.append(jj)
                     jj += 1
                     continue
@@ -590,8 +841,8 @@ class SingleImage(object):
                 sub_array_data -= np.median(sub_array_data[star_bg])
 
                 pad_dim = (
-                    (self.stamp_shape[0] - new_shape[0] + 6) / 2,
-                    (self.stamp_shape[1] - new_shape[1] + 6) / 2,
+                    (self.stamp_shape[0] - new_shape[0] + STAMP_PADSIZE) / 2,
+                    (self.stamp_shape[1] - new_shape[1] + STAMP_PADSIZE) / 2,
                 )
 
                 if not pad_dim == (0, 0):
@@ -611,7 +862,13 @@ class SingleImage(object):
                     xcm = np.array([xcm[0], ycm[0]])
 
                     delta = xcm - np.asarray(new_shape) / 2.0
-                    if np.sqrt(np.sum(delta**2)) > new_shape[0] / 5.0:
+                    delta_norm = np.sqrt(np.sum(delta**2))
+                    if delta_norm > new_shape[0] / PSF_CTR_TOL:
+                        logger.debug(
+                            f"Source {jj} rejected: peak off-center "
+                            f"(delta={delta_norm:.2f}, "
+                            f"threshold={new_shape[0] / PSF_CTR_TOL:.2f})"
+                        )
                         to_del.append(jj)
                         jj += 1
                         continue
@@ -619,11 +876,18 @@ class SingleImage(object):
                     #  Checking if it has outliers
                     sd = np.std(sub_array_data)
                     if sd > 0.15:
+                        logger.debug(
+                            f"Source {jj} rejected: high std deviation "
+                            f"({sd:.4f} > 0.15)"
+                        )
                         to_del.append(jj)
                         jj += 1
                         continue
 
                     if np.any(sub_array_data.flatten() > 0.5):
+                        logger.debug(
+                            f"Source {jj} rejected: contains values > 0.5"
+                        )
                         to_del.append(jj)
                         jj += 1
                         continue
@@ -632,6 +896,10 @@ class SingleImage(object):
                         sub_array_data, threshold=3.5, neighborhood_size=5
                     )
                     if len(outl_cat) > 1:
+                        logger.debug(
+                            f"Source {jj} rejected: multiple local maxima "
+                            f"detected ({len(outl_cat)})"
+                        )
                         to_del.append(jj)
                         jj += 1
                         continue
@@ -640,7 +908,12 @@ class SingleImage(object):
                         ymax, xmax, thmax = outl_cat[0]
                         xcm = np.array([xmax, ymax])
                         delta = xcm - np.asarray(new_shape) / 2.0
-                        if np.sqrt(np.sum(delta**2)) > new_shape[0] / 5.0:
+                        delta_norm = np.sqrt(np.sum(delta * delta))
+                        if delta_norm > new_shape[0] / PSF_CTR_TOL:
+                            logger.debug(
+                                f"Source {jj} rejected: outlier peak "
+                                f"off-center (delta={delta_norm:.2f})"
+                            )
                             to_del.append(jj)
                             jj += 1
                             continue
@@ -650,28 +923,39 @@ class SingleImage(object):
                 self.db.dump(sub_array_data, len(pos) - 1)
                 jj += 1
 
+            logger.info(
+                f"Stamp extraction complete: {len(pos)} valid stamps from "
+                f"{n_cand_srcs} candidates ({len(to_del)} rejected)"
+            )
+            if len(to_del) > 0:
+                logger.debug(
+                    f"Rejection breakdown: {len(to_del)} sources failed "
+                    "quality checks"
+                )
+
             if n_cand_srcs - len(to_del) >= 15:
+                logger.debug(f"Removing {len(to_del)} rejected sources")
                 self._best_sources = np.delete(
                     self._best_sources, to_del, axis=0
                 )
             else:
                 logger.warning(
-                    """Attempted to use strict star pick, but we had less
-                    than 15 srcs to work on. Overriding this."""
+                    f"Attempted to use strict star pick, but only had "
+                    f"{n_cand_srcs - len(to_del)}valid sources (< 15). "
+                    f"Keeping all {n_cand_srcs} sources."
                 )
             # Adding extra border to ramp to 0
             self.stamp_shape = (
-                self.stamp_shape[0] + 6,
-                self.stamp_shape[1] + 6,
+                self.stamp_shape[0] + STAMP_PADSIZE,
+                self.stamp_shape[1] + STAMP_PADSIZE,
             )
-            logger.warning(
-                "updating stamp shape to ({},{})".format(
-                    self.stamp_shape[0], self.stamp_shape[1]
-                )
+            logger.info(
+                f"Updated stamp shape to {self.stamp_shape} "
+                f"(added {STAMP_PADSIZE}px padding)"
             )
             self._stamps_pos = np.array(pos)
             self._n_sources = len(pos)
-            logger.info(f"We have {self._n_sources} total sources detected.")
+            logger.info(f"Total sources with valid stamps: {self._n_sources}")
         return self._stamps_pos
 
     @property
@@ -767,7 +1051,9 @@ class SingleImage(object):
             xs = vech[:, -cut:]
             psf_basis = []
             if hasattr(self, "_m"):
-                logger.debug(vech.shape, self._m.shape)
+                logger.debug(
+                    f"vech shape: {vech.shape}, _m shape: {self._m.shape}"
+                )
                 self._full_bases = np.dot(self._m, vech)
                 self._bases = self._full_bases[:, -cut:]
                 psf_basis = [
@@ -1031,27 +1317,59 @@ class SingleImage(object):
         Used to clean for cosmic rays and NaN pixels across the image.
         """
         if not hasattr(self, "_interped"):
+            logger.debug(
+                "Interpolating image to clean cosmic rays and NaN pixels"
+            )
             kernel = Box2DKernel(10)  # Gaussian2DKernel(stddev=2.5) #
 
+            logger.debug("Detecting cosmic rays with astroscrappy")
             crmask, _ = detect_cosmics(
                 indat=np.ascontiguousarray(self.bkg_sub_img.filled(-9999)),
                 inmask=self.bkg_sub_img.mask,
                 sigclip=6.0,
                 cleantype="medmask",
             )
+            cr_count = crmask.sum()
+            logger.info(f"Cosmic rays detected: {cr_count} pixels")
+
             self.bkg_sub_img.mask = np.ma.mask_or(
                 self.bkg_sub_img.mask, crmask
             )
             self.bkg_sub_img.mask = np.ma.mask_or(
                 self.bkg_sub_img.mask, np.isnan(self.bkg_sub_img)
             )
+            nan_count = np.isnan(self.bkg_sub_img).sum()
+            if nan_count > 0:
+                logger.debug(f"Additional NaN pixels found: {nan_count}")
+
+            total_to_interpolate = self.bkg_sub_img.mask.sum()
+            logger.info(
+                f"Total pixels to interpolate: {total_to_interpolate} "
+                f"({100 * total_to_interpolate / self.bkg_sub_img.size:.2f}%)"
+            )
+
             img = self.bkg_sub_img.filled(np.nan)
             img_interp = interpolate_replace_nans(img, kernel, convolve=conv)
 
+            iterations = 0
             while np.any(np.isnan(img_interp)):
+                iterations += 1
+                remaining_nans = np.isnan(img_interp).sum()
+                logger.debug(
+                    f"Interpolation iteration {iterations}: {remaining_nans} "
+                    "NaN pixels remaining"
+                )
                 img_interp = interpolate_replace_nans(
                     img_interp, kernel, convolve=conv
                 )
+
+            if iterations > 0:
+                logger.info(
+                    f"Interpolation complete after {iterations + 1} iterations"
+                )
+            else:
+                logger.info("Interpolation complete in 1 iteration")
+
             self._interped = img_interp
 
         return self._interped
