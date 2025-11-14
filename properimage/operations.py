@@ -183,7 +183,7 @@ def subtract(
         dx_ref, dy_ref = center_of_mass(p_r)  # [0])
         dx_new, dy_new = center_of_mass(p_n)  # [0])
         if dx_new < 0.0 or dy_new < 0.0:
-            raise ValueError("Impossible to acquire center of PSF inside stamp")
+            raise ValueError("Impossible to acquire center of PSF in stamp")
 
     psf_ref_hat = _fftwn(p_r, s=ref.data.shape, norm="ortho")
     psf_new_hat = _fftwn(p_n, s=new.data.shape, norm="ortho")
@@ -219,12 +219,11 @@ def subtract(
                     - _ifftwn(fourier_shift(dhr, (dx, dy)), norm="ortho") * b
                     - np.roll(gammap, (int(round(dx)), int(round(dy))))
                 )
+                chi = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
+                chi = chi[OPT_BORDER:-OPT_BORDER, OPT_BORDER:-OPT_BORDER]
+                chi = np.sum(np.abs(chi / (chi.shape[0] * chi.shape[1])))
 
-                cost_result = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
-                cost_result = cost_result[OPT_BORDER:-OPT_BORDER, OPT_BORDER:-OPT_BORDER]
-                cost_result = np.sum(np.abs(cost_result / (cost_result.shape[0] * cost_result.shape[1])))
-
-                return cost_result
+                return chi
 
             ti = time.time()
             vec0 = [b, 0.0, 0.0]
@@ -330,10 +329,10 @@ def subtract(
                     - _ifftwn(fourier_shift(dhr, (dx, dy)), norm="ortho") * b
                     - np.roll(gammap, (int(round(dx)), int(round(dy))))
                 )
-                cost_result = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
-                cost_result = cost_result[OPT_BORDER:-OPT_BORDER, OPT_BORDER:-OPT_BORDER]
-                cost_result = np.sum(np.abs(cost_result / (cost_result.shape[0] * cost_result.shape[1])))
-                return cost_result
+                chi = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
+                chi = chi[OPT_BORDER:-OPT_BORDER, OPT_BORDER:-OPT_BORDER]
+                chi = np.sum(np.abs(chi / (chi.shape[0] * chi.shape[1])))
+                return chi
 
             ti = time.time()
             vec0 = [0.0, 0.0]
@@ -478,38 +477,55 @@ def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
     mix_mask : np.ndarray of bool
         Mask of bad pixels for subtracion image, with True marking bad pixels
     """
-    logger = logging.getLogger()
+    logger.info(f"Starting coadd operation with {len(si_list)} images")
+    logger.info(
+        f"Alignment: {align}, inf_loss: {inf_loss}, n_procs: {n_procs}"
+    )
+
     for i_img, animg in enumerate(si_list):
         if not isinstance(animg, si):
             si_list[i_img] = si(animg)
 
     if align:
+        logger.info("Aligning images for coadd")
         img_list = u._align_for_coadd(si_list)
+        logger.info("Updating sources after alignment")
         for an_img in img_list:
             an_img.update_sources()
     else:
+        logger.info("Using images without alignment")
         img_list = si_list
 
     shapex = np.min([an_img.data.shape[0] for an_img in img_list])
     shapey = np.min([an_img.data.shape[1] for an_img in img_list])
     global_shape = (shapex, shapey)
+    logger.info(f"Global shape determined: {global_shape}")
 
+    logger.info("Computing transparency and zero points")
     zps, meanmags = u.transparency(img_list)
     for j, an_img in enumerate(img_list):
         an_img.zp = zps[j]
         an_img._setup_kl_a_fields(inf_loss)
+    logger.info(f"Zero points: {zps}")
 
     psf_shapes = [an_img.stamp_shape[0] for an_img in img_list]
     psf_shape = np.max(psf_shapes)
     psf_shape = (psf_shape, psf_shape)
+    logger.info(f"PSF shape: {psf_shape}")
+
     n_jobs = n_procs
     if n_jobs > 1:
+        logger.info(f"Using parallel processing with {n_jobs} workers")
         chunks = list(u.chunk_it(img_list, n_jobs))
+        ti = time.time()
         results = Parallel(n_jobs=n_jobs, backend="threading")(
             delayed(process_chunk_joblib)(chunk, global_shape)
             for chunk in chunks
         )
+        tf = time.time()
+        logger.info(f"Parallel processing completed in {tf - ti:.2f} seconds")
 
+        logger.info("Combining results from parallel workers")
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
         mix_mask = np.zeros(global_shape, dtype=bool)
@@ -526,15 +542,18 @@ def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
             np.add(psf_hat_sum_imag, P_hat.imag, out=P_hat.imag)
             mix_mask = np.ma.mask_or(mix_mask, mask)
 
+        logger.info("Computing final coadd image")
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r / np.sum(P_r)
         R = _ifftwn(S_hat / np.sqrt(P_hat))
     else:
+        logger.info("Using sequential processing (single thread)")
         S_hat = np.zeros(global_shape, dtype=np.complex128)
         P_hat = np.zeros(global_shape, dtype=np.complex128)
         mix_mask = img_list[0].data.mask
 
+        ti = time.time()
         for an_img in img_list:
             np.add(an_img.s_hat_comp, S_hat, out=S_hat)
             np.add(
@@ -543,11 +562,18 @@ def coadd(si_list, align=True, inf_loss=0.2, n_procs=2):
                 out=P_hat,
             )
             mix_mask = np.ma.mask_or(mix_mask, an_img.data.mask)
+        tf = time.time()
+        logger.info(
+            f"Sequential processing completed in {tf - ti:.2f} seconds"
+        )
+
+        logger.info("Computing final coadd image")
         P_r_hat = np.sqrt(P_hat)
         P_r = _ifftwn(fourier_shift(P_r_hat, psf_shape))
         P_r = P_r / np.sum(P_r)
         R = _ifftwn(S_hat / P_r_hat)
 
+    logger.info("Coadd operation completed successfully")
     return R, P_r, mix_mask
 
 
