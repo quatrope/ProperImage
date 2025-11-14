@@ -104,3 +104,6 @@ result_images/
 .pypirc
 logtesting
 outdata.prof
+
+# MacOS files
+*.DS_Store
