@@ -218,8 +218,8 @@ def transparency(images, master=None):
         for row in mastercat[mastercat["detected"]]:
             for img in imglist:
                 cat = img.best_sources
-                imgrow = cat[cat["sourceid"] == row["sourceid"]]
-                m[q + j] = -2.5 * np.log10(imgrow["flux"]) + 20.0
+                imgfluxes = cat[cat["sourceid"] == row["sourceid"]]["flux"]
+                m[q + j] = -2.5 * np.log10(imgfluxes[0]) + 20.0
                 j += 1
         master.update_sources(mastercat)
 
