@@ -200,8 +200,8 @@ def delta_point(N, center=True, xy=None, weights=None):
     Example
     -------
     N = 100
-    x = np.random.integers(10, 80, size=10)
-    y = np.random.integers(10, 80, size=10)
+    x = np.random.randint(10, 80, size=10)
+    y = np.random.randint(10, 80, size=10)
 
     m = delta_point(N, center=False, xy=zip(x, y))
     """
