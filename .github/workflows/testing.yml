@@ -18,12 +18,23 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        tox_env: [py39, py310, py311, py312]
         include:
+          - tox_env: py39
+            python-version: "3.9"
+          - tox_env: py310
+            python-version: "3.10"
+          - tox_env: py311
+            python-version: "3.11"
+          - tox_env: py312
+            python-version: "3.12"
           - tox_env: style
+            python-version: "3.12"
           - tox_env: check-manifest
+            python-version: "3.12"
           - tox_env: coverage
+            python-version: "3.12"
           - tox_env: docs
+            python-version: "3.12"
             pandoc: true
 
     # The operative sistem
