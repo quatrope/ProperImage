@@ -9,6 +9,7 @@ on:
   pull_request:
     branches: [ master ]
 
+
 env:
   default-python: "3.12"
 
@@ -17,7 +18,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         include:
           - tox_env: py39
             python-version: "3.9"
@@ -37,8 +37,9 @@ jobs:
             python-version: "3.12"
             pandoc: true
 
+
     # The operative sistem
-    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
 
     # the steps of the CI
     steps:
