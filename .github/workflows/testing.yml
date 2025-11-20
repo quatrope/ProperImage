@@ -18,7 +18,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         include:
           - tox_env: py310
             python-version: "3.10"
@@ -38,7 +37,7 @@ jobs:
             python-version: "3.13"
             pandoc: true
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     # the steps of the CI
     steps:
