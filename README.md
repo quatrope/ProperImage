@@ -1,7 +1,7 @@
 # Proper image treatments
 
 [![QuatroPe](https://img.shields.io/badge/QuatroPe-Applications-1c5896)](https://quatrope.github.io/)
-[![Build Status](https://github.com/quatrope/ProperImage/actions/workflows/python-properimage-ci.yml/badge.svg?branch=master)](https://github.com/quatrope/ProperImage/actions/workflows/python-properimage-ci.yml)
+[![Build Status](https://github.com/quatrope/ProperImage/actions/workflows/testing.yml/badge.svg?branch=master)](https://github.com/quatrope/ProperImage/actions/workflows/python-properimage-ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/properimage/badge/?version=latest)](http://properimage.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/quatrope/ProperImage/branch/master/graph/badge.svg)](https://codecov.io/gh/quatrope/ProperImage)
 [![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://badge.fury.io/py/properimage)
