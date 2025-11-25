@@ -23,7 +23,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "properimage"
-version = "0.7.1"
+version = "0.7.2"
 authors = [{name = "Bruno O. Sanchez & QuatroPe", email = "bsanchez@cppm.in2p3.fr"}]
 readme = "README.md"
 license = {file = "LICENSE.txt"}
