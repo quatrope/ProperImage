@@ -26,7 +26,7 @@ name = "properimage"
 version = "0.7.2"
 authors = [{name = "Bruno O. Sanchez & QuatroPe", email = "bsanchez@cppm.in2p3.fr"}]
 readme = "README.md"
-license = {file = "LICENSE.txt"}
+license = "BSD-3-Clause"
 description = "Proper Astronomic Image Analysis"
 keywords = [
     "astronomy",
@@ -38,7 +38,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
