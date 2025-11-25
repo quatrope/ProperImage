@@ -14,7 +14,7 @@ It implements in particular algorithms for coaddition and subtraction
 of CCD images. The methodology follows a hypothesis test scheme.
 """
 
-__version__ = "0.7.1"
+__version__ = "0.7.2"
 
 from .operations import coadd, subtract
 from .single_image import SingleImage
