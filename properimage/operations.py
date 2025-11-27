@@ -205,6 +205,12 @@ def subtract(
     gamma = new_back - ref_back
     b = n_zp / r_zp
     norm = np.sqrt(norm_a + norm_b * b**2)
+
+    # Precompute FFTs that don't depend on optimization variables
+    # These are computed once and reused across all iterations
+    D_hat_n_ifft = _ifftwn(D_hat_n, norm="ortho")
+    D_hat_r_ifft = _ifftwn(D_hat_r, norm="ortho")
+
     if beta:
         if shift:  # beta==True & shift==True
 
@@ -214,6 +220,9 @@ def subtract(
                 norm = np.sqrt(norm_a + norm_b * b**2)
                 dhn = D_hat_n / norm
                 dhr = D_hat_r / norm
+
+                # Recompute FFTs with normalized values (still needed due to beta-dependent normalization)
+                # But we avoid recomputing D_hat_n and D_hat_r inverse FFTs when possible
                 b_n = (
                     _ifftwn(dhn, norm="ortho")
                     - _ifftwn(fourier_shift(dhr, (dx, dy)), norm="ortho") * b
@@ -256,13 +265,12 @@ def subtract(
             def F(b):
                 gammap = gamma / np.sqrt(new.var**2 + b**2 * ref.var**2)
                 norm = np.sqrt(norm_a + norm_b * b**2)
+                # Use precomputed inverse FFTs, just scale by norm
                 b_n = (
-                    _ifftwn(D_hat_n / norm, norm="ortho")
+                    D_hat_n_ifft * (1.0 / norm)
                     - gammap
-                    - b * _ifftwn(D_hat_r / norm, norm="ortho")
+                    - b * D_hat_r_ifft * (1.0 / norm)
                 )
-                # robust_stats = lambda b: sigma_clipped_stats(
-                #    b_n(b).real[100:-100, 100:-100])
                 cost = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
                 return np.sum(np.abs(cost))
 
@@ -289,10 +297,11 @@ def subtract(
             def F(b):
                 gammap = gamma / np.sqrt(new.var**2 + b**2 * ref.var**2)
                 norm = np.sqrt(norm_a + norm_b * b**2)
+                # Use precomputed inverse FFTs, just scale by norm
                 b_n = (
-                    _ifftwn(D_hat_n / norm, norm="ortho")
+                    D_hat_n_ifft * (1.0 / norm)
                     - gammap
-                    - b * _ifftwn(D_hat_r / norm, norm="ortho")
+                    - b * D_hat_r_ifft * (1.0 / norm)
                 )
                 cost = np.ma.MaskedArray(b_n.real, mask=mix_mask, fill_value=0)
                 return np.sum(np.abs(cost))
@@ -319,13 +328,16 @@ def subtract(
         if shift:  # beta==False & shift==True
             gammap = gamma / np.sqrt(new.var**2 + b**2 * ref.var**2)
             norm = np.sqrt(norm_a + norm_b * b**2)
+            # Precompute normalized FFTs
             dhn = D_hat_n / norm
             dhr = D_hat_r / norm
+            # Cache the inverse FFT of dhn (doesn't change with dx, dy)
+            dhn_ifft = _ifftwn(dhn, norm="ortho")
 
             def cost(vec):
                 dx, dy = vec
                 b_n = (
-                    _ifftwn(dhn, norm="ortho")
+                    dhn_ifft
                     - _ifftwn(fourier_shift(dhr, (dx, dy)), norm="ortho") * b
                     - np.roll(gammap, (int(round(dx)), int(round(dy))))
                 )
